@@ -107,6 +107,16 @@ release\AgenFetch-Extension-0.2.0.zip
 
 Un lancement manuel du workflow **Build Windows release** produit les mêmes fichiers comme artifact GitHub. La création du tag `v0.2.0` publie automatiquement une GitHub Release et `SHA256SUMS.txt`.
 
+## Site vitrine
+
+Le dossier `website/` contient la landing page publique (HTML/CSS/JS statiques).
+
+```powershell
+npx --yes serve website
+```
+
+Puis ouvre l’URL affichée (souvent `http://localhost:3000`).
+
 ## Structure
 
 ```text
@@ -119,6 +129,7 @@ agenfetch-desktop/
 ├── src/core/           Téléchargement, outils et file
 ├── src/renderer/       Interface Electron
 ├── test/               Tests Node.js
+├── website/            Landing page / site vitrine
 └── vendor/bin/         Binaires générés localement, non commités
 ```
 
