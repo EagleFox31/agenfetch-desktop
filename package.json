@@ -1,0 +1,47 @@
+{
+  "name": "agenfetch-desktop",
+  "version": "0.1.0",
+  "description": "Application de bureau locale pour piloter yt-dlp depuis une interface premium et une extension Chrome/Edge.",
+  "main": "src/main.js",
+  "author": "AgenStudio",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test",
+    "dist:win": "electron-builder --win nsis --x64"
+  },
+  "devDependencies": {
+    "electron": "44.0.0",
+    "electron-builder": "26.15.7"
+  },
+  "build": {
+    "appId": "cm.agenstudio.agenfetch",
+    "productName": "AgenFetch",
+    "asar": true,
+    "directories": {
+      "output": "release",
+      "buildResources": "assets"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico",
+      "artifactName": "AgenFetch-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "AgenFetch"
+    }
+  }
+}

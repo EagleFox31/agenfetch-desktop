@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <title>AgenFetch</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Navigation">
+        <div class="brand">
+          <img src="../../assets/agenfetch-mark.svg" alt="" class="brand-mark" />
+          <div>
+            <strong>AgenFetch</strong>
+            <span>by AgenStudio</span>
+          </div>
+        </div>
+
+        <nav class="nav-list">
+          <button class="nav-item is-active" type="button" data-view-target="download-view">
+            <span class="nav-icon" aria-hidden="true">↓</span>
+            Télécharger
+          </button>
+          <button class="nav-item" type="button" data-view-target="history-view">
+            <span class="nav-icon" aria-hidden="true">↺</span>
+            Historique
+          </button>
+        </nav>
+
+        <div class="sidebar-note">
+          <span class="eyebrow">100 % local</span>
+          <p>Les vidéos passent directement de YouTube à ton ordinateur.</p>
+        </div>
+        <span class="version">MVP 0.1.0</span>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Téléchargement intelligent</p>
+            <h1 id="page-title">Récupère ce qui compte.</h1>
+          </div>
+          <div class="system-status" aria-label="État des outils">
+            <span class="status-chip is-checking" id="yt-dlp-status">yt-dlp</span>
+            <span class="status-chip is-checking" id="ffmpeg-status">FFmpeg</span>
+            <span class="status-chip is-checking" id="deno-status">Deno</span>
+            <button id="check-system" class="icon-button" type="button" title="Revérifier les outils" aria-label="Revérifier les outils">↻</button>
+          </div>
+        </header>
+
+        <section class="view is-visible" id="download-view">
+          <div class="hero-card">
+            <div class="hero-copy">
+              <span class="hero-badge">VIDÉO • AUDIO • PLAYLIST</span>
+              <h2>Une URL. Le bon format. Terminé.</h2>
+              <p>Colle un lien ou utilise le bouton AgenFetch directement sous une vidéo YouTube.</p>
+            </div>
+            <div class="orb" aria-hidden="true"><span>↓</span></div>
+          </div>
+
+          <div class="workspace-grid">
+            <form class="download-card" id="download-form" novalidate>
+              <div class="field-group field-span">
+                <label for="video-url">Lien YouTube</label>
+                <div class="url-control">
+                  <span class="url-icon" aria-hidden="true">↗</span>
+                  <input
+                    id="video-url"
+                    name="url"
+                    type="url"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    required
+                  />
+                  <button class="text-button" id="paste-url" type="button">Coller</button>
+                </div>
+                <p class="field-error" id="url-error" role="alert"></p>
+              </div>
+
+              <fieldset class="field-group">
+                <legend>Format</legend>
+                <div class="segmented-control">
+                  <label>
+                    <input type="radio" name="mode" value="video" checked />
+                    <span><b>Vidéo</b><small>MP4</small></span>
+                  </label>
+                  <label>
+                    <input type="radio" name="mode" value="audio" />
+                    <span><b>Audio</b><small>MP3</small></span>
+                  </label>
+                </div>
+              </fieldset>
+
+              <div class="field-group" id="quality-group">
+                <label for="quality">Qualité</label>
+                <select id="quality" name="quality">
+                  <option value="best">Meilleure disponible</option>
+                  <option value="2160">4K — 2160p</option>
+                  <option value="1440">2K — 1440p</option>
+                  <option value="1080" selected>Full HD — 1080p</option>
+                  <option value="720">HD — 720p</option>
+                  <option value="480">SD — 480p</option>
+                  <option value="360">Éco — 360p</option>
+                </select>
+              </div>
+
+              <div class="field-group field-span">
+                <label for="output-folder">Dossier de destination</label>
+                <div class="folder-control">
+                  <input id="output-folder" name="outputFolder" type="text" readonly placeholder="Dossier Téléchargements par défaut" />
+                  <button class="secondary-button" id="choose-folder" type="button">Choisir</button>
+                  <button class="icon-button soft" id="open-folder" type="button" title="Ouvrir le dossier" aria-label="Ouvrir le dossier">↗</button>
+                </div>
+              </div>
+
+              <div class="toggle-row field-span">
+                <label class="toggle-option">
+                  <input id="playlist" name="playlist" type="checkbox" />
+                  <span class="switch" aria-hidden="true"></span>
+                  <span><b>Télécharger la playlist</b><small>Sinon, seule la vidéo ouverte sera prise.</small></span>
+                </label>
+                <label class="toggle-option">
+                  <input id="compatibility-mode" name="compatibilityMode" type="checkbox" />
+                  <span class="switch" aria-hidden="true"></span>
+                  <span><b>Mode compatibilité 403</b><small>Client alternatif, limité à 1080p.</small></span>
+                </label>
+              </div>
+
+              <button class="primary-button field-span" id="start-download" type="submit">
+                <span>Télécharger maintenant</span>
+                <span aria-hidden="true">↓</span>
+              </button>
+            </form>
+
+            <aside class="progress-card" aria-live="polite">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">Activité</p>
+                  <h3 id="progress-title">Prêt à télécharger</h3>
+                </div>
+                <span class="activity-dot" id="activity-dot"></span>
+              </div>
+
+              <div class="progress-visual">
+                <div class="progress-ring" id="progress-ring">
+                  <strong id="progress-percent">0%</strong>
+                  <span>progression</span>
+                </div>
+              </div>
+
+              <dl class="metrics">
+                <div><dt>Vitesse</dt><dd id="progress-speed">—</dd></div>
+                <div><dt>Temps restant</dt><dd id="progress-eta">—</dd></div>
+                <div><dt>Transféré</dt><dd id="progress-size">—</dd></div>
+              </dl>
+
+              <div class="progress-actions">
+                <button class="danger-button" id="cancel-download" type="button" disabled>Annuler</button>
+                <button class="secondary-button" id="toggle-log" type="button">Journal</button>
+              </div>
+              <pre class="download-log" id="download-log" hidden aria-label="Journal du téléchargement"></pre>
+            </aside>
+          </div>
+        </section>
+
+        <section class="view" id="history-view">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Historique local</p>
+              <h2>Tes derniers téléchargements</h2>
+            </div>
+            <button id="clear-history" class="secondary-button" type="button">Effacer l’historique</button>
+          </div>
+          <div class="history-list" id="history-list"></div>
+        </section>
+
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      </main>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,41 @@
+#agenfetch-youtube-button.agenfetch-youtube-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 118px;
+  height: 36px;
+  margin-left: 8px;
+  padding: 0 14px;
+  border: 1px solid rgba(53, 214, 201, 0.42);
+  border-radius: 999px;
+  color: #f7fffd;
+  background: linear-gradient(108deg, #0f3b43, #18333b);
+  box-shadow: none;
+  font: 600 13px/1 Roboto, Arial, sans-serif;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+#agenfetch-youtube-button.agenfetch-youtube-button:hover {
+  border-color: #35d6c9;
+  background: linear-gradient(108deg, #124952, #253841);
+  transform: translateY(-1px);
+}
+
+#agenfetch-youtube-button.agenfetch-youtube-button:active {
+  transform: translateY(0);
+}
+
+.agenfetch-button-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: #07191e;
+  background: #35d6c9;
+  font-size: 14px;
+  font-weight: 800;
+}

@@ -1,0 +1,14 @@
+:root { font-family: "Segoe UI", Arial, sans-serif; color: #f8f4ec; background: #08191f; }
+* { box-sizing: border-box; }
+body { width: 286px; margin: 0; padding: 17px; }
+header { display: flex; align-items: center; gap: 10px; padding-bottom: 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+header img { width: 38px; height: 38px; border-radius: 10px; }
+header strong, header span { display: block; }
+header strong { font-size: 15px; }
+header span { margin-top: 2px; color: #87a1a7; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; }
+main p { margin: 15px 0 13px; color: #b5c4c7; font-size: 11px; line-height: 1.45; }
+button { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 8px; padding: 10px 12px; border: 1px solid rgba(53, 214, 201, 0.28); border-radius: 10px; color: #07191e; background: #35d6c9; font: 700 11px "Segoe UI", Arial, sans-serif; cursor: pointer; }
+button.secondary { color: #f8f4ec; background: #122c34; border-color: rgba(255, 255, 255, 0.1); }
+button:hover { filter: brightness(1.07); }
+small { display: block; margin-top: 13px; color: #607b82; font-size: 9px; }
+small.error { color: #ff8e9a; }
