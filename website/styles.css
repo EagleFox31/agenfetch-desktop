@@ -749,7 +749,7 @@ code {
   }
 
   .brand-mark-text {
-    font-size: clamp(3rem, 14vw, 4.4rem);
+    font-size: clamp(2.6rem, 8vw, 3.8rem);
   }
 
   .app-plane {
@@ -818,10 +818,10 @@ code {
   }
 
   .brand-mark-text {
-    font-size: clamp(2.35rem, 11vw, 3rem);
-    letter-spacing: -0.045em;
+    font-size: clamp(2.1rem, 9.2vw, 2.75rem);
+    letter-spacing: -0.04em;
     max-width: 100%;
-    overflow-wrap: anywhere;
+    white-space: nowrap;
   }
 
   .hero h1 {
