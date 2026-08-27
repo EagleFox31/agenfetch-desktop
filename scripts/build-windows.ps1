@@ -9,4 +9,6 @@ npm test
 
 npm run dist:win
 
-Write-Host "Installateur généré dans le dossier release." -ForegroundColor Green
+& (Join-Path $PSScriptRoot "package-extension.ps1")
+
+Write-Host "Installateur autonome et extension générés dans le dossier release." -ForegroundColor Green

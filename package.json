@@ -1,6 +1,6 @@
 {
   "name": "agenfetch-desktop",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Application de bureau locale pour piloter yt-dlp depuis une interface premium et une extension Chrome/Edge.",
   "main": "src/main.js",
   "author": "AgenStudio",
@@ -12,7 +12,8 @@
   "scripts": {
     "start": "electron .",
     "test": "node --test",
-    "dist:win": "electron-builder --win nsis --x64"
+    "prepare:runtime:win": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/fetch-runtime-tools.ps1",
+    "dist:win": "npm run prepare:runtime:win && electron-builder --win nsis --x64"
   },
   "devDependencies": {
     "electron": "44.0.0",
@@ -22,6 +23,7 @@
     "appId": "cm.agenstudio.agenfetch",
     "productName": "AgenFetch",
     "asar": true,
+    "compression": "maximum",
     "directories": {
       "output": "release",
       "buildResources": "assets"
@@ -31,13 +33,29 @@
       "assets/**/*",
       "package.json"
     ],
+    "extraResources": [
+      {
+        "from": "vendor/bin",
+        "to": "bin",
+        "filter": [
+          "**/*.exe",
+          "**/TOOLS-MANIFEST.json"
+        ]
+      },
+      {
+        "from": "docs/THIRD_PARTY_NOTICES.md",
+        "to": "THIRD_PARTY_NOTICES.md"
+      }
+    ],
     "win": {
       "target": "nsis",
       "icon": "assets/icon.ico",
+      "requestedExecutionLevel": "asInvoker",
       "artifactName": "AgenFetch-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
+      "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,

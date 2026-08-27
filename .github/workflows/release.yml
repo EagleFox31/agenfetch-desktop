@@ -1,0 +1,57 @@
+name: Build Windows release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build installer and extension
+        shell: powershell
+        run: .\scripts\build-windows.ps1
+
+      - name: Generate SHA-256 checksums
+        shell: powershell
+        run: |
+          $assets = Get-ChildItem -LiteralPath release -File | Where-Object { $_.Name -match '^AgenFetch-Setup-.*\.exe$' -or $_.Name -match '^AgenFetch-Extension-.*\.zip$' }
+          $lines = foreach ($asset in $assets) {
+            $hash = (Get-FileHash -LiteralPath $asset.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($asset.Name)"
+          }
+          $lines | Set-Content -LiteralPath release\SHA256SUMS.txt -Encoding ascii
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AgenFetch-Windows-${{ github.ref_name }}
+          path: |
+            release/AgenFetch-Setup-*.exe
+            release/AgenFetch-Extension-*.zip
+            release/SHA256SUMS.txt
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $assets = Get-ChildItem -LiteralPath release -File | Where-Object { $_.Name -match '^AgenFetch-Setup-.*\.exe$' -or $_.Name -match '^AgenFetch-Extension-.*\.zip$' -or $_.Name -eq 'SHA256SUMS.txt' } | ForEach-Object { $_.FullName }
+          gh release create $env:GITHUB_REF_NAME $assets --verify-tag --generate-notes --title "AgenFetch $env:GITHUB_REF_NAME"

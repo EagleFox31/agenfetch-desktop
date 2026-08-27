@@ -1,14 +1,18 @@
 'use strict';
 
 const path = require('node:path');
-const { app, BrowserWindow, clipboard, dialog, ipcMain, shell } = require('electron');
-const { DownloaderService, checkPrerequisites } = require('./core/downloader');
+const { app, BrowserWindow, clipboard, dialog, ipcMain, Notification, shell } = require('electron');
+const { DownloaderService } = require('./core/downloader');
+const { DownloadQueue } = require('./core/download-queue');
 const { HistoryStore } = require('./core/history-store');
-const { findProtocolUrl, parseProtocolUrl } = require('./core/validation');
+const { ToolManager } = require('./core/tool-manager');
+const { findProtocolUrl, parseProtocolUrl, sanitizeDownloadOptions } = require('./core/validation');
 
 let mainWindow = null;
 let downloader = null;
+let downloadQueue = null;
 let history = null;
+let toolManager = null;
 let pendingDeepLink = null;
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
@@ -78,8 +82,34 @@ function createWindow() {
   });
 }
 
+function showDownloadNotification(result) {
+  if (!Notification.isSupported() || result.cancelled) return;
+  const notification = new Notification({
+    title: result.ok ? 'Téléchargement terminé' : 'Téléchargement échoué',
+    body: result.ok
+      ? 'Le fichier est disponible dans ton dossier de destination.'
+      : result.error || 'Consulte le journal AgenFetch pour plus de détails.',
+    icon: path.join(__dirname, '..', 'assets', 'icon.png'),
+    silent: false
+  });
+  notification.on('click', focusWindow);
+  notification.show();
+}
+
+function sanitizeQueuePayloads(payloads) {
+  const list = Array.isArray(payloads) ? payloads : [payloads];
+  return list.map((payload) => ({
+    ...sanitizeDownloadOptions(payload, downloader.defaultFolder),
+    title: typeof payload?.title === 'string' ? payload.title.trim().slice(0, 200) : ''
+  }));
+}
+
 function wireIpc() {
-  ipcMain.handle('system:check', () => checkPrerequisites());
+  ipcMain.handle('system:check', () => toolManager.checkAll());
+  ipcMain.handle('tools:update-ytdlp', () => {
+    if (downloader.isRunning) throw new Error('Attends la fin du téléchargement avant de mettre yt-dlp à jour.');
+    return toolManager.updateYtDlp();
+  });
   ipcMain.handle('clipboard:read', () => clipboard.readText());
 
   ipcMain.handle('folder:choose', async () => {
@@ -98,24 +128,34 @@ function wireIpc() {
     return shell.openPath(folderPath);
   });
 
-  ipcMain.handle('download:start', (_event, payload) => downloader.start(payload));
-  ipcMain.handle('download:cancel', () => downloader.cancel());
+  ipcMain.handle('metadata:inspect', (_event, payload) => downloader.inspect(payload));
+  ipcMain.handle('download:start', (_event, payload) => downloadQueue.add(sanitizeQueuePayloads(payload)));
+  ipcMain.handle('download:enqueue', (_event, payloads) => downloadQueue.add(sanitizeQueuePayloads(payloads)));
+  ipcMain.handle('download:cancel', () => downloadQueue.cancelActive());
+  ipcMain.handle('queue:list', () => downloadQueue.snapshot());
+  ipcMain.handle('queue:remove', (_event, itemId) => downloadQueue.remove(itemId));
+  ipcMain.handle('queue:clear-finished', () => downloadQueue.clearFinished());
   ipcMain.handle('history:list', () => history.list());
   ipcMain.handle('history:clear', () => history.clear());
 
   downloader.on('progress', (value) => mainWindow?.webContents.send('download:progress', value));
   downloader.on('log', (value) => mainWindow?.webContents.send('download:log', value));
+  downloadQueue.on('changed', (value) => mainWindow?.webContents.send('queue:changed', value));
   downloader.on('finished', (value) => {
     const historyEntry = history.add({
       url: value.options?.url || '',
+      title: value.options?.title || '',
       mode: value.options?.mode || 'video',
       quality: value.options?.quality || '—',
+      container: value.options?.container || 'mp4',
+      subtitles: value.options?.subtitles || 'none',
       status: value.cancelled ? 'cancelled' : value.ok ? 'completed' : 'failed',
       destination: value.destination || '',
       startedAt: value.options?.startedAt || null,
       finishedAt: value.finishedAt
     });
     mainWindow?.webContents.send('download:finished', { ...value, historyEntry });
+    showDownloadNotification(value);
   });
 }
 
@@ -132,13 +172,27 @@ app.on('open-url', (event, value) => {
 
 app.whenReady().then(() => {
   registerProtocol();
-  downloader = new DownloaderService(app.getPath('downloads'));
+  toolManager = new ToolManager({
+    resourcesPath: process.resourcesPath,
+    userDataPath: app.getPath('userData'),
+    projectRoot: path.join(__dirname, '..'),
+    isPackaged: app.isPackaged
+  });
+  toolManager.prepare();
+  downloader = new DownloaderService(app.getPath('downloads'), { toolManager });
+  downloadQueue = new DownloadQueue(downloader);
   history = new HistoryStore(app.getPath('userData'));
   wireIpc();
   createWindow();
 
   const initialUrl = findProtocolUrl(process.argv);
   if (initialUrl) forwardDeepLink(initialUrl);
+}).catch((error) => {
+  dialog.showErrorBox(
+    'AgenFetch n’a pas pu démarrer',
+    error?.message || 'Une erreur inattendue est survenue pendant l’initialisation.'
+  );
+  app.quit();
 });
 
 app.on('window-all-closed', () => {
