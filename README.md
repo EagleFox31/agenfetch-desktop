@@ -105,7 +105,7 @@ release\AgenFetch-Setup-0.2.0.exe
 release\AgenFetch-Extension-0.2.0.zip
 ```
 
-Un lancement manuel du workflow **Build Windows release** produit les mêmes fichiers comme artifact GitHub. La création du tag `v0.2.0` publie automatiquement une GitHub Release et `SHA256SUMS.txt`.
+Un lancement manuel du workflow **Build Windows release** produit les mêmes fichiers comme artifact GitHub. Lorsqu’une nouvelle version est fusionnée sur `main`, le workflow crée automatiquement son tag `vX.Y.Z` et publie la GitHub Release avec `SHA256SUMS.txt`, si cette version n’existe pas encore.
 
 ## Structure
 

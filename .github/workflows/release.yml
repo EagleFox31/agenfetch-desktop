@@ -6,8 +6,8 @@ on:
     branches:
       - main
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -51,27 +51,45 @@ jobs:
           if-no-files-found: error
 
   publish-release:
-    if: startsWith(github.ref, 'refs/tags/')
+    if: github.ref == 'refs/heads/main'
     needs: build-windows
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
+      - name: Checkout release metadata
+        uses: actions/checkout@v4
+
+      - name: Resolve release version
+        id: version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="v$(node -p "require('./package.json').version")"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Download Windows artifacts
+        if: steps.version.outputs.publish == 'true'
         uses: actions/download-artifact@v4
         with:
           name: AgenFetch-Windows-${{ github.run_number }}
           path: release
 
       - name: Publish GitHub Release
+        if: steps.version.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: >-
-          gh release create "$GITHUB_REF_NAME"
+          gh release create "${{ steps.version.outputs.tag }}"
           release/AgenFetch-Setup-*.exe
           release/AgenFetch-Extension-*.zip
           release/SHA256SUMS.txt
-          --verify-tag
+          --target "$GITHUB_SHA"
           --generate-notes
-          --title "AgenFetch $GITHUB_REF_NAME"
+          --title "AgenFetch ${{ steps.version.outputs.tag }}"

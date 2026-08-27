@@ -10,7 +10,7 @@
 - Extension Chrome/Edge et protocole `agenfetch://`.
 - Installateur NSIS dépendant des outils système.
 
-## Bêta 0.2 — en préparation
+## Bêta 0.2 — livrée
 
 - Installateur Windows x64 autonome.
 - yt-dlp, FFmpeg, ffprobe et Deno intégrés.
