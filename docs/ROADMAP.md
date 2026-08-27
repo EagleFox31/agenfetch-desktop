@@ -28,7 +28,7 @@
 - Persistance de la file après redémarrage.
 - Reprise améliorée et nouveaux essais automatiques contrôlés.
 - Version portable.
-- Site vitrine avec téléchargement et documentation.
+- Site vitrine avec téléchargement et documentation. *(landing FR initiale dans `website/`)*
 - Français et anglais.
 - Préparation de la distribution de l’extension.
 
