@@ -817,6 +817,17 @@ code {
     padding-right: 20px;
   }
 
+  .brand-mark-text {
+    font-size: clamp(2.35rem, 11vw, 3rem);
+    letter-spacing: -0.045em;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .hero h1 {
+    font-size: clamp(1.45rem, 6.5vw, 1.85rem);
+  }
+
   .cta-row {
     flex-direction: column;
   }
