@@ -25,17 +25,18 @@ function Get-ExpectedHash {
         [Parameter(Mandatory = $true)][string]$AssetName
     )
 
-    $HashOnlyCandidates = @()
+    $HashCandidates = @()
     foreach ($Line in Get-Content -LiteralPath $ChecksumFile) {
         if ($Line -match [Regex]::Escape($AssetName) -and $Line -match '(?i)\b([a-f0-9]{64})\b') {
             return $Matches[1].ToLowerInvariant()
         }
-        if ($Line.Trim() -match '(?i)^([a-f0-9]{64})$') {
-            $HashOnlyCandidates += $Matches[1].ToLowerInvariant()
+        if ($Line -match '(?i)\b([a-f0-9]{64})\b') {
+            $HashCandidates += $Matches[1].ToLowerInvariant()
         }
     }
-    if ($HashOnlyCandidates.Count -eq 1) {
-        return $HashOnlyCandidates[0]
+    $UniqueHashes = @($HashCandidates | Select-Object -Unique)
+    if ($UniqueHashes.Count -eq 1) {
+        return $UniqueHashes[0]
     }
     throw "Aucune empreinte SHA-256 trouvée pour $AssetName."
 }
