@@ -13,7 +13,7 @@
     "start": "electron .",
     "test": "node --test",
     "prepare:runtime:win": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/fetch-runtime-tools.ps1",
-    "dist:win": "npm run prepare:runtime:win && electron-builder --win nsis --x64"
+    "dist:win": "npm run prepare:runtime:win && electron-builder --win nsis --x64 --publish never"
   },
   "devDependencies": {
     "electron": "44.0.0",
