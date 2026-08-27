@@ -30,7 +30,14 @@ jobs:
 
       - name: Build installer and extension
         shell: powershell
-        run: .\scripts\build-windows.ps1
+        run: |
+          npm install
+          if ($LASTEXITCODE -ne 0) { throw "npm install failed." }
+          npm test
+          if ($LASTEXITCODE -ne 0) { throw "Tests failed." }
+          npm run dist:win -- --publish never
+          if ($LASTEXITCODE -ne 0) { throw "Windows packaging failed." }
+          & .\scripts\package-extension.ps1
 
       - name: Generate SHA-256 checksums
         shell: powershell
