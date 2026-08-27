@@ -1,30 +1,41 @@
 # Roadmap produit
 
-## MVP 0.1 — livré dans ce dépôt
+## MVP 0.1 — livré
 
-- Vidéo MP4 et audio MP3.
-- Choix de qualité jusqu’à 4K lorsque YouTube la fournit.
+- MP4 et MP3, qualité jusqu’à 4K.
 - Vidéos, Shorts, lives et playlists.
-- Diagnostic yt-dlp, FFmpeg et Deno.
-- Progression, vitesse, ETA, journal et annulation.
-- Mode de compatibilité pour certains HTTP 403.
-- Historique local.
+- Progression, historique et annulation.
+- Diagnostic des prérequis.
+- Mode de compatibilité 403.
 - Extension Chrome/Edge et protocole `agenfetch://`.
-- Installateur Windows NSIS.
+- Installateur NSIS dépendant des outils système.
 
-## Version 0.2
+## Bêta 0.2 — en préparation
 
+- Installateur Windows x64 autonome.
+- yt-dlp, FFmpeg, ffprobe et Deno intégrés.
+- Vérification SHA-256 de la chaîne de build.
+- Mise à jour de yt-dlp depuis l’application.
 - File d’attente de plusieurs liens.
 - Métadonnées et miniature avant confirmation.
-- Sous-titres et sélection de langue.
-- Choix du conteneur et du codec.
-- Bouton de mise à jour de yt-dlp.
-- Notification Windows à la fin.
+- MP4/MKV et sous-titres multilingues.
+- Notifications Windows.
+- Extension ZIP versionnée.
+- GitHub Actions et Releases automatisées.
 
-## Version 1.0
+## Version 0.3 — distribution
+
+- Persistance de la file après redémarrage.
+- Reprise améliorée et nouveaux essais automatiques contrôlés.
+- Version portable.
+- Site vitrine avec téléchargement et documentation.
+- Français et anglais.
+- Préparation de la distribution de l’extension.
+
+## Version 1.0 — stable
 
 - Signature du binaire Windows.
-- Mises à jour automatiques signées.
-- Extension empaquetée pour distribution privée.
-- Traductions français/anglais.
-- Migration possible vers Tauri pour réduire la taille mémoire et disque.
+- Mises à jour automatiques signées de l’application.
+- Télémétrie facultative et respectueuse de la vie privée pour les erreurs.
+- Audit de sécurité et de licences.
+- Migration éventuelle vers Tauri après mesure de la consommation réelle.

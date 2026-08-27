@@ -5,13 +5,22 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { EventEmitter } = require('node:events');
 const {
   findProtocolUrl,
   normalizeYouTubeUrl,
   parseProtocolUrl,
   sanitizeDownloadOptions
 } = require('../src/core/validation');
-const { DownloaderService, buildYtDlpArgs, parseProgressLine } = require('../src/core/downloader');
+const {
+  DownloaderService,
+  buildYtDlpArgs,
+  parseProgressLine,
+  safeThumbnailUrl,
+  summarizeMetadata
+} = require('../src/core/downloader');
+const { DownloadQueue } = require('../src/core/download-queue');
+const { ToolManager } = require('../src/core/tool-manager');
 
 test('accepte les principaux liens YouTube', () => {
   const urls = [
@@ -96,7 +105,24 @@ test('assainit les valeurs inconnues', () => {
   }, 'C:\\Downloads');
   assert.equal(safe.mode, 'video');
   assert.equal(safe.quality, '1080');
+  assert.equal(safe.container, 'mp4');
+  assert.equal(safe.subtitles, 'none');
   assert.equal(safe.outputFolder, 'C:\\Downloads');
+});
+
+test('construit une vidéo MKV avec sous-titres français', () => {
+  const { args, options } = buildYtDlpArgs({
+    url: 'https://youtu.be/zw30rfxoV04',
+    mode: 'video',
+    quality: '1440',
+    container: 'mkv',
+    subtitles: 'fr',
+    outputFolder: 'C:\\Downloads'
+  });
+  assert.equal(options.container, 'mkv');
+  assert.equal(args[args.indexOf('--merge-output-format') + 1], 'mkv');
+  assert.ok(args.includes('--embed-subs'));
+  assert.equal(args[args.indexOf('--sub-langs') + 1], 'fr.*,fr,-live_chat');
 });
 
 test('analyse la sortie de progression dédiée', () => {
@@ -109,6 +135,122 @@ test('analyse la sortie de progression dédiée', () => {
 
 test('ignore les lignes yt-dlp ordinaires', () => {
   assert.equal(parseProgressLine('[youtube] Downloading webpage'), null);
+});
+
+test('résume les métadonnées sans exposer une miniature non approuvée', () => {
+  const metadata = summarizeMetadata({
+    id: 'demo',
+    title: 'Démonstration AgenFetch',
+    uploader: 'AgenStudio',
+    duration: 125,
+    thumbnail: 'https://i.ytimg.com/vi/demo/maxresdefault.jpg'
+  });
+  assert.equal(metadata.durationLabel, '02:05');
+  assert.equal(metadata.thumbnail, 'https://i.ytimg.com/vi/demo/maxresdefault.jpg');
+  assert.equal(safeThumbnailUrl('https://example.com/tracker.png'), '');
+});
+
+test('analyse un lien avec le binaire géré et ses runtimes', async () => {
+  let receivedArgs = [];
+  const service = new DownloaderService('C:\\Downloads', {
+    toolManager: {
+      resolveCommand: () => 'C:\\AgenFetch\\yt-dlp.exe',
+      getYtDlpRuntimeArgs: () => ['--js-runtimes', 'deno:C:\\AgenFetch\\deno.exe'],
+      buildEnvironment: () => ({ PATH: 'C:\\AgenFetch' })
+    },
+    execFileImpl: async (_command, args) => {
+      receivedArgs = args;
+      return {
+        stdout: JSON.stringify({
+          id: 'demo',
+          title: 'Vidéo de test',
+          channel: 'AgenStudio',
+          duration: 62
+        }),
+        stderr: ''
+      };
+    }
+  });
+  const metadata = await service.inspect({ url: 'https://youtu.be/zw30rfxoV04' });
+  assert.equal(metadata.title, 'Vidéo de test');
+  assert.ok(receivedArgs.includes('--no-playlist'));
+  assert.ok(receivedArgs.includes('deno:C:\\AgenFetch\\deno.exe'));
+});
+
+test('prépare et résout les outils Windows embarqués', async () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'agenfetch-tools-'));
+  const resourcesPath = path.join(tempRoot, 'resources');
+  const bundledBin = path.join(resourcesPath, 'bin');
+  const userDataPath = path.join(tempRoot, 'user');
+  fs.mkdirSync(bundledBin, { recursive: true });
+  ['yt-dlp.exe', 'ffmpeg.exe', 'deno.exe'].forEach((file) => {
+    fs.writeFileSync(path.join(bundledBin, file), 'fake', 'utf8');
+  });
+
+  try {
+    const manager = new ToolManager({
+      resourcesPath,
+      userDataPath,
+      projectRoot: tempRoot,
+      isPackaged: true,
+      platform: 'win32',
+      environment: { Path: 'C:\\Windows' },
+      execFileImpl: async (command) => ({ stdout: `${path.basename(command)} 1.0`, stderr: '' })
+    });
+    manager.prepare();
+    assert.equal(manager.resolveCommand('ytDlp'), path.join(userDataPath, 'tools', 'yt-dlp.exe'));
+    assert.equal(manager.resolveCommand('ffmpeg'), path.join(bundledBin, 'ffmpeg.exe'));
+    assert.ok(manager.getYtDlpRuntimeArgs().includes(`deno:${path.join(bundledBin, 'deno.exe')}`));
+    const status = await manager.checkAll();
+    assert.equal(status.portable, true);
+    assert.equal(status.ytDlp.source, 'géré par AgenFetch');
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('traite la file dans l’ordre et permet de retirer un élément en attente', async () => {
+  class FakeDownloader extends EventEmitter {
+    constructor() {
+      super();
+      this.running = false;
+      this.starts = [];
+    }
+
+    get isRunning() {
+      return this.running;
+    }
+
+    start(payload) {
+      this.running = true;
+      this.starts.push(payload.url);
+    }
+
+    finish(result = { ok: true, cancelled: false }) {
+      this.running = false;
+      this.emit('finished', result);
+    }
+
+    cancel() {
+      return this.running;
+    }
+  }
+
+  const fake = new FakeDownloader();
+  let counter = 0;
+  const queue = new DownloadQueue(fake, { idFactory: () => `job-${++counter}` });
+  const snapshot = queue.add([
+    { url: 'https://youtu.be/first', mode: 'video', quality: '720' },
+    { url: 'https://youtu.be/second', mode: 'audio', quality: 'best' },
+    { url: 'https://youtu.be/third', mode: 'video', quality: '1080' }
+  ]);
+  assert.equal(snapshot.activeId, 'job-1');
+  assert.equal(snapshot.items[1].status, 'waiting');
+  assert.equal(queue.remove('job-3'), true);
+  fake.finish();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(fake.starts, ['https://youtu.be/first', 'https://youtu.be/second']);
+  assert.equal(queue.snapshot().activeId, 'job-2');
 });
 
 test('le service relaie la progression et termine proprement', { skip: process.platform === 'win32' }, async () => {

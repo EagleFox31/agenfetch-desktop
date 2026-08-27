@@ -10,6 +10,8 @@ const ALLOWED_HOSTS = new Set([
 
 const ALLOWED_QUALITIES = new Set(['best', '2160', '1440', '1080', '720', '480', '360']);
 const ALLOWED_MODES = new Set(['video', 'audio']);
+const ALLOWED_CONTAINERS = new Set(['mp4', 'mkv']);
+const ALLOWED_SUBTITLE_LANGUAGES = new Set(['none', 'fr', 'en', 'all']);
 
 function normalizeYouTubeUrl(input) {
   if (typeof input !== 'string' || !input.trim()) {
@@ -46,6 +48,8 @@ function sanitizeDownloadOptions(input, defaultFolder) {
   const url = normalizeYouTubeUrl(source.url);
   const mode = ALLOWED_MODES.has(source.mode) ? source.mode : 'video';
   const quality = ALLOWED_QUALITIES.has(String(source.quality)) ? String(source.quality) : '1080';
+  const container = ALLOWED_CONTAINERS.has(source.container) ? source.container : 'mp4';
+  const subtitles = ALLOWED_SUBTITLE_LANGUAGES.has(source.subtitles) ? source.subtitles : 'none';
   const outputFolder = typeof source.outputFolder === 'string' && source.outputFolder.trim()
     ? source.outputFolder.trim()
     : defaultFolder;
@@ -58,6 +62,8 @@ function sanitizeDownloadOptions(input, defaultFolder) {
     url,
     mode,
     quality,
+    container,
+    subtitles,
     outputFolder,
     playlist: Boolean(source.playlist),
     compatibilityMode: Boolean(source.compatibilityMode)
@@ -96,9 +102,11 @@ function findProtocolUrl(argv) {
 }
 
 module.exports = {
+  ALLOWED_CONTAINERS,
   ALLOWED_HOSTS,
   ALLOWED_MODES,
   ALLOWED_QUALITIES,
+  ALLOWED_SUBTITLE_LANGUAGES,
   findProtocolUrl,
   normalizeYouTubeUrl,
   parseProtocolUrl,
