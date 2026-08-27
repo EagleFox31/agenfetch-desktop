@@ -1,0 +1,77 @@
+name: Build Windows release
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build installer and extension
+        shell: powershell
+        run: .\scripts\build-windows.ps1
+
+      - name: Generate SHA-256 checksums
+        shell: powershell
+        run: |
+          $assets = Get-ChildItem -LiteralPath release -File | Where-Object { $_.Name -match '^AgenFetch-Setup-.*\.exe$' -or $_.Name -match '^AgenFetch-Extension-.*\.zip$' }
+          $lines = foreach ($asset in $assets) {
+            $hash = (Get-FileHash -LiteralPath $asset.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($asset.Name)"
+          }
+          $lines | Set-Content -LiteralPath release\SHA256SUMS.txt -Encoding ascii
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AgenFetch-Windows-${{ github.run_number }}
+          path: |
+            release/AgenFetch-Setup-*.exe
+            release/AgenFetch-Extension-*.zip
+            release/SHA256SUMS.txt
+          if-no-files-found: error
+
+  publish-release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build-windows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: AgenFetch-Windows-${{ github.run_number }}
+          path: release
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME"
+          release/AgenFetch-Setup-*.exe
+          release/AgenFetch-Extension-*.zip
+          release/SHA256SUMS.txt
+          --verify-tag
+          --generate-notes
+          --title "AgenFetch $GITHUB_REF_NAME"

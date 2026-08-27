@@ -11,15 +11,22 @@ function subscribe(channel, callback) {
 
 contextBridge.exposeInMainWorld('agenFetch', {
   checkSystem: () => ipcRenderer.invoke('system:check'),
+  updateYtDlp: () => ipcRenderer.invoke('tools:update-ytdlp'),
   readClipboard: () => ipcRenderer.invoke('clipboard:read'),
   getDefaultFolder: () => ipcRenderer.invoke('folder:default'),
   chooseFolder: () => ipcRenderer.invoke('folder:choose'),
   openFolder: (folderPath) => ipcRenderer.invoke('folder:open', folderPath),
+  inspectMetadata: (payload) => ipcRenderer.invoke('metadata:inspect', payload),
   startDownload: (payload) => ipcRenderer.invoke('download:start', payload),
+  enqueueDownloads: (payloads) => ipcRenderer.invoke('download:enqueue', payloads),
   cancelDownload: () => ipcRenderer.invoke('download:cancel'),
+  getQueue: () => ipcRenderer.invoke('queue:list'),
+  removeQueueItem: (itemId) => ipcRenderer.invoke('queue:remove', itemId),
+  clearFinishedQueue: () => ipcRenderer.invoke('queue:clear-finished'),
   getHistory: () => ipcRenderer.invoke('history:list'),
   clearHistory: () => ipcRenderer.invoke('history:clear'),
   onDeepLink: (callback) => subscribe('protocol:download', callback),
+  onQueueChanged: (callback) => subscribe('queue:changed', callback),
   onProgress: (callback) => subscribe('download:progress', callback),
   onLog: (callback) => subscribe('download:log', callback),
   onFinished: (callback) => subscribe('download:finished', callback)

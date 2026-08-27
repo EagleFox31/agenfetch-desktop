@@ -3,7 +3,7 @@
 const { EventEmitter } = require('node:events');
 const { spawn, execFile } = require('node:child_process');
 const { promisify } = require('node:util');
-const { sanitizeDownloadOptions } = require('./validation');
+const { normalizeYouTubeUrl, sanitizeDownloadOptions } = require('./validation');
 
 const execFileAsync = promisify(execFile);
 
@@ -27,6 +27,52 @@ function parseProgressLine(line) {
     eta: cleanMetric(eta),
     downloaded: cleanMetric(downloaded),
     total: cleanMetric(total)
+  };
+}
+
+function formatDuration(totalSeconds) {
+  const value = Number(totalSeconds);
+  if (!Number.isFinite(value) || value < 0) return 'Durée inconnue';
+  const hours = Math.floor(value / 3600);
+  const minutes = Math.floor((value % 3600) / 60);
+  const seconds = Math.floor(value % 60);
+  return hours > 0
+    ? [hours, minutes, seconds].map((part) => String(part).padStart(2, '0')).join(':')
+    : [minutes, seconds].map((part) => String(part).padStart(2, '0')).join(':');
+}
+
+function safeThumbnailUrl(value) {
+  try {
+    const parsed = new URL(value);
+    const hostname = parsed.hostname.toLowerCase();
+    if (parsed.protocol !== 'https:' || !(hostname === 'i.ytimg.com' || hostname.endsWith('.ytimg.com'))) {
+      return '';
+    }
+    return parsed.toString();
+  } catch {
+    return '';
+  }
+}
+
+function summarizeMetadata(metadata) {
+  const entries = Array.isArray(metadata?.entries) ? metadata.entries.filter(Boolean) : [];
+  const representative = entries[0] || metadata || {};
+  const thumbnail = representative.thumbnail
+    || [...(representative.thumbnails || [])].reverse().find((item) => item?.url)?.url
+    || metadata?.thumbnail
+    || '';
+  const duration = representative.duration ?? metadata?.duration;
+
+  return {
+    id: String(representative.id || metadata?.id || ''),
+    title: String(metadata?.title || representative.title || 'Vidéo YouTube'),
+    uploader: String(representative.uploader || representative.channel || metadata?.uploader || 'YouTube'),
+    duration: Number.isFinite(Number(duration)) ? Number(duration) : null,
+    durationLabel: formatDuration(duration),
+    thumbnail: safeThumbnailUrl(thumbnail),
+    isPlaylist: entries.length > 0 || metadata?._type === 'playlist',
+    itemCount: entries.length || Number(metadata?.playlist_count) || 1,
+    webpageUrl: String(representative.webpage_url || metadata?.webpage_url || '')
   };
 }
 
@@ -56,16 +102,34 @@ function buildYtDlpArgs(options, defaultFolder) {
   if (safe.mode === 'audio') {
     args.push('-x', '--audio-format', 'mp3', '--audio-quality', '0');
   } else {
+    const format = safe.container === 'mp4'
+      ? 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/bv*+ba/b'
+      : 'bv*+ba/b';
     args.push(
       '-f',
-      'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b',
+      format,
       '--merge-output-format',
-      'mp4'
+      safe.container
     );
 
     const effectiveQuality = safe.compatibilityMode ? '1080' : safe.quality;
     if (effectiveQuality !== 'best') {
       args.push('-S', `res:${effectiveQuality}`);
+    }
+
+    if (safe.subtitles !== 'none') {
+      const subtitleLanguages = {
+        fr: 'fr.*,fr,-live_chat',
+        en: 'en.*,en,-live_chat',
+        all: 'all,-live_chat'
+      }[safe.subtitles];
+      args.push(
+        '--write-subs',
+        '--write-auto-subs',
+        '--sub-langs',
+        subtitleLanguages,
+        '--embed-subs'
+      );
     }
   }
 
@@ -98,7 +162,8 @@ async function commandVersion(command, args = ['--version']) {
   }
 }
 
-async function checkPrerequisites() {
+async function checkPrerequisites(toolManager = null) {
+  if (toolManager?.checkAll) return toolManager.checkAll();
   const [ytDlp, ffmpeg, deno] = await Promise.all([
     commandVersion('yt-dlp'),
     commandVersion('ffmpeg', ['-version']),
@@ -109,9 +174,16 @@ async function checkPrerequisites() {
 }
 
 class DownloaderService extends EventEmitter {
-  constructor(defaultFolder) {
+  constructor(defaultFolder, {
+    toolManager = null,
+    spawnImpl = spawn,
+    execFileImpl = execFileAsync
+  } = {}) {
     super();
     this.defaultFolder = defaultFolder;
+    this.toolManager = toolManager;
+    this.spawnImpl = spawnImpl;
+    this.execFileImpl = execFileImpl;
     this.child = null;
     this.active = null;
     this.lastDestination = null;
@@ -128,15 +200,19 @@ class DownloaderService extends EventEmitter {
     }
 
     const { args, options } = buildYtDlpArgs(input, this.defaultFolder);
+    const runtimeArgs = this.toolManager?.getYtDlpRuntimeArgs?.() || [];
+    const commandArgs = [...args.slice(0, -1), ...runtimeArgs, args.at(-1)];
     const startedAt = new Date().toISOString();
-    this.active = { ...options, startedAt };
+    const title = typeof input?.title === 'string' ? input.title.trim().slice(0, 200) : '';
+    this.active = { ...options, title, startedAt };
     this.lastDestination = null;
     this.cancelRequested = false;
 
-    const child = spawn('yt-dlp', args, {
+    const child = this.spawnImpl(this.toolManager?.resolveCommand?.('ytDlp') || 'yt-dlp', commandArgs, {
       windowsHide: true,
       shell: false,
-      stdio: ['ignore', 'pipe', 'pipe']
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: this.toolManager?.buildEnvironment?.() || process.env
     });
     this.child = child;
     let settled = false;
@@ -174,7 +250,7 @@ class DownloaderService extends EventEmitter {
         ok: false,
         cancelled: false,
         error: error.code === 'ENOENT'
-          ? 'yt-dlp est introuvable. Lance le diagnostic puis installe les prérequis.'
+          ? 'yt-dlp est introuvable. Réinstalle AgenFetch ou relance le diagnostic.'
           : error.message,
         options: this.active,
         finishedAt: new Date().toISOString()
@@ -204,6 +280,41 @@ class DownloaderService extends EventEmitter {
     return { accepted: true, options, startedAt };
   }
 
+  async inspect(input) {
+    const source = input && typeof input === 'object' ? input : { url: input };
+    const url = normalizeYouTubeUrl(source.url);
+    const args = [
+      '--dump-single-json',
+      '--skip-download',
+      '--no-warnings',
+      '--no-colors'
+    ];
+    if (!source.playlist) args.push('--no-playlist');
+    args.push(...(this.toolManager?.getYtDlpRuntimeArgs?.() || []), url);
+
+    try {
+      const { stdout } = await this.execFileImpl(
+        this.toolManager?.resolveCommand?.('ytDlp') || 'yt-dlp',
+        args,
+        {
+          windowsHide: true,
+          timeout: 60000,
+          maxBuffer: 12 * 1024 * 1024,
+          env: this.toolManager?.buildEnvironment?.() || process.env
+        }
+      );
+      return summarizeMetadata(JSON.parse(String(stdout || '').trim()));
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        throw new Error('yt-dlp est introuvable. Réinstalle AgenFetch ou relance le diagnostic.');
+      }
+      if (error instanceof SyntaxError) {
+        throw new Error('YouTube a renvoyé des métadonnées illisibles. Mets yt-dlp à jour puis réessaie.');
+      }
+      throw new Error(`Impossible d’analyser ce lien : ${error.stderr || error.message}`);
+    }
+  }
+
   cancel() {
     if (!this.child) return false;
     const child = this.child;
@@ -222,5 +333,8 @@ module.exports = {
   DownloaderService,
   buildYtDlpArgs,
   checkPrerequisites,
+  formatDuration,
+  safeThumbnailUrl,
+  summarizeMetadata,
   parseProgressLine
 };
