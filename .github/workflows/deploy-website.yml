@@ -23,8 +23,18 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - name: Build landing
+        working-directory: website
+        run: |
+          npm ci
+          npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: website
+          path: website/dist
       - id: deployment
         uses: actions/deploy-pages@v4

@@ -1,7 +1,7 @@
 'use strict';
 
 const path = require('node:path');
-const { app, BrowserWindow, clipboard, dialog, ipcMain, Notification, shell } = require('electron');
+const { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, Notification, shell } = require('electron');
 const { DownloaderService } = require('./core/downloader');
 const { DownloadQueue } = require('./core/download-queue');
 const { HistoryStore } = require('./core/history-store');
@@ -47,6 +47,12 @@ function forwardDeepLink(value) {
   return true;
 }
 
+function isDevToolsShortcut(input) {
+  const key = String(input.key || '').toUpperCase();
+  if (input.key === 'F12') return true;
+  return Boolean(input.control && input.shift && (key === 'I' || key === 'J' || key === 'C'));
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1180,
@@ -55,13 +61,15 @@ function createWindow() {
     minHeight: 680,
     show: false,
     backgroundColor: '#08191f',
+    autoHideMenuBar: true,
     icon: path.join(__dirname, '..', 'assets', 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
-      webSecurity: true
+      webSecurity: true,
+      devTools: !app.isPackaged
     }
   });
 
@@ -77,6 +85,14 @@ function createWindow() {
       pendingDeepLink = null;
     }
   });
+  if (app.isPackaged) {
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+      if (isDevToolsShortcut(input)) event.preventDefault();
+    });
+    mainWindow.webContents.on('devtools-opened', () => {
+      mainWindow.webContents.closeDevTools();
+    });
+  }
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
@@ -171,6 +187,9 @@ app.on('open-url', (event, value) => {
 });
 
 app.whenReady().then(() => {
+  if (app.isPackaged) {
+    Menu.setApplicationMenu(null);
+  }
   registerProtocol();
   toolManager = new ToolManager({
     resourcesPath: process.resourcesPath,

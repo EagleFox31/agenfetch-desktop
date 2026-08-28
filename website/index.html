@@ -1,224 +1,33 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>AgenFetch Desktop — YouTube arrive chez toi, sans cloud</title>
     <meta
       name="description"
-      content="AgenFetch — télécharge YouTube en local depuis une interface Windows premium. yt-dlp, FFmpeg et Deno intégrés. Sans compte, sans cookies."
+      content="AgenFetch Desktop est une application Windows locale et simple pour télécharger des vidéos YouTube avec yt-dlp, sans cloud et sans compte."
     />
-    <meta name="theme-color" content="#07161c" />
-    <title>AgenFetch — Téléchargement YouTube local</title>
-    <link rel="icon" href="assets/agenfetch-mark.svg" type="image/svg+xml" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap"
-      rel="stylesheet"
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#f5f5f7" />
+    <meta property="og:title" content="AgenFetch Desktop — sans cloud, sans compte." />
+    <meta
+      property="og:description"
+      content="Une interface propre pour yt-dlp, installée sur ton PC Windows. Colle un lien, choisis, récupère."
     />
-    <link rel="stylesheet" href="styles.css" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:url" content="https://github.com/EagleFox31/agenfetch-desktop" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AgenFetch — le produit" />
+    <meta
+      name="twitter:description"
+      content="Une interface propre pour yt-dlp, installée sur ton PC Windows. Colle un lien, choisis, récupère."
+    />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
   </head>
   <body>
-    <div class="atmosphere" aria-hidden="true">
-      <div class="orb orb-a"></div>
-      <div class="orb orb-b"></div>
-      <div class="grain"></div>
-    </div>
-
-    <header class="site-header">
-      <a class="logo" href="#top" aria-label="AgenFetch — accueil">
-        <img src="assets/agenfetch-mark.svg" width="36" height="36" alt="" />
-        <span>AgenFetch</span>
-      </a>
-      <nav class="site-nav" aria-label="Navigation principale">
-        <a href="#fonctionnement">Fonctionnement</a>
-        <a href="#capacites">Capacités</a>
-        <a href="#local">Confidentialité</a>
-        <a class="nav-cta" href="#telecharger">Télécharger</a>
-      </nav>
-      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-nav" aria-label="Ouvrir le menu">
-        <span></span><span></span>
-      </button>
-    </header>
-
-    <nav id="mobile-nav" class="mobile-nav" hidden>
-      <a href="#fonctionnement">Fonctionnement</a>
-      <a href="#capacites">Capacités</a>
-      <a href="#local">Confidentialité</a>
-      <a href="#telecharger">Télécharger</a>
-    </nav>
-
-    <main id="top">
-      <section class="hero" aria-labelledby="brand-title">
-        <div class="hero-visual" aria-hidden="true">
-          <div class="hero-mesh"></div>
-          <div class="app-plane">
-            <aside class="mock-side">
-              <div class="mock-brand">
-                <img src="assets/agenfetch-mark.svg" alt="" width="28" height="28" />
-                <strong>AgenFetch</strong>
-              </div>
-              <div class="mock-nav">
-                <span class="is-active">↓ Télécharger</span>
-                <span>↺ Historique</span>
-              </div>
-              <p class="mock-note">100 % local</p>
-            </aside>
-            <div class="mock-main">
-              <p class="mock-eyebrow">Téléchargement intelligent</p>
-              <p class="mock-title">Récupère ce qui compte.</p>
-              <div class="mock-form">
-                <div class="mock-field">
-                  <span>https://www.youtube.com/watch?v=…</span>
-                </div>
-                <div class="mock-pills">
-                  <span class="on">Vidéo</span>
-                  <span>1080p</span>
-                  <span>MP4</span>
-                  <span>FR</span>
-                </div>
-                <div class="mock-progress">
-                  <div class="mock-bar"><i></i></div>
-                  <div class="mock-meta">
-                    <span>62 %</span>
-                    <span>4,8 Mo/s</span>
-                    <span>ETA 0:42</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="hero-copy">
-          <p class="brand-mark-text" id="brand-title">AgenFetch</p>
-          <h1>YouTube arrive chez toi.<br />Sans cloud, sans compte.</h1>
-          <p class="hero-lede">
-            Application Windows locale qui pilote yt-dlp : vidéos, Shorts, lives et playlists,
-            directement dans ton dossier.
-          </p>
-          <div class="cta-row">
-            <a class="btn btn-primary" href="https://github.com/EagleFox31/agenfetch-desktop/releases">
-              Télécharger pour Windows
-            </a>
-            <a class="btn btn-ghost" href="https://github.com/EagleFox31/agenfetch-desktop">
-              Voir le dépôt
-            </a>
-          </div>
-        </div>
-      </section>
-
-      <section class="section flow" id="fonctionnement" aria-labelledby="flow-title">
-        <div class="section-intro">
-          <p class="eyebrow">Fonctionnement</p>
-          <h2 id="flow-title">Trois gestes. Un fichier sur ton disque.</h2>
-          <p>Colle un lien, confirme, retrouve la vidéo là où tu l’as choisie.</p>
-        </div>
-        <ol class="flow-steps">
-          <li class="reveal">
-            <span class="step-index">01</span>
-            <h3>Ouvre ou colle</h3>
-            <p>Depuis l’extension Chrome/Edge ou en collant un ou plusieurs liens YouTube.</p>
-          </li>
-          <li class="reveal">
-            <span class="step-index">02</span>
-            <h3>Aperçu &amp; file</h3>
-            <p>Vérifie le titre, la chaîne et la miniature, puis ajoute jusqu’à 50 liens.</p>
-          </li>
-          <li class="reveal">
-            <span class="step-index">03</span>
-            <h3>Télécharge en local</h3>
-            <p>yt-dlp, FFmpeg et Deno sont intégrés. Progression, annulation, notifications.</p>
-          </li>
-        </ol>
-      </section>
-
-      <section class="section capabilities" id="capacites" aria-labelledby="cap-title">
-        <div class="section-intro">
-          <p class="eyebrow">Capacités</p>
-          <h2 id="cap-title">Tout ce qu’il faut pour récupérer proprement.</h2>
-          <p>Qualité jusqu’à 4K, audio MP3, sous-titres, file d’attente et outils toujours à jour.</p>
-        </div>
-
-        <div class="cap-grid">
-          <article class="cap-block reveal">
-            <h3>Formats &amp; qualité</h3>
-            <p>Vidéo MP4 ou MKV, audio MP3, résolution jusqu’à 4K. Sous-titres français, anglais ou multilingues.</p>
-          </article>
-          <article class="cap-block reveal">
-            <h3>File intelligente</h3>
-            <p>Jusqu’à 50 liens traités dans l’ordre. Journal, vitesse, ETA et historique local.</p>
-          </article>
-          <article class="cap-block reveal">
-            <h3>Installateur autonome</h3>
-            <p>Windows 10/11 x64. Pas besoin d’installer Node, yt-dlp ou FFmpeg toi-même.</p>
-          </article>
-          <article class="cap-block reveal">
-            <h3>Extension optionnelle</h3>
-            <p>Un bouton AgenFetch sur YouTube ouvre l’app via <code>agenfetch://</code> — rien ne part sans toi.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="section local" id="local" aria-labelledby="local-title">
-        <div class="local-panel reveal">
-          <div>
-            <p class="eyebrow">Confidentialité</p>
-            <h2 id="local-title">Rien ne quitte ta machine.</h2>
-            <p>
-              AgenFetch n’envoie aucune donnée vers un serveur AgenStudio. Pas de compte YouTube,
-              pas de cookies, pas de DRM contourné. L’historique et la file restent sur ton ordinateur.
-            </p>
-          </div>
-          <ul class="trust-list">
-            <li>Traitement 100 % local</li>
-            <li>Domaines YouTube uniquement</li>
-            <li>Code open source MIT</li>
-            <li>Binaires vérifiés SHA-256 au build</li>
-          </ul>
-        </div>
-      </section>
-
-      <section class="section download" id="telecharger" aria-labelledby="dl-title">
-        <div class="download-panel reveal">
-          <p class="eyebrow">Bêta 0.2</p>
-          <h2 id="dl-title">Installe AgenFetch sur Windows.</h2>
-          <p>
-            Télécharge l’installateur depuis les Releases GitHub. Vérifie l’empreinte dans
-            <code>SHA256SUMS.txt</code> — l’éditeur n’est pas encore signé.
-          </p>
-          <div class="cta-row">
-            <a class="btn btn-primary" href="https://github.com/EagleFox31/agenfetch-desktop/releases">
-              AgenFetch-Setup pour Windows
-            </a>
-            <a class="btn btn-ghost" href="https://github.com/EagleFox31/agenfetch-desktop/releases">
-              Extension Chrome / Edge
-            </a>
-          </div>
-          <p class="fineprint">Windows 10 ou 11 · x64 · MIT License · by AgenStudio</p>
-        </div>
-      </section>
-    </main>
-
-    <footer class="site-footer">
-      <div class="footer-brand">
-        <img src="assets/agenfetch-mark.svg" width="28" height="28" alt="" />
-        <div>
-          <strong>AgenFetch</strong>
-          <span>by AgenStudio</span>
-        </div>
-      </div>
-      <p>
-        Utilise AgenFetch uniquement pour tes contenus, les contenus libres de droits
-        ou ceux pour lesquels tu disposes d’une autorisation.
-      </p>
-      <div class="footer-links">
-        <a href="https://github.com/EagleFox31/agenfetch-desktop">GitHub</a>
-        <a href="https://github.com/EagleFox31/agenfetch-desktop/blob/main/LICENSE">Licence</a>
-        <a href="https://github.com/EagleFox31/agenfetch-desktop/blob/main/docs/THIRD_PARTY_NOTICES.md">Mentions tierces</a>
-      </div>
-    </footer>
-
-    <script src="script.js"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

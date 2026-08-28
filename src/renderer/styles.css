@@ -131,7 +131,8 @@ select:focus { border-color: rgba(53, 214, 201, 0.62); }
 option { background: #102830; }
 .text-button { padding: 7px 10px; border: 0; border-radius: 8px; color: var(--teal); background: rgba(53, 214, 201, 0.09); font-size: 11px; font-weight: 700; }
 .text-button.subtle { color: #c5d4d6; background: rgba(255, 255, 255, 0.05); }
-.url-actions { display: grid; align-content: center; gap: 5px; }
+.url-actions { display: grid; align-content: center; }
+.metadata-preview.is-loading { opacity: .72; }
 .field-error { min-height: 14px; margin: 5px 0 -8px; color: var(--danger); font-size: 10px; }
 
 .metadata-preview { display: grid; grid-template-columns: 126px minmax(0, 1fr); gap: 14px; align-items: center; margin-top: 15px; padding: 11px; border: 1px solid rgba(53, 214, 201, 0.16); border-radius: 14px; background: rgba(53, 214, 201, 0.045); }
