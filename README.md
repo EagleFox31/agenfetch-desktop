@@ -110,6 +110,7 @@ Un lancement manuel du workflow **Build Windows release** produit les mêmes fic
 ## Site vitrine
 
 Le dossier `website/` contient la landing page publique (HTML/CSS/JS statiques).
+Le source React écrit sur Floot est dans `docs/floot-landing/` (kit Floot requis pour l’exécuter).
 
 ```powershell
 npx --yes serve website
@@ -130,6 +131,7 @@ agenfetch-desktop/
 ├── src/renderer/       Interface Electron
 ├── test/               Tests Node.js
 ├── website/            Landing page / site vitrine
+├── docs/floot-landing/  Source React de la landing Floot
 └── vendor/bin/         Binaires générés localement, non commités
 ```
 
