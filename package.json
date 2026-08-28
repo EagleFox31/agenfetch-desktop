@@ -1,6 +1,6 @@
 {
   "name": "agenfetch-desktop",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Application de bureau locale pour piloter yt-dlp depuis une interface premium et une extension Chrome/Edge.",
   "main": "src/main.js",
   "author": "AgenStudio",

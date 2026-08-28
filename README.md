@@ -25,7 +25,7 @@ AgenFetch est une application Windows locale qui pilote yt-dlp depuis une interf
 Configuration minimale : Windows 10 ou 11, processeur x64.
 
 1. Ouvre la section **Releases** du dépôt.
-2. Télécharge `AgenFetch-Setup-0.2.0.exe`.
+2. Télécharge `AgenFetch-Setup-0.2.1.exe`.
 3. Lance l’installateur.
 4. Ouvre AgenFetch depuis le bureau ou le menu Démarrer.
 
@@ -37,7 +37,7 @@ La bêta n’est pas encore signée numériquement. Windows SmartScreen peut don
 
 L’extension reste optionnelle : AgenFetch fonctionne aussi en collant directement les liens.
 
-1. Télécharge `AgenFetch-Extension-0.2.0.zip` dans la même Release.
+1. Télécharge `AgenFetch-Extension-0.2.1.zip` dans la même Release.
 2. Extrais l’archive.
 3. Ouvre `chrome://extensions` ou `edge://extensions`.
 4. Active **Mode développeur**.
@@ -49,7 +49,7 @@ Le bouton **AgenFetch** apparaîtra sur les pages vidéo compatibles. Le navigat
 ## Utilisation
 
 1. Colle un ou plusieurs liens, un par ligne.
-2. Utilise **Aperçu** pour vérifier un lien avant de l’ajouter.
+2. L’aperçu du titre, de la chaîne et de la miniature s’affiche automatiquement.
 3. Choisis vidéo ou audio, qualité, conteneur et sous-titres.
 4. Sélectionne le dossier de destination.
 5. Clique sur **Ajouter à la file**.
@@ -101,21 +101,23 @@ Le script :
 Résultats :
 
 ```text
-release\AgenFetch-Setup-0.2.0.exe
-release\AgenFetch-Extension-0.2.0.zip
+release\AgenFetch-Setup-0.2.1.exe
+release\AgenFetch-Extension-0.2.1.zip
 ```
 
-Un lancement manuel du workflow **Build Windows release** produit les mêmes fichiers comme artifact GitHub. La création du tag `v0.2.0` publie automatiquement une GitHub Release et `SHA256SUMS.txt`.
+Un lancement manuel du workflow **Build Windows release** produit les mêmes fichiers comme artifact GitHub. La création du tag `v0.2.1` publie automatiquement une GitHub Release et `SHA256SUMS.txt`.
 
 ## Site vitrine
 
-Le dossier `website/` contient la landing page publique (HTML/CSS/JS statiques).
+Le dossier `website/` contient la landing page publique (Vite + React).
 
 ```powershell
-npx --yes serve website
+cd website
+npm install
+npm run dev
 ```
 
-Puis ouvre l’URL affichée (souvent `http://localhost:3000`).
+Puis ouvre l’URL affichée (souvent `http://localhost:5173`). Un `npm run build` produit le site statique dans `website/dist`.
 
 ## Structure
 
@@ -129,7 +131,7 @@ agenfetch-desktop/
 ├── src/core/           Téléchargement, outils et file
 ├── src/renderer/       Interface Electron
 ├── test/               Tests Node.js
-├── website/            Landing page / site vitrine
+├── website/            Landing page Vite (déployée via GitHub Pages)
 └── vendor/bin/         Binaires générés localement, non commités
 ```
 

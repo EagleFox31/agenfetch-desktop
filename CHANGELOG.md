@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.1 — bêta
+
+### Ajouté
+
+- Nouvelle landing Vite, avec téléchargement direct de l’installateur Windows.
+- Aperçu automatique dès qu’un lien YouTube complet est collé ou saisi.
+
+### Modifié
+
+- Site vitrine responsive, prêt pour GitHub Pages.
+- Boutons de téléchargement branchés sur la dernière release GitHub.
+
+### Sécurité
+
+- Menu et raccourcis DevTools désactivés dans l’application packagée.
+
 ## 0.2.0 — bêta
 
 ### Ajouté

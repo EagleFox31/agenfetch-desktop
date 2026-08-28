@@ -10,7 +10,6 @@ const refs = {
   url: document.querySelector('#video-url'),
   urlError: document.querySelector('#url-error'),
   paste: document.querySelector('#paste-url'),
-  inspect: document.querySelector('#inspect-url'),
   metadataPreview: document.querySelector('#metadata-preview'),
   metadataThumbnail: document.querySelector('#metadata-thumbnail'),
   metadataDuration: document.querySelector('#metadata-duration'),
@@ -60,7 +59,10 @@ const state = {
   metadataUrl: '',
   queue: { activeId: null, items: [] },
   lastActiveId: null,
-  toastTimer: null
+  toastTimer: null,
+  previewTimer: null,
+  previewRequestId: 0,
+  previewingUrl: ''
 };
 
 function showToast(message, type = 'info') {
@@ -184,31 +186,89 @@ function extractUrls() {
   return refs.url.value.split(/\s+/).map((value) => value.trim()).filter(Boolean);
 }
 
+function isPreviewableUrl(value) {
+  try {
+    const parsed = new URL(String(value || '').trim());
+    const host = parsed.hostname.toLowerCase();
+    const allowed = new Set([
+      'youtube.com',
+      'www.youtube.com',
+      'm.youtube.com',
+      'music.youtube.com',
+      'youtu.be'
+    ]);
+    if (parsed.protocol !== 'https:' || !allowed.has(host)) return false;
+    if (host === 'youtu.be') return parsed.pathname.length > 1;
+    if (parsed.pathname === '/watch') return (parsed.searchParams.get('v') || '').length >= 8;
+    if (parsed.pathname.startsWith('/shorts/')) {
+      return (parsed.pathname.split('/').filter(Boolean)[1] || '').length >= 8;
+    }
+    if (parsed.pathname.startsWith('/live/')) {
+      return (parsed.pathname.split('/').filter(Boolean)[1] || '').length >= 8;
+    }
+    return parsed.pathname === '/playlist' && Boolean(parsed.searchParams.get('list'));
+  } catch {
+    return false;
+  }
+}
+
 function clearMetadata() {
+  state.previewRequestId += 1;
+  state.previewingUrl = '';
   state.metadata = null;
   state.metadataUrl = '';
   refs.metadataPreview.hidden = true;
+  refs.metadataPreview.classList.remove('is-loading');
   refs.metadataThumbnail.removeAttribute('src');
+}
+
+function showPreviewLoading() {
+  refs.metadataTitle.textContent = 'Analyse du lien…';
+  refs.metadataUploader.textContent = 'Récupération du titre, de la chaîne et de la miniature';
+  refs.metadataDuration.textContent = '…';
+  refs.metadataKind.textContent = 'APERÇU';
+  refs.metadataThumbnail.hidden = true;
+  refs.metadataThumbnail.removeAttribute('src');
+  refs.metadataPreview.classList.add('is-loading');
+  refs.metadataPreview.hidden = false;
+}
+
+function scheduleAutoPreview() {
+  clearTimeout(state.previewTimer);
+  const urls = extractUrls();
+  if (urls.length !== 1 || !isPreviewableUrl(urls[0])) {
+    if (state.metadataUrl && state.metadataUrl !== urls[0]) clearMetadata();
+    if (!urls.length) clearMetadata();
+    return;
+  }
+  if (state.metadataUrl === urls[0] && state.metadata) return;
+  if (state.previewingUrl === urls[0]) return;
+  state.previewTimer = setTimeout(() => {
+    inspectMetadata();
+  }, 350);
 }
 
 async function inspectMetadata() {
   refs.urlError.textContent = '';
   const urls = extractUrls();
-  if (urls.length !== 1) {
-    clearMetadata();
-    refs.urlError.textContent = urls.length
-      ? 'L’aperçu est disponible pour un seul lien à la fois.'
-      : 'Colle un lien YouTube avant de demander l’aperçu.';
+  if (urls.length !== 1 || !isPreviewableUrl(urls[0])) {
+    if (urls.length > 1) clearMetadata();
     return;
   }
 
-  const previousLabel = refs.inspect.textContent;
-  refs.inspect.disabled = true;
-  refs.inspect.textContent = 'Analyse…';
+  const url = urls[0];
+  if (state.metadataUrl === url && state.metadata) return;
+  if (state.previewingUrl === url) return;
+
+  const requestId = ++state.previewRequestId;
+  state.previewingUrl = url;
+  showPreviewLoading();
   try {
-    const metadata = await api.inspectMetadata({ url: urls[0], playlist: refs.playlist.checked });
+    const metadata = await api.inspectMetadata({ url, playlist: refs.playlist.checked });
+    if (requestId !== state.previewRequestId) return;
     state.metadata = metadata;
-    state.metadataUrl = urls[0];
+    state.metadataUrl = url;
+    refs.metadataPreview.classList.remove('is-loading');
     refs.metadataTitle.textContent = metadata.title;
     refs.metadataUploader.textContent = metadata.uploader;
     refs.metadataDuration.textContent = metadata.durationLabel;
@@ -217,12 +277,11 @@ async function inspectMetadata() {
     if (metadata.thumbnail) refs.metadataThumbnail.src = metadata.thumbnail;
     refs.metadataPreview.hidden = false;
   } catch (error) {
+    if (requestId !== state.previewRequestId) return;
     clearMetadata();
     refs.urlError.textContent = error.message || 'Impossible d’obtenir l’aperçu.';
-    showToast(refs.urlError.textContent, 'error');
   } finally {
-    refs.inspect.textContent = previousLabel;
-    refs.inspect.disabled = false;
+    if (requestId === state.previewRequestId) state.previewingUrl = '';
   }
 }
 
@@ -353,6 +412,7 @@ document.querySelectorAll('input[name="mode"]').forEach((input) => input.addEven
 refs.url.addEventListener('input', () => {
   refs.urlError.textContent = '';
   if (state.metadataUrl && state.metadataUrl !== extractUrls()[0]) clearMetadata();
+  scheduleAutoPreview();
 });
 
 refs.metadataThumbnail.addEventListener('error', () => {
@@ -365,12 +425,20 @@ refs.paste.addEventListener('click', async () => {
     refs.url.focus();
     refs.urlError.textContent = '';
     clearMetadata();
+    scheduleAutoPreview();
   } catch {
     showToast('Le presse-papiers est indisponible. Utilise Ctrl + V.', 'error');
   }
 });
 
-refs.inspect.addEventListener('click', inspectMetadata);
+refs.playlist.addEventListener('change', () => {
+  const urls = extractUrls();
+  if (urls.length === 1 && isPreviewableUrl(urls[0])) {
+    state.metadataUrl = '';
+    state.previewingUrl = '';
+    inspectMetadata();
+  }
+});
 
 refs.chooseFolder.addEventListener('click', async () => {
   const folder = await api.chooseFolder();
@@ -439,6 +507,7 @@ api.onDeepLink((payload) => {
   syncModeUi();
   setView('download-view');
   refs.url.focus();
+  inspectMetadata();
   showToast('Lien reçu depuis YouTube. Vérifie les options puis ajoute-le à la file.');
 });
 
