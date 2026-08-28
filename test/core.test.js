@@ -423,3 +423,27 @@ test('télécharge l’installateur avec une progression', async () => {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }
 });
+
+const { resolveExtensionDir, extensionStatus } = require('../src/core/extension-path');
+
+test('résout le dossier de l’extension packagée et en développement', () => {
+  const packaged = resolveExtensionDir({
+    isPackaged: true,
+    resourcesPath: 'C:\\Program Files\\AgenFetch\\resources',
+    projectRoot: 'C:\\dev\\agenfetch'
+  });
+  const unpackaged = resolveExtensionDir({
+    isPackaged: false,
+    resourcesPath: 'C:\\Program Files\\AgenFetch\\resources',
+    projectRoot: 'C:\\dev\\agenfetch'
+  });
+  assert.match(packaged.replaceAll('/', '\\'), /resources\\extension$/i);
+  assert.match(unpackaged.replaceAll('/', '\\'), /agenfetch\\extension$/i);
+
+  const status = extensionStatus({
+    isPackaged: false,
+    projectRoot: path.join(__dirname, '..')
+  });
+  assert.equal(status.available, true);
+  assert.ok(status.folder.endsWith('extension'));
+});

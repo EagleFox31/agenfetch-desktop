@@ -38,6 +38,7 @@ Les binaires ne sont pas commités. electron-builder les place dans `resources/b
 - `src/core/history-store.js` : historique JSON local limité à 100 entrées.
 - `src/core/consent-store.js` : confirmation d’usage autorisé au premier lancement.
 - `src/core/app-updater.js` : version, GitHub Releases, téléchargement de l’installateur.
+- `src/core/extension-path.js` : dossier de l’extension livré avec l’installateur.
 - `src/renderer/` : interface HTML, CSS et JavaScript sans accès direct à Node.js.
 - `extension/` : extension Manifest V3 pour Chrome et Edge.
 

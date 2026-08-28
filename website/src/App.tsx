@@ -18,6 +18,7 @@ import {
   MonitorDown,
   PackageCheck,
   Play,
+  Puzzle,
   ShieldCheck,
   Subtitles,
   X,
@@ -354,7 +355,7 @@ function Home() {
           <div className="grid gap-12 lg:grid-cols-[.65fr_1.35fr]">
             <div><div className="eyebrow">Le geste en trois temps</div><h2 id="workflow-title" className="display-font mt-5 max-w-[360px] text-4xl font-bold leading-[1.03] tracking-[-.06em] text-[#282d46] sm:text-5xl">De l’URL au fichier. <span className="text-[#176d64]">C’est tout.</span></h2><p className="mt-5 max-w-[340px] text-[15px] leading-6 text-[#6e7079]">Pas de terminal à ouvrir, pas de dépendance à chercher. Une petite app qui fait exactement ce qu’elle promet.</p></div>
             <div className="grid gap-8 md:grid-cols-3">
-              {[{ n: '01', title: 'Colle un lien autorisé', text: 'Ta vidéo, un Short libre de droits, un live ou une playlist dont tu as l’autorisation. AgenFetch affiche un aperçu avant de commencer.' }, { n: '02', title: 'Choisis ton format', text: 'MP4, MKV ou MP3. Sélectionne la qualité et les sous-titres FR, EN ou toutes les langues.' }, { n: '03', title: 'Récupère localement', text: 'La file séquentielle travaille proprement. Ton fichier est enregistré dans le dossier choisi.' }].map((step) => <div className="feature-tile" key={step.n} data-testid={`card-step-${step.n}`}><span className="step-number">{step.n}</span><h3 className="display-font mt-5 text-[20px] font-bold tracking-[-.04em] text-[#282d46]">{step.title}</h3><p className="mt-3 text-[13px] leading-5">{step.text}</p></div>)}
+              {[{ n: '01', title: 'Colle un lien autorisé', text: 'Ta vidéo, un Short libre de droits, un live ou une playlist dont tu as l’autorisation. Ou envoie-le depuis l’extension Chrome / Edge. AgenFetch affiche un aperçu avant de commencer.' }, { n: '02', title: 'Choisis ton format', text: 'MP4, MKV ou MP3. Sélectionne la qualité et les sous-titres FR, EN ou toutes les langues.' }, { n: '03', title: 'Récupère localement', text: 'La file séquentielle travaille proprement. Ton fichier est enregistré dans le dossier choisi.' }].map((step) => <div className="feature-tile" key={step.n} data-testid={`card-step-${step.n}`}><span className="step-number">{step.n}</span><h3 className="display-font mt-5 text-[20px] font-bold tracking-[-.04em] text-[#282d46]">{step.title}</h3><p className="mt-3 text-[13px] leading-5">{step.text}</p></div>)}
             </div>
           </div>
         </section>
@@ -405,7 +406,34 @@ function Home() {
         </section>
 
         <section id="download" className="scroll-mt-8 pb-24 lg:pb-32" aria-labelledby="download-title">
-          <div className="download-panel mx-5 rounded-xl px-5 py-10 sm:px-12 sm:py-16 lg:mx-auto lg:max-w-[1190px]"><div className="max-w-[670px]"><div className="eyebrow" style={{ color: '#282d46' }}>Téléchargement beta</div><h2 id="download-title" className="display-font mt-5 text-[2rem] font-bold leading-[1.01] tracking-[-.06em] text-[#282d46] sm:text-4xl lg:text-6xl">Prêt à installer AgenFetch ?</h2><p className="mt-5 max-w-[540px] text-[15px] leading-6 text-[#4c4b46]">AgenFetch Desktop 0.2.2 pour Windows 10 / 11 x64. Pour tes contenus, le libre de droits, ou ce que tu as le droit d’enregistrer.</p><div className="download-actions mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap"><FileDownload className="button-dark" href={setupExe} filename={setupName} testId="link-download-release"><ArrowDownToLine size={17} /> Télécharger pour Windows</FileDownload><a className="button-ghost !border-[#b49345] !bg-[#f3ca72]" href={GITHUB_REPO} target="_blank" rel="noreferrer" data-testid="link-download-source"><Github size={16} /> Voir le code source</a></div><div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 font-mono text-[10px] text-[#665d4b]"><FileDownload className="inline-flex items-center gap-1.5 underline underline-offset-4 hover:text-[#282d46]" href={extensionZip} filename="AgenFetch-Extension.zip" testId="link-download-extension">Extension ZIP</FileDownload><button className="inline-flex items-center gap-1.5 underline underline-offset-4 hover:text-[#282d46]" type="button" data-testid="button-copy-checksum" onClick={copyChecksum}>{copied ? <Check size={11} /> : <Copy size={11} />}{copied ? 'Copié' : 'SHA-256 des fichiers'} </button><a className="inline-flex items-center gap-1.5 underline underline-offset-4 hover:text-[#282d46]" href={checksums} download="SHA256SUMS.txt" rel="noreferrer" data-testid="link-download-checksums">Télécharger SHA256SUMS.txt</a></div></div></div>
+          <div className="download-layout mx-5 lg:mx-auto lg:max-w-[1190px]">
+            <div className="download-panel rounded-xl px-5 py-10 sm:px-12 sm:py-16">
+              <div className="max-w-[670px]">
+                <div className="eyebrow" style={{ color: '#282d46' }}>Téléchargement beta</div>
+                <h2 id="download-title" className="display-font mt-5 text-[2rem] font-bold leading-[1.01] tracking-[-.06em] text-[#282d46] sm:text-4xl lg:text-6xl">Prêt à installer AgenFetch ?</h2>
+                <p className="mt-5 max-w-[540px] text-[15px] leading-6 text-[#4c4b46]">AgenFetch Desktop 0.2.2 pour Windows 10 / 11 x64. Pour tes contenus, le libre de droits, ou ce que tu as le droit d’enregistrer.</p>
+                <div className="download-actions mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                  <FileDownload className="button-dark" href={setupExe} filename={setupName} testId="link-download-release"><ArrowDownToLine size={17} /> Télécharger pour Windows</FileDownload>
+                  <a className="button-ghost !border-[#b49345] !bg-[#f3ca72]" href={GITHUB_REPO} target="_blank" rel="noreferrer" data-testid="link-download-source"><Github size={16} /> Voir le code source</a>
+                </div>
+              </div>
+            </div>
+            <aside className="extension-panel rounded-xl border border-[#d5cec0] bg-[#f7f3ea] px-6 py-8 sm:px-8 sm:py-10" data-testid="card-extension-download">
+              <p className="mono-font text-[10px] uppercase tracking-[.12em] text-[#176d64]">Optionnel · Chrome / Edge</p>
+              <h3 className="display-font mt-4 text-[1.65rem] font-bold leading-[1.08] tracking-[-.05em] text-[#282d46]">Depuis YouTube, en un clic</h3>
+              <p className="mt-4 text-[14px] leading-6 text-[#6e7079]">Après l’app. Pas encore sur le Chrome Web Store : tu charges un dossier, ou le ZIP de la Release.</p>
+              <FileDownload className="button-dark mt-6 !px-4 !py-3 text-[13px]" href={extensionZip} filename="AgenFetch-Extension.zip" testId="link-download-extension"><Puzzle size={16} /> Télécharger l’extension</FileDownload>
+              <ol className="extension-steps mt-6">
+                <li>Extrais le ZIP, ou ouvre le dossier livré avec l’app (onglet Extension).</li>
+                <li>Va sur chrome://extensions ou edge://extensions, mode développeur.</li>
+                <li>Charge l’extension non empaquetée et sélectionne ce dossier.</li>
+              </ol>
+            </aside>
+          </div>
+          <div className="mx-5 mt-5 flex max-w-[1190px] flex-wrap gap-x-5 gap-y-2 font-mono text-[10px] text-[#665d4b] lg:mx-auto">
+            <button className="inline-flex items-center gap-1.5 underline underline-offset-4 hover:text-[#282d46]" type="button" data-testid="button-copy-checksum" onClick={copyChecksum}>{copied ? <Check size={11} /> : <Copy size={11} />}{copied ? 'Copié' : 'SHA-256 des fichiers'} </button>
+            <a className="inline-flex items-center gap-1.5 underline underline-offset-4 hover:text-[#282d46]" href={checksums} download="SHA256SUMS.txt" rel="noreferrer" data-testid="link-download-checksums">Télécharger SHA256SUMS.txt</a>
+          </div>
         </section>
       </main>
 

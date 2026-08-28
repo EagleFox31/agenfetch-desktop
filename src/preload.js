@@ -16,6 +16,8 @@ contextBridge.exposeInMainWorld('agenFetch', {
   getDefaultFolder: () => ipcRenderer.invoke('folder:default'),
   chooseFolder: () => ipcRenderer.invoke('folder:choose'),
   openFolder: (folderPath) => ipcRenderer.invoke('folder:open', folderPath),
+  getExtensionInfo: () => ipcRenderer.invoke('extension:info'),
+  openExtensionFolder: () => ipcRenderer.invoke('extension:open-folder'),
   inspectMetadata: (payload) => ipcRenderer.invoke('metadata:inspect', payload),
   startDownload: (payload) => ipcRenderer.invoke('download:start', payload),
   enqueueDownloads: (payloads) => ipcRenderer.invoke('download:enqueue', payloads),
