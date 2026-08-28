@@ -25,9 +25,21 @@ contextBridge.exposeInMainWorld('agenFetch', {
   clearFinishedQueue: () => ipcRenderer.invoke('queue:clear-finished'),
   getHistory: () => ipcRenderer.invoke('history:list'),
   clearHistory: () => ipcRenderer.invoke('history:clear'),
+  getConsent: () => ipcRenderer.invoke('consent:status'),
+  acceptConsent: () => ipcRenderer.invoke('consent:accept'),
+  getAppInfo: () => ipcRenderer.invoke('app:info'),
+  checkAppUpdate: () => ipcRenderer.invoke('update:check'),
+  downloadAppUpdate: () => ipcRenderer.invoke('update:download'),
+  cancelAppUpdate: () => ipcRenderer.invoke('update:cancel'),
+  installAppUpdate: () => ipcRenderer.invoke('update:install'),
+  openUpdateWebsite: () => ipcRenderer.invoke('update:open-website'),
   onDeepLink: (callback) => subscribe('protocol:download', callback),
   onQueueChanged: (callback) => subscribe('queue:changed', callback),
   onProgress: (callback) => subscribe('download:progress', callback),
   onLog: (callback) => subscribe('download:log', callback),
-  onFinished: (callback) => subscribe('download:finished', callback)
+  onFinished: (callback) => subscribe('download:finished', callback),
+  onUpdateProgress: (callback) => subscribe('update:progress', callback),
+  onOpenAbout: (callback) => subscribe('ui:open-about', callback),
+  onCheckUpdates: (callback) => subscribe('ui:check-updates', callback),
+  quitApp: () => ipcRenderer.invoke('app:quit')
 });

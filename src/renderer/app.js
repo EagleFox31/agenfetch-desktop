@@ -48,7 +48,30 @@ const refs = {
   clearFinishedQueue: document.querySelector('#clear-finished-queue'),
   historyList: document.querySelector('#history-list'),
   clearHistory: document.querySelector('#clear-history'),
-  toast: document.querySelector('#toast')
+  toast: document.querySelector('#toast'),
+  consentOverlay: document.querySelector('#consent-overlay'),
+  consentCheck: document.querySelector('#consent-accept-check'),
+  consentAccept: document.querySelector('#consent-accept'),
+  pageEyebrow: document.querySelector('#page-eyebrow'),
+  sidebarVersion: document.querySelector('#sidebar-version'),
+  appVersion: document.querySelector('#app-version'),
+  updateCheckedAt: document.querySelector('#update-checked-at'),
+  checkAppUpdate: document.querySelector('#check-app-update'),
+  updateStatusLabel: document.querySelector('#update-status-label'),
+  updateStatusTitle: document.querySelector('#update-status-title'),
+  updateStatusCopy: document.querySelector('#update-status-copy'),
+  updateActions: document.querySelector('#update-actions'),
+  downloadAppUpdate: document.querySelector('#download-app-update'),
+  openUpdateWebsite: document.querySelector('#open-update-website'),
+  updateProgress: document.querySelector('#update-progress'),
+  updateProgressBar: document.querySelector('#update-progress-bar'),
+  updateProgressPercent: document.querySelector('#update-progress-percent'),
+  updateProgressMeta: document.querySelector('#update-progress-meta'),
+  cancelAppUpdate: document.querySelector('#cancel-app-update'),
+  installAppUpdate: document.querySelector('#install-app-update'),
+  systemStatus: document.querySelector('.system-status'),
+  appMenuButton: document.querySelector('#app-menu-button'),
+  appMenu: document.querySelector('#app-menu')
 };
 
 const state = {
@@ -62,7 +85,8 @@ const state = {
   toastTimer: null,
   previewTimer: null,
   previewRequestId: 0,
-  previewingUrl: ''
+  previewingUrl: '',
+  appUpdate: null
 };
 
 function showToast(message, type = 'info') {
@@ -76,7 +100,17 @@ function showToast(message, type = 'info') {
 function setView(viewId) {
   refs.views.forEach((view) => view.classList.toggle('is-visible', view.id === viewId));
   refs.navItems.forEach((item) => item.classList.toggle('is-active', item.dataset.viewTarget === viewId));
-  refs.pageTitle.textContent = viewId === 'history-view' ? 'Ce que tu as déjà récupéré.' : 'Récupère ce qui compte.';
+  refs.pageTitle.textContent = {
+    'history-view': 'Ce que tu as déjà récupéré.',
+    'about-view': 'Version et mises à jour.'
+  }[viewId] || 'Garde ce que tu as le droit de garder.';
+  if (refs.pageEyebrow) {
+    refs.pageEyebrow.textContent = {
+      'history-view': 'Historique local',
+      'about-view': 'Application'
+    }[viewId] || 'Téléchargement local';
+  }
+  if (refs.systemStatus) refs.systemStatus.hidden = viewId === 'about-view';
   if (viewId === 'history-view') renderHistory();
 }
 
@@ -235,6 +269,7 @@ function showPreviewLoading() {
 
 function scheduleAutoPreview() {
   clearTimeout(state.previewTimer);
+  if (!refs.consentOverlay.hidden) return;
   const urls = extractUrls();
   if (urls.length !== 1 || !isPreviewableUrl(urls[0])) {
     if (state.metadataUrl && state.metadataUrl !== urls[0]) clearMetadata();
@@ -250,6 +285,7 @@ function scheduleAutoPreview() {
 
 async function inspectMetadata() {
   refs.urlError.textContent = '';
+  if (!refs.consentOverlay.hidden) return;
   const urls = extractUrls();
   if (urls.length !== 1 || !isPreviewableUrl(urls[0])) {
     if (urls.length > 1) clearMetadata();
@@ -456,6 +492,10 @@ refs.openFolder.addEventListener('click', async () => {
 refs.form.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (state.submitting) return;
+  if (!refs.consentOverlay.hidden) {
+    showToast('Accepte d’abord les conditions d’utilisation.', 'error');
+    return;
+  }
   refs.urlError.textContent = '';
 
   try {
@@ -499,6 +539,195 @@ refs.clearHistory.addEventListener('click', async () => {
   showToast('Historique effacé.');
 });
 
+function syncConsentButton() {
+  refs.consentAccept.disabled = !refs.consentCheck.checked;
+}
+
+function showConsentGate() {
+  refs.consentOverlay.hidden = false;
+  refs.consentCheck.checked = false;
+  syncConsentButton();
+  refs.consentCheck.focus();
+}
+
+async function acceptConsent() {
+  if (!refs.consentCheck.checked) return;
+  refs.consentAccept.disabled = true;
+  try {
+    await api.acceptConsent();
+    refs.consentOverlay.hidden = true;
+    scheduleAutoPreview();
+  } catch (error) {
+    refs.consentAccept.disabled = false;
+    showToast(error.message || 'Impossible d’enregistrer le consentement.', 'error');
+  }
+}
+
+refs.consentCheck.addEventListener('change', syncConsentButton);
+refs.consentAccept.addEventListener('click', acceptConsent);
+refs.consentOverlay.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') event.preventDefault();
+});
+
+function formatCheckedAt(value) {
+  if (!value) return 'Pas encore';
+  try {
+    return new Date(value).toLocaleString('fr-FR');
+  } catch {
+    return 'À l’instant';
+  }
+}
+
+function setUpdateProgress(progress) {
+  const percent = Math.max(0, Math.min(100, Number(progress?.percent || 0)));
+  refs.updateProgressBar.style.width = `${percent}%`;
+  refs.updateProgressPercent.textContent = progress?.percentLabel || `${percent.toFixed(0)}%`;
+  refs.updateProgressMeta.textContent = progress?.total
+    ? `${progress.receivedLabel} / ${progress.totalLabel}`
+    : (progress?.receivedLabel || 'en cours');
+}
+
+function applyUpdateCheck(result) {
+  state.appUpdate = result;
+  refs.updateCheckedAt.textContent = formatCheckedAt(result.checkedAt);
+  refs.updateActions.hidden = !result.updateAvailable;
+  refs.updateProgress.hidden = true;
+  refs.installAppUpdate.hidden = true;
+  if (result.updateAvailable) {
+    refs.updateStatusLabel.textContent = 'Mise à jour disponible';
+    refs.updateStatusTitle.textContent = `Version ${result.latestVersion}`;
+    refs.updateStatusCopy.textContent = `Tu as la ${result.currentVersion}. Une version plus récente est sur GitHub. Tu peux la télécharger ici ou ouvrir le site.`;
+  } else {
+    refs.updateStatusLabel.textContent = 'À jour';
+    refs.updateStatusTitle.textContent = `Version ${result.currentVersion}`;
+    refs.updateStatusCopy.textContent = 'Tu as déjà la dernière version publiée.';
+  }
+}
+
+async function loadAppInfo() {
+  const info = await api.getAppInfo();
+  refs.appVersion.textContent = info.version;
+  if (refs.sidebarVersion) refs.sidebarVersion.textContent = `BÊTA ${info.version}`;
+}
+
+async function checkAppUpdate() {
+  refs.checkAppUpdate.disabled = true;
+  refs.updateStatusLabel.textContent = 'Vérification';
+  refs.updateStatusTitle.textContent = 'Contact de GitHub Releases…';
+  refs.updateStatusCopy.textContent = 'Comparaison de ta version installée avec la dernière publication.';
+  refs.updateActions.hidden = true;
+  refs.updateProgress.hidden = true;
+  refs.installAppUpdate.hidden = true;
+  try {
+    applyUpdateCheck(await api.checkAppUpdate());
+  } catch (error) {
+    refs.updateStatusLabel.textContent = 'Erreur';
+    refs.updateStatusTitle.textContent = 'Vérification impossible';
+    refs.updateStatusCopy.textContent = error.message || 'GitHub n’a pas répondu.';
+    showToast(refs.updateStatusCopy.textContent, 'error');
+  } finally {
+    refs.checkAppUpdate.disabled = false;
+  }
+}
+
+async function downloadAppUpdate() {
+  refs.downloadAppUpdate.disabled = true;
+  refs.checkAppUpdate.disabled = true;
+  refs.updateProgress.hidden = false;
+  refs.installAppUpdate.hidden = true;
+  refs.updateStatusLabel.textContent = 'Téléchargement';
+  refs.updateStatusTitle.textContent = 'Installateur en cours de récupération';
+  refs.updateStatusCopy.textContent = 'Le fichier vient de GitHub Releases. L’empreinte SHA-256 est vérifiée s’il y en a une.';
+  setUpdateProgress({ percent: 0, percentLabel: '0%', receivedLabel: '0 o', totalLabel: '—' });
+  try {
+    await api.downloadAppUpdate();
+    refs.updateProgress.hidden = false;
+    refs.installAppUpdate.hidden = false;
+    refs.checkAppUpdate.disabled = false;
+    refs.updateStatusLabel.textContent = 'Prêt à installer';
+    refs.updateStatusTitle.textContent = 'Téléchargement terminé';
+    refs.updateStatusCopy.textContent = 'Lance l’installateur. Ferme AgenFetch s’il te le demande.';
+    showToast('Mise à jour téléchargée. Tu peux lancer l’installateur.');
+  } catch (error) {
+    refs.downloadAppUpdate.disabled = false;
+    refs.checkAppUpdate.disabled = false;
+    showToast(error.message || 'Téléchargement de la mise à jour impossible.', 'error');
+  }
+}
+
+async function installAppUpdate() {
+  refs.installAppUpdate.disabled = true;
+  try {
+    await api.installAppUpdate();
+    showToast('Installateur lancé.');
+  } catch (error) {
+    refs.installAppUpdate.disabled = false;
+    showToast(error.message || 'Impossible d’ouvrir l’installateur.', 'error');
+  }
+}
+
+refs.checkAppUpdate.addEventListener('click', checkAppUpdate);
+refs.downloadAppUpdate.addEventListener('click', downloadAppUpdate);
+refs.openUpdateWebsite.addEventListener('click', async () => {
+  try {
+    await api.openUpdateWebsite();
+  } catch (error) {
+    showToast(error.message || 'Impossible d’ouvrir le site.', 'error');
+  }
+});
+refs.cancelAppUpdate.addEventListener('click', async () => {
+  await api.cancelAppUpdate();
+});
+refs.installAppUpdate.addEventListener('click', installAppUpdate);
+api.onUpdateProgress(setUpdateProgress);
+api.onOpenAbout(() => setView('about-view'));
+api.onCheckUpdates(() => {
+  setView('about-view');
+  checkAppUpdate();
+});
+
+function closeAppMenu() {
+  if (!refs.appMenu || refs.appMenu.hidden) return;
+  refs.appMenu.hidden = true;
+  refs.appMenuButton?.setAttribute('aria-expanded', 'false');
+}
+
+function toggleAppMenu() {
+  if (!refs.appMenu) return;
+  const willOpen = refs.appMenu.hidden;
+  refs.appMenu.hidden = !willOpen;
+  refs.appMenuButton?.setAttribute('aria-expanded', String(willOpen));
+}
+
+refs.appMenuButton?.addEventListener('click', (event) => {
+  event.stopPropagation();
+  toggleAppMenu();
+});
+
+refs.appMenu?.addEventListener('click', async (event) => {
+  event.stopPropagation();
+  const action = event.target.closest('[data-menu-action]')?.dataset.menuAction;
+  if (!action) return;
+  closeAppMenu();
+  if (action === 'about') setView('about-view');
+  if (action === 'updates') {
+    setView('about-view');
+    checkAppUpdate();
+  }
+  if (action === 'quit') {
+    try {
+      await api.quitApp();
+    } catch (error) {
+      showToast(error.message || 'Impossible de quitter AgenFetch.', 'error');
+    }
+  }
+});
+
+document.addEventListener('click', closeAppMenu);
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') closeAppMenu();
+});
+
 api.onDeepLink((payload) => {
   refs.url.value = payload.url;
   const modeInput = document.querySelector(`input[name="mode"][value="${payload.mode}"]`);
@@ -537,6 +766,17 @@ async function initialize() {
   syncModeUi();
   renderQueue(await api.getQueue());
   await checkSystem({ quiet: true });
+  try {
+    await loadAppInfo();
+  } catch {
+    refs.appVersion.textContent = 'inconnue';
+  }
+  try {
+    const consent = await api.getConsent();
+    if (!consent?.accepted) showConsentGate();
+  } catch {
+    showConsentGate();
+  }
 }
 
 initialize();

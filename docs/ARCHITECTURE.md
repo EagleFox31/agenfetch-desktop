@@ -36,6 +36,8 @@ Les binaires ne sont pas commités. electron-builder les place dans `resources/b
 - `src/core/downloader.js` : métadonnées, arguments yt-dlp, processus et progression.
 - `src/core/download-queue.js` : ordonnancement séquentiel en mémoire.
 - `src/core/history-store.js` : historique JSON local limité à 100 entrées.
+- `src/core/consent-store.js` : confirmation d’usage autorisé au premier lancement.
+- `src/core/app-updater.js` : version, GitHub Releases, téléchargement de l’installateur.
 - `src/renderer/` : interface HTML, CSS et JavaScript sans accès direct à Node.js.
 - `extension/` : extension Manifest V3 pour Chrome et Edge.
 
@@ -49,6 +51,7 @@ Les binaires ne sont pas commités. electron-builder les place dans `resources/b
 - URL de miniature limitée à `ytimg.com`.
 - Binaires de build contrôlés par les SHA-256 publiés en amont.
 - Un lien reçu par l’extension remplit le formulaire mais ne lance rien sans confirmation.
+- Les mises à jour de l’app ne se téléchargent que depuis GitHub Releases, avec contrôle SHA-256 si `SHA256SUMS.txt` est publié.
 
 ## Limites de la bêta
 
