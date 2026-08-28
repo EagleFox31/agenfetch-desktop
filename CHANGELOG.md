@@ -2,6 +2,8 @@
 
 ## Non publié
 
+## 0.2.3 — bêta
+
 ### Ajouté
 
 - Dossier de l’extension Chrome/Edge livré avec l’installateur, ouvrable depuis À propos.
@@ -9,7 +11,8 @@
 
 ### Modifié
 
-- Navbar du site vitrine : logo à gauche, liens texte à droite, bouton Télécharger style Google.
+- Navigation de l’application : barre haute unique (logo, onglets, actions).
+- Topbar du site vitrine : barre flottante sticky, verre dépoli, bouton Télécharger au scroll.
 
 ## 0.2.2 — bêta
 

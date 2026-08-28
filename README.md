@@ -26,7 +26,7 @@ AgenFetch est une application Windows locale qui pilote yt-dlp depuis une interf
 Configuration minimale : Windows 10 ou 11, processeur x64.
 
 1. Ouvre la section **Releases** du dépôt.
-2. Télécharge `AgenFetch-Setup-0.2.2.exe`.
+2. Télécharge `AgenFetch-Setup-0.2.3.exe`.
 3. Lance l’installateur.
 4. Ouvre AgenFetch depuis le bureau ou le menu Démarrer.
 
@@ -40,8 +40,8 @@ L’extension reste optionnelle : AgenFetch fonctionne aussi en collant directem
 
 **Depuis l’application installée**
 
-1. Ouvre l’onglet **Extension**.
-2. Clique sur **Ouvrir le dossier**.
+1. Ouvre **À propos**.
+2. Clique sur **Ouvrir le dossier de l’extension**.
 3. Ouvre `chrome://extensions` ou `edge://extensions`.
 4. Active **Mode développeur**.
 5. Clique sur **Charger l’extension non empaquetée**.
@@ -49,7 +49,7 @@ L’extension reste optionnelle : AgenFetch fonctionne aussi en collant directem
 
 **Depuis la Release GitHub**
 
-1. Télécharge `AgenFetch-Extension-0.2.2.zip`.
+1. Télécharge `AgenFetch-Extension-0.2.3.zip`.
 2. Extrais l’archive, puis suis les mêmes étapes à partir de `chrome://extensions`.
 
 Le bouton **AgenFetch** apparaîtra sur les pages vidéo compatibles. Le navigateur demandera l’autorisation d’ouvrir l’application locale au premier clic.
@@ -68,7 +68,7 @@ AgenFetch traite les éléments dans l’ordre. Les téléchargements terminés,
 
 ## Mise à jour de l’application
 
-Ouvre l’onglet **À propos**, ou le menu **⋯** en haut à droite. AgenFetch compare ta version à GitHub Releases. S’il y a plus récent, tu peux télécharger l’installateur dans l’app (barre de progression) ou ouvrir le site.
+Ouvre **À propos** dans la barre latérale, ou le menu **⋯** en haut à droite. AgenFetch compare ta version à GitHub Releases. S’il y a plus récent, tu peux télécharger l’installateur dans l’app (barre de progression) ou ouvrir le site.
 
 ## Mise à jour de yt-dlp
 
@@ -115,11 +115,11 @@ Le script :
 Résultats :
 
 ```text
-release\AgenFetch-Setup-0.2.2.exe
-release\AgenFetch-Extension-0.2.2.zip
+release\AgenFetch-Setup-0.2.3.exe
+release\AgenFetch-Extension-0.2.3.zip
 ```
 
-Un lancement manuel du workflow **Build Windows release** produit les mêmes fichiers comme artifact GitHub. La création du tag `v0.2.2` publie automatiquement une GitHub Release et `SHA256SUMS.txt`.
+Un lancement manuel du workflow **Build Windows release** produit les mêmes fichiers comme artifact GitHub. La création du tag `v0.2.3` publie automatiquement une GitHub Release et `SHA256SUMS.txt`.
 
 ## Site vitrine
 

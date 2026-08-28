@@ -106,6 +106,64 @@ function scrollToSection(href: string, closeMenu?: () => void) {
   if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+function SiteHeader({
+  variant,
+  setupExe,
+  setupName,
+}: {
+  variant: 'home' | 'legal';
+  setupExe: string;
+  setupName: string;
+}) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const closeMenu = () => setMobileOpen(false);
+
+  return (
+    <header className={`site-header${scrolled ? ' is-scrolled' : ''}`} data-testid={variant === 'legal' ? 'header-legal' : 'header-site'}>
+      <div className="site-header-shell">
+        <div className="site-header-inner">
+          <a href="#top" className="site-logo" data-testid={variant === 'legal' ? 'link-legal-brand' : 'link-brand'}>
+            <img src={asset('assets/agenfetch-mark.svg')} alt="" width="28" height="28" />
+            <span>AgenFetch</span>
+          </a>
+          {variant === 'legal' ? (
+            <div className="site-header-end">
+              <a className="nav-link" href="#top" data-testid="link-legal-home">Accueil</a>
+              <FileDownload className="button-header" href={setupExe} filename={setupName} testId="link-legal-download">Télécharger</FileDownload>
+            </div>
+          ) : (
+            <div className="site-header-end">
+              <nav className="site-nav" aria-label="Navigation principale">
+                {headerNavItems.map((item) => (
+                  <a key={item.href} className="nav-link" href={item.href} data-testid={`link-nav-${item.href.slice(1)}`} onClick={(event) => { event.preventDefault(); scrollToSection(item.href); }}>{item.label}</a>
+                ))}
+                <a className="nav-link" href={GITHUB_REPO} target="_blank" rel="noreferrer" data-testid="link-header-github">GitHub</a>
+              </nav>
+              <FileDownload className="button-header" href={setupExe} filename={setupName} testId="link-header-download">Télécharger</FileDownload>
+              <button className="menu-button" type="button" aria-label={mobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'} aria-expanded={mobileOpen} data-testid="button-mobile-menu" onClick={() => setMobileOpen(!mobileOpen)}>{mobileOpen ? <X size={20} /> : <Menu size={20} />}</button>
+            </div>
+          )}
+        </div>
+        {variant === 'home' && mobileOpen && (
+          <nav className="site-mobile-nav" aria-label="Navigation mobile" data-testid="nav-mobile">
+            {headerNavItems.map((item) => <a key={item.href} className="nav-link" href={item.href} data-testid={`link-mobile-${item.href.slice(1)}`} onClick={(event) => { event.preventDefault(); scrollToSection(item.href, closeMenu); }}>{item.label}</a>)}
+            <a className="nav-link" href={GITHUB_REPO} target="_blank" rel="noreferrer" data-testid="link-mobile-github">GitHub</a>
+          </nav>
+        )}
+      </div>
+    </header>
+  );
+}
+
 function Reveal({ children, className = '', delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
   const [visible, setVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -174,7 +232,7 @@ function AppWindow() {
     <div className="product-window" data-testid="mockup-agenfetch-window">
       <div className="window-titlebar">
         <div className="window-dots" aria-hidden="true"><span /><span /><span /></div>
-        <span className="window-title">AgenFetch Desktop — beta 0.2.2</span>
+        <span className="window-title">AgenFetch Desktop — beta 0.2.3</span>
         <div className="window-controls">
           <button className="window-control" type="button" aria-label="Réduire la fenêtre" data-testid="button-mockup-minimize" onClick={() => setNotice('Fenêtre réduite en aperçu')}><Minus size={11} /></button>
           <button className="window-control" type="button" aria-label="Agrandir la fenêtre" data-testid="button-mockup-maximize" onClick={() => setNotice('Aperçu plein écran activé')}><span style={{ fontSize: 11 }}>□</span></button>
@@ -193,7 +251,7 @@ function AppWindow() {
         <main className="window-content">
           <div className="window-heading">
             <div><h3>Nouveau téléchargement</h3><p>Colle un lien, choisis ton format.</p></div>
-            <span className="status-pill">BETA 0.2.2</span>
+            <span className="status-pill">BETA 0.2.3</span>
           </div>
           <div className="url-box">
             <Play size={12} color="#eab14a" fill="#eab14a" />
@@ -233,7 +291,6 @@ function AppWindow() {
 }
 
 function Home() {
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const { setupExe, setupName, extensionZip, checksums } = useReleaseLinks();
 
@@ -263,36 +320,12 @@ function Home() {
 
   return (
     <div className="agen-page min-h-[100dvh]">
-      <header className="site-header" data-testid="header-site">
-        <div className="site-header-inner">
-          <a href="#top" className="site-logo" data-testid="link-brand">
-            <img src={asset('assets/agenfetch-mark.svg')} alt="" width="32" height="32" />
-            <span>AgenFetch</span>
-          </a>
-          <div className="site-header-end">
-            <nav className="site-nav" aria-label="Navigation principale">
-              {headerNavItems.map((item) => (
-                <a key={item.href} className="nav-link" href={item.href} data-testid={`link-nav-${item.href.slice(1)}`} onClick={(event) => { event.preventDefault(); scrollToSection(item.href); }}>{item.label}</a>
-              ))}
-              <a className="nav-link" href={GITHUB_REPO} target="_blank" rel="noreferrer" data-testid="link-header-github">GitHub</a>
-            </nav>
-            <FileDownload className="button-header site-header-download" href={setupExe} filename={setupName} testId="link-header-download">Télécharger</FileDownload>
-            <button className="menu-button lg:hidden" type="button" aria-label={mobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'} aria-expanded={mobileOpen} data-testid="button-mobile-menu" onClick={() => setMobileOpen(!mobileOpen)}>{mobileOpen ? <X size={22} /> : <Menu size={22} />}</button>
-          </div>
-        </div>
-      </header>
-      {mobileOpen && (
-        <nav className="site-mobile-nav lg:hidden" aria-label="Navigation mobile" data-testid="nav-mobile">
-          {headerNavItems.map((item) => <a key={item.href} className="nav-link" href={item.href} data-testid={`link-mobile-${item.href.slice(1)}`} onClick={(event) => { event.preventDefault(); scrollToSection(item.href, () => setMobileOpen(false)); }}>{item.label}</a>)}
-          <a className="nav-link" href={GITHUB_REPO} target="_blank" rel="noreferrer" data-testid="link-mobile-github">GitHub</a>
-          <FileDownload className="button-header" href={setupExe} filename={setupName} testId="link-mobile-download">Télécharger</FileDownload>
-        </nav>
-      )}
+      <SiteHeader variant="home" setupExe={setupExe} setupName={setupName} />
 
       <main id="top">
         <section className="hero-grid relative mx-auto grid max-w-[1240px] items-center gap-12 px-5 pb-20 pt-12 lg:grid-cols-[.92fr_1.08fr] lg:px-8 lg:pb-28 lg:pt-20" aria-labelledby="hero-title">
           <div className="relative z-10">
-            <div className="reveal eyebrow">AgenFetch Desktop <span className="rounded-full bg-[#e9e3d6] px-2 py-1 text-[9px] tracking-[.08em] text-[#77736c]">BETA 0.2.2</span></div>
+            <div className="reveal eyebrow">AgenFetch Desktop <span className="rounded-full bg-[#e9e3d6] px-2 py-1 text-[9px] tracking-[.08em] text-[#77736c]">BETA 0.2.3</span></div>
             <h1 id="hero-title" className="display-font reveal reveal-delay-1 mt-5 max-w-[620px] text-[clamp(2.15rem,8.4vw,5.65rem)] font-bold leading-[.96] tracking-[-.075em] text-[#282d46]">Tes contenus, en local.<br /><span className="text-[#176d64]">Sans cloud, sans compte.</span></h1>
             <p className="reveal reveal-delay-2 mt-6 max-w-[490px] text-[16px] leading-7 text-[#5f6370] sm:text-[17px]">Une interface propre pour yt-dlp, installée sur ton PC Windows. Pour tes vidéos, le libre de droits, ou ce que tu as le droit d’enregistrer — sans Node, yt-dlp ou FFmpeg à configurer à la main.</p>
             <div className="hero-cta reveal reveal-delay-3 mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
@@ -399,7 +432,7 @@ function Home() {
         <section id="trust" className="scroll-mt-8 py-24 lg:py-32" aria-labelledby="trust-title">
           <div className="mx-auto grid max-w-[1240px] gap-6 px-5 lg:grid-cols-[1.1fr_.9fr] lg:px-8">
             <div className="trust-panel rounded-xl p-8 sm:p-12"><div className="eyebrow">La confiance, concrètement</div><h2 id="trust-title" className="display-font mt-5 max-w-[530px] text-4xl font-bold leading-[1.02] tracking-[-.06em] sm:text-5xl">Tes téléchargements. Ton PC. <span className="text-[#eab14a]">Point.</span></h2><p className="mt-6 max-w-[500px] text-[15px] leading-6 text-[#c1c5cf]">AgenFetch n’est pas un service en ligne déguisé. C’est une app Windows locale qui emballe yt-dlp dans une interface compréhensible, avec une whitelist YouTube explicite.</p><ul className="trust-list mt-9 grid gap-5 text-[13px] leading-5 text-[#e2e1d9]"><li><ShieldCheck size={17} /><span><strong className="text-[#f8f3e8]">Pas d’AgenStudio cloud.</strong><br />Aucun compte, aucune donnée envoyée à un serveur AgenStudio.</span></li><li><LockKeyhole size={17} /><span><strong className="text-[#f8f3e8]">Open source MIT.</strong><br />Le code est public, inspectable et améliorable sur GitHub.</span></li><li><PackageCheck size={17} /><span><strong className="text-[#f8f3e8]">Empreinte vérifiable.</strong><br />Les releases publient leurs sommes SHA-256.</span></li></ul><a className="mt-9 inline-flex items-center gap-2 text-[13px] font-bold text-[#eab14a] underline underline-offset-4 hover:text-[#f8f3e8]" href={GITHUB_REPO} target="_blank" rel="noreferrer" data-testid="link-trust-repository">Voir le dépôt GitHub <ExternalLink size={14} /></a></div>
-            <div className="flex flex-col justify-between rounded-xl border border-[#d5cec0] bg-[#f7f3ea] p-8 sm:p-10"><div><div className="eyebrow">Avant d’installer</div><h3 className="display-font mt-5 text-3xl font-bold leading-tight tracking-[-.05em] text-[#282d46]">Une beta honnête.</h3><p className="mt-4 text-[14px] leading-6 text-[#6e7079]">Windows SmartScreen peut signaler que l’application est non signée. C’est attendu pour cette beta 0.2.2 distribuée directement depuis GitHub — pas un abonnement caché, pas un installateur opaque.</p></div><div className="mt-10 border-t border-[#d5cec0] pt-5"><p className="font-mono text-[10px] uppercase tracking-[.1em] text-[#7b7f87]">À utiliser pour</p><p className="mt-3 text-[13px] leading-5 text-[#555a68]">Tes propres vidéos, les œuvres libres de droits, ou un contenu avec autorisation. YouTube n’autorise pas le téléchargement hors de ses fonctions officielles.</p></div></div>
+            <div className="flex flex-col justify-between rounded-xl border border-[#d5cec0] bg-[#f7f3ea] p-8 sm:p-10"><div><div className="eyebrow">Avant d’installer</div><h3 className="display-font mt-5 text-3xl font-bold leading-tight tracking-[-.05em] text-[#282d46]">Une beta honnête.</h3><p className="mt-4 text-[14px] leading-6 text-[#6e7079]">Windows SmartScreen peut signaler que l’application est non signée. C’est attendu pour cette beta 0.2.3 distribuée directement depuis GitHub — pas un abonnement caché, pas un installateur opaque.</p></div><div className="mt-10 border-t border-[#d5cec0] pt-5"><p className="font-mono text-[10px] uppercase tracking-[.1em] text-[#7b7f87]">À utiliser pour</p><p className="mt-3 text-[13px] leading-5 text-[#555a68]">Tes propres vidéos, les œuvres libres de droits, ou un contenu avec autorisation. YouTube n’autorise pas le téléchargement hors de ses fonctions officielles.</p></div></div>
           </div>
         </section>
 
@@ -416,7 +449,7 @@ function Home() {
               <div className="max-w-[670px]">
                 <div className="eyebrow" style={{ color: '#282d46' }}>Téléchargement beta</div>
                 <h2 id="download-title" className="display-font mt-5 text-[2rem] font-bold leading-[1.01] tracking-[-.06em] text-[#282d46] sm:text-4xl lg:text-6xl">Prêt à installer AgenFetch ?</h2>
-                <p className="mt-5 max-w-[540px] text-[15px] leading-6 text-[#4c4b46]">AgenFetch Desktop 0.2.2 pour Windows 10 / 11 x64. Pour tes contenus, le libre de droits, ou ce que tu as le droit d’enregistrer.</p>
+                <p className="mt-5 max-w-[540px] text-[15px] leading-6 text-[#4c4b46]">AgenFetch Desktop 0.2.3 pour Windows 10 / 11 x64. Pour tes contenus, le libre de droits, ou ce que tu as le droit d’enregistrer.</p>
                 <div className="download-actions mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                   <FileDownload className="button-dark" href={setupExe} filename={setupName} testId="link-download-release"><ArrowDownToLine size={17} /> Télécharger pour Windows</FileDownload>
                   <a className="button-ghost !border-[#b49345] !bg-[#f3ca72]" href={GITHUB_REPO} target="_blank" rel="noreferrer" data-testid="link-download-source"><Github size={16} /> Voir le code source</a>
@@ -443,7 +476,7 @@ function Home() {
       </main>
 
       <footer className="border-t border-[#3d4050] bg-[#282d46] text-[#f8f3e8]" data-testid="footer-site">
-        <div className="mx-auto grid max-w-[1240px] gap-10 px-5 py-12 lg:grid-cols-[1.3fr_1fr_1fr] lg:px-8"><div><div className="flex items-center gap-2.5"><span className="grid h-8 w-8 place-items-center overflow-hidden rounded-[8px]"><img src={asset('assets/agenfetch-mark.svg')} alt="" width="32" height="32" /></span><span className="display-font text-[15px] font-bold">AgenStudio / AgenFetch</span></div><p className="mt-5 max-w-[330px] text-[13px] leading-5 text-[#a9adba]">Une petite app locale, faite pour garder tes fichiers près de toi.</p><p className="mt-8 font-mono text-[10px] uppercase tracking-[.12em] text-[#737a91]">Electron beta 0.2.2 · Windows x64</p></div><div><p className="font-mono text-[10px] uppercase tracking-[.12em] text-[#eab14a]">Explorer</p><div className="mt-4 flex flex-col items-start gap-3 text-[13px]">{navItems.slice(0, 3).map((item) => <a className="footer-link" key={item.href} href={item.href} data-testid={`link-footer-${item.href.slice(1)}`} onClick={(event) => { event.preventDefault(); scrollToSection(item.href); }}>{item.label}</a>)}<a className="footer-link inline-flex items-center gap-1" href={GITHUB_REPO} target="_blank" rel="noreferrer" data-testid="link-footer-github">GitHub <ExternalLink size={12} /></a></div></div><div><p className="font-mono text-[10px] uppercase tracking-[.12em] text-[#eab14a]">À garder en tête</p><p className="mt-4 max-w-[260px] text-[13px] leading-5 text-[#a9adba]">Enregistre uniquement tes contenus, le libre de droits, ou ce pour quoi tu as une autorisation.</p><a className="footer-link mt-4 inline-block text-[13px]" href="#mentions-legales" data-testid="link-footer-legal">Mentions légales</a></div></div>
+        <div className="mx-auto grid max-w-[1240px] gap-10 px-5 py-12 lg:grid-cols-[1.3fr_1fr_1fr] lg:px-8"><div><div className="flex items-center gap-2.5"><span className="grid h-8 w-8 place-items-center overflow-hidden rounded-[8px]"><img src={asset('assets/agenfetch-mark.svg')} alt="" width="32" height="32" /></span><span className="display-font text-[15px] font-bold">AgenStudio / AgenFetch</span></div><p className="mt-5 max-w-[330px] text-[13px] leading-5 text-[#a9adba]">Une petite app locale, faite pour garder tes fichiers près de toi.</p><p className="mt-8 font-mono text-[10px] uppercase tracking-[.12em] text-[#737a91]">Electron beta 0.2.3 · Windows x64</p></div><div><p className="font-mono text-[10px] uppercase tracking-[.12em] text-[#eab14a]">Explorer</p><div className="mt-4 flex flex-col items-start gap-3 text-[13px]">{navItems.slice(0, 3).map((item) => <a className="footer-link" key={item.href} href={item.href} data-testid={`link-footer-${item.href.slice(1)}`} onClick={(event) => { event.preventDefault(); scrollToSection(item.href); }}>{item.label}</a>)}<a className="footer-link inline-flex items-center gap-1" href={GITHUB_REPO} target="_blank" rel="noreferrer" data-testid="link-footer-github">GitHub <ExternalLink size={12} /></a></div></div><div><p className="font-mono text-[10px] uppercase tracking-[.12em] text-[#eab14a]">À garder en tête</p><p className="mt-4 max-w-[260px] text-[13px] leading-5 text-[#a9adba]">Enregistre uniquement tes contenus, le libre de droits, ou ce pour quoi tu as une autorisation.</p><a className="footer-link mt-4 inline-block text-[13px]" href="#mentions-legales" data-testid="link-footer-legal">Mentions légales</a></div></div>
         <div className="mx-auto flex max-w-[1240px] flex-col gap-2 border-t border-[#3d4050] px-5 py-5 font-mono text-[10px] text-[#737a91] sm:flex-row sm:items-center sm:justify-between lg:px-8"><span>© 2026 AgenStudio. Open source sous licence MIT.</span><a className="hover:text-[#f8f3e8]" href="#mentions-legales" data-testid="link-footer-legal-copy">Mentions légales · usage autorisé</a></div>
       </footer>
     </div>
@@ -461,6 +494,7 @@ function useHash() {
 }
 
 function LegalPage() {
+  const { setupExe, setupName } = useReleaseLinks();
   useEffect(() => {
     document.title = 'Mentions légales — AgenFetch';
     window.scrollTo(0, 0);
@@ -471,15 +505,7 @@ function LegalPage() {
 
   return (
     <div className="agen-page min-h-[100dvh]">
-      <header className="site-header" data-testid="header-legal">
-        <div className="site-header-inner">
-          <a href="#top" className="site-logo" data-testid="link-legal-brand">
-            <img src={asset('assets/agenfetch-mark.svg')} alt="" width="32" height="32" />
-            <span>AgenFetch</span>
-          </a>
-          <a className="nav-link" href="#top" data-testid="link-legal-home">Retour à l’accueil</a>
-        </div>
-      </header>
+      <SiteHeader variant="legal" setupExe={setupExe} setupName={setupName} />
 
       <main className="mx-auto max-w-[760px] px-5 pb-24 pt-10 lg:px-8 lg:pb-32 lg:pt-16">
         <p className="eyebrow">Informations légales</p>
