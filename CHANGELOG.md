@@ -2,6 +2,10 @@
 
 ## Non publié
 
+### Ajouté
+
+- Publication du site vitrine sur Cloudflare Pages.
+
 ### Modifié
 
 - Accents du site vitrine alignés sur le teal du bouton Télécharger.
