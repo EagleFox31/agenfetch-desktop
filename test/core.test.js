@@ -21,6 +21,7 @@ const {
 } = require('../src/core/downloader');
 const { DownloadQueue } = require('../src/core/download-queue');
 const { ToolManager } = require('../src/core/tool-manager');
+const { ConsentStore, TERMS_VERSION } = require('../src/core/consent-store');
 
 test('accepte les principaux liens YouTube', () => {
   const urls = [
@@ -280,6 +281,145 @@ test('le service relaie la progression et termine proprement', { skip: process.p
     assert.equal(service.isRunning, false);
   } finally {
     process.env.PATH = previousPath;
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('enregistre le consentement et ignore une version périmée', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'agenfetch-consent-'));
+  try {
+    const store = new ConsentStore(tempRoot);
+    assert.equal(store.hasAccepted(), false);
+    assert.deepEqual(store.status(), { accepted: false, version: TERMS_VERSION });
+
+    const accepted = store.accept();
+    assert.equal(accepted.accepted, true);
+    assert.equal(store.hasAccepted(), true);
+    assert.equal(JSON.parse(fs.readFileSync(path.join(tempRoot, 'consent.json'), 'utf8')).version, TERMS_VERSION);
+
+    fs.writeFileSync(path.join(tempRoot, 'consent.json'), JSON.stringify({
+      accepted: true,
+      version: TERMS_VERSION - 1,
+      acceptedAt: '2026-01-01T00:00:00.000Z'
+    }), 'utf8');
+    assert.equal(store.hasAccepted(), false);
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+const {
+  AppUpdater,
+  compareVersions,
+  findSetupAsset,
+  formatBytes,
+  isAllowedDownloadUrl,
+  isAllowedWebsiteUrl,
+  normalizeVersion,
+  parseChecksums
+} = require('../src/core/app-updater');
+
+test('compare les versions d’AgenFetch', () => {
+  assert.equal(normalizeVersion('v0.2.1'), '0.2.1');
+  assert.equal(compareVersions('0.2.2', '0.2.1'), 1);
+  assert.equal(compareVersions('0.2.1', '0.2.1'), 0);
+  assert.equal(compareVersions('0.2.0', '0.2.1'), -1);
+});
+
+test('repère l’installateur et les checksums GitHub', () => {
+  const assets = [
+    { name: 'AgenFetch-Extension-0.3.0.zip', browser_download_url: 'https://github.com/EagleFox31/agenfetch-desktop/releases/download/v0.3.0/AgenFetch-Extension-0.3.0.zip' },
+    { name: 'AgenFetch-Setup-0.3.0.exe', browser_download_url: 'https://github.com/EagleFox31/agenfetch-desktop/releases/download/v0.3.0/AgenFetch-Setup-0.3.0.exe', size: 80 },
+    { name: 'SHA256SUMS.txt', browser_download_url: 'https://github.com/EagleFox31/agenfetch-desktop/releases/download/v0.3.0/SHA256SUMS.txt' }
+  ];
+  assert.equal(findSetupAsset(assets).name, 'AgenFetch-Setup-0.3.0.exe');
+  assert.equal(parseChecksums('abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabca  AgenFetch-Setup-0.3.0.exe\n').get('AgenFetch-Setup-0.3.0.exe').length, 64);
+  assert.equal(isAllowedDownloadUrl(assets[1].browser_download_url), true);
+  assert.equal(isAllowedDownloadUrl('https://evil.example/setup.exe'), false);
+  assert.equal(isAllowedWebsiteUrl('https://eaglefox31.github.io/agenfetch-desktop/#download'), true);
+  assert.equal(formatBytes(1536), '1.5 Ko');
+});
+
+test('détecte une mise à jour plus récente via GitHub Releases', async () => {
+  const payload = {
+    tag_name: 'v0.3.0',
+    name: 'AgenFetch v0.3.0',
+    body: 'Notes',
+    published_at: '2026-08-28T00:00:00Z',
+    assets: [
+      {
+        name: 'AgenFetch-Setup-0.3.0.exe',
+        browser_download_url: 'https://github.com/EagleFox31/agenfetch-desktop/releases/download/v0.3.0/AgenFetch-Setup-0.3.0.exe',
+        size: 42
+      }
+    ]
+  };
+  const updater = new AppUpdater({
+    currentVersion: '0.2.1',
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      json: async () => payload,
+      text: async () => '',
+      headers: { get: () => null }
+    })
+  });
+  const result = await updater.check();
+  assert.equal(result.updateAvailable, true);
+  assert.equal(result.latestVersion, '0.3.0');
+  assert.equal(result.currentVersion, '0.2.1');
+});
+
+test('télécharge l’installateur avec une progression', async () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'agenfetch-update-'));
+  const payload = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+  const percents = [];
+  const updater = new AppUpdater({
+    currentVersion: '0.2.1',
+    tempDir: tempRoot,
+    onProgress: (value) => percents.push(value.percent),
+    fetchImpl: async (url) => {
+      if (String(url).includes('/releases/latest')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            tag_name: 'v0.3.0',
+            assets: [{
+              name: 'AgenFetch-Setup-0.3.0.exe',
+              browser_download_url: 'https://github.com/EagleFox31/agenfetch-desktop/releases/download/v0.3.0/AgenFetch-Setup-0.3.0.exe',
+              size: payload.byteLength
+            }]
+          }),
+          headers: { get: () => null }
+        };
+      }
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: (name) => (name === 'content-length' ? String(payload.byteLength) : null) },
+        body: {
+          getReader() {
+            let done = false;
+            return {
+              async read() {
+                if (done) return { done: true, value: undefined };
+                done = true;
+                return { done: false, value: payload };
+              }
+            };
+          }
+        }
+      };
+    }
+  });
+
+  try {
+    await updater.check();
+    const downloaded = await updater.download();
+    assert.equal(fs.readFileSync(downloaded.filePath).length, payload.byteLength);
+    assert.ok(percents.includes(100));
+  } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }
 });

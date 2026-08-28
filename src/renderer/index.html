@@ -11,6 +11,33 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <div class="chrome-bar">
+      <img class="chrome-bar-icon" src="../../assets/agenfetch-mark.svg" alt="" width="16" height="16" />
+      <span class="chrome-bar-title">AgenFetch</span>
+      <div class="chrome-bar-actions">
+        <button
+          type="button"
+          class="chrome-menu-button"
+          id="app-menu-button"
+          aria-label="Plus d’options"
+          aria-haspopup="true"
+          aria-expanded="false"
+          aria-controls="app-menu"
+        >
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <circle cx="3.5" cy="8" r="1.35" fill="currentColor" />
+            <circle cx="8" cy="8" r="1.35" fill="currentColor" />
+            <circle cx="12.5" cy="8" r="1.35" fill="currentColor" />
+          </svg>
+        </button>
+        <div class="chrome-menu" id="app-menu" hidden role="menu">
+          <button type="button" role="menuitem" data-menu-action="about">À propos d’AgenFetch</button>
+          <button type="button" role="menuitem" data-menu-action="updates">Vérifier les mises à jour</button>
+          <div class="chrome-menu-sep" role="separator"></div>
+          <button type="button" role="menuitem" data-menu-action="quit">Quitter</button>
+        </div>
+      </div>
+    </div>
     <div class="app-shell">
       <aside class="sidebar" aria-label="Navigation">
         <div class="brand">
@@ -30,20 +57,24 @@
             <span class="nav-icon" aria-hidden="true">↺</span>
             Historique
           </button>
+          <button class="nav-item" type="button" data-view-target="about-view">
+            <span class="nav-icon" aria-hidden="true">i</span>
+            À propos
+          </button>
         </nav>
 
         <div class="sidebar-note">
           <span class="eyebrow">100 % local</span>
-          <p>Les vidéos passent directement de YouTube à ton ordinateur.</p>
+          <p>Les fichiers autorisés restent sur ton ordinateur. Rien n’est envoyé à AgenStudio.</p>
         </div>
-        <span class="version">BÊTA 0.2.1</span>
+        <span class="version" id="sidebar-version">BÊTA</span>
       </aside>
 
       <main class="main-content">
         <header class="topbar">
           <div>
-            <p class="eyebrow">Téléchargement intelligent</p>
-            <h1 id="page-title">Récupère ce qui compte.</h1>
+            <p class="eyebrow" id="page-eyebrow">Téléchargement local</p>
+            <h1 id="page-title">Garde ce que tu as le droit de garder.</h1>
           </div>
           <div class="system-status" aria-label="État des outils">
             <span class="status-chip is-checking" id="yt-dlp-status">yt-dlp</span>
@@ -58,8 +89,8 @@
           <div class="hero-card">
             <div class="hero-copy">
               <span class="hero-badge">VIDÉO • AUDIO • PLAYLIST</span>
-              <h2>Une URL. Le bon format. Terminé.</h2>
-              <p>Colle un lien ou utilise le bouton AgenFetch directement sous une vidéo YouTube.</p>
+              <h2>Une URL autorisée. Le bon format. Terminé.</h2>
+              <p>Colle un lien vers tes contenus, une œuvre libre de droits, ou une vidéo pour laquelle tu as une autorisation.</p>
             </div>
             <div class="orb" aria-hidden="true"><span>↓</span></div>
           </div>
@@ -159,7 +190,7 @@
                 <label class="toggle-option">
                   <input id="compatibility-mode" name="compatibilityMode" type="checkbox" />
                   <span class="switch" aria-hidden="true"></span>
-                  <span><b>Mode compatibilité 403</b><small>Client alternatif, limité à 1080p.</small></span>
+                  <span><b>Mode dépannage 403</b><small>Si un téléchargement autorisé échoue. Client alternatif, 1080p max.</small></span>
                 </label>
               </div>
 
@@ -224,8 +255,75 @@
           <div class="history-list" id="history-list"></div>
         </section>
 
+        <section class="view" id="about-view">
+          <div class="about-grid">
+            <article class="about-card">
+              <p class="eyebrow">Application installée</p>
+              <h2>AgenFetch Desktop</h2>
+              <p>Version actuelle sur cet ordinateur. La vérification interroge GitHub Releases, sans compte.</p>
+              <dl class="about-meta">
+                <div>
+                  <dt>Version installée</dt>
+                  <dd id="app-version">—</dd>
+                </div>
+                <div>
+                  <dt>Dernière vérification</dt>
+                  <dd id="update-checked-at">Pas encore</dd>
+                </div>
+              </dl>
+              <button class="primary-button" id="check-app-update" type="button">
+                <span>Vérifier les mises à jour</span>
+              </button>
+            </article>
+
+            <article class="about-card" id="update-result-card">
+              <p class="eyebrow" id="update-status-label">État</p>
+              <h3 id="update-status-title">Aucune vérification pour le moment</h3>
+              <p id="update-status-copy">Clique sur Vérifier les mises à jour pour comparer avec la dernière release GitHub.</p>
+              <div class="update-actions" id="update-actions" hidden>
+                <button class="primary-button" id="download-app-update" type="button">
+                  <span>Télécharger la mise à jour</span>
+                </button>
+                <button class="secondary-button" id="open-update-website" type="button">Ouvrir le site</button>
+              </div>
+              <div class="update-progress" id="update-progress" hidden>
+                <div class="update-progress-track" aria-hidden="true">
+                  <div class="update-progress-bar" id="update-progress-bar"></div>
+                </div>
+                <p>
+                  <strong id="update-progress-percent">0%</strong>
+                  <span id="update-progress-meta">en attente</span>
+                </p>
+                <button class="danger-button" id="cancel-app-update" type="button">Annuler</button>
+              </div>
+              <button class="primary-button" id="install-app-update" type="button" hidden>
+                <span>Lancer l’installateur</span>
+              </button>
+            </article>
+          </div>
+        </section>
+
         <div class="toast" id="toast" role="status" aria-live="polite"></div>
       </main>
+    </div>
+    <div class="consent-overlay" id="consent-overlay" hidden>
+      <div class="consent-card" role="dialog" aria-modal="true" aria-labelledby="consent-title">
+        <p class="eyebrow">Avant de commencer</p>
+        <h2 id="consent-title">Usage autorisé uniquement</h2>
+        <p>AgenFetch enregistre localement des fichiers YouTube. Utilise-le seulement pour tes contenus, les œuvres libres de droits, ou ceux pour lesquels tu disposes d’une autorisation.</p>
+        <ul>
+          <li>YouTube n’autorise pas le téléchargement hors de ses fonctions officielles.</li>
+          <li>Aucun cookie, compte ou mot de passe n’est demandé.</li>
+          <li>Le mode dépannage 403 ne sert qu’en cas d’échec d’un téléchargement déjà autorisé.</li>
+        </ul>
+        <label class="consent-check" for="consent-accept-check">
+          <input id="consent-accept-check" type="checkbox" />
+          <span>Je confirme n’utiliser AgenFetch que pour des contenus autorisés, et je comprends que le téléchargement du catalogue YouTube n’est pas permis par la plateforme.</span>
+        </label>
+        <button class="primary-button" id="consent-accept" type="button" disabled>
+          <span>Continuer</span>
+        </button>
+      </div>
     </div>
     <script src="app.js"></script>
   </body>

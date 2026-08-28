@@ -17,7 +17,8 @@ AgenFetch est une application Windows locale qui pilote yt-dlp depuis une interf
 - Vidéos, Shorts, lives et playlists.
 - Progression, vitesse, ETA, journal, annulation et historique.
 - Notifications Windows.
-- Mode de compatibilité pour certains HTTP 403.
+- Mode de dépannage pour certains HTTP 403, optionnel.
+- Confirmation d’usage autorisé au premier lancement.
 - Extension Chrome/Edge empaquetée séparément.
 
 ## Installer AgenFetch
@@ -25,7 +26,7 @@ AgenFetch est une application Windows locale qui pilote yt-dlp depuis une interf
 Configuration minimale : Windows 10 ou 11, processeur x64.
 
 1. Ouvre la section **Releases** du dépôt.
-2. Télécharge `AgenFetch-Setup-0.2.1.exe`.
+2. Télécharge `AgenFetch-Setup-0.2.2.exe`.
 3. Lance l’installateur.
 4. Ouvre AgenFetch depuis le bureau ou le menu Démarrer.
 
@@ -37,7 +38,7 @@ La bêta n’est pas encore signée numériquement. Windows SmartScreen peut don
 
 L’extension reste optionnelle : AgenFetch fonctionne aussi en collant directement les liens.
 
-1. Télécharge `AgenFetch-Extension-0.2.1.zip` dans la même Release.
+1. Télécharge `AgenFetch-Extension-0.2.2.zip` dans la même Release.
 2. Extrais l’archive.
 3. Ouvre `chrome://extensions` ou `edge://extensions`.
 4. Active **Mode développeur**.
@@ -48,6 +49,8 @@ Le bouton **AgenFetch** apparaîtra sur les pages vidéo compatibles. Le navigat
 
 ## Utilisation
 
+Au premier lancement, AgenFetch demande de confirmer un usage limité à tes contenus, aux œuvres libres de droits, ou aux contenus pour lesquels tu as une autorisation.
+
 1. Colle un ou plusieurs liens, un par ligne.
 2. L’aperçu du titre, de la chaîne et de la miniature s’affiche automatiquement.
 3. Choisis vidéo ou audio, qualité, conteneur et sous-titres.
@@ -55,6 +58,10 @@ Le bouton **AgenFetch** apparaîtra sur les pages vidéo compatibles. Le navigat
 5. Clique sur **Ajouter à la file**.
 
 AgenFetch traite les éléments dans l’ordre. Les téléchargements terminés, échoués ou annulés restent visibles dans la file jusqu’au nettoyage.
+
+## Mise à jour de l’application
+
+Ouvre **À propos** dans la barre latérale, ou le menu **⋯** en haut à droite. AgenFetch compare ta version à GitHub Releases. S’il y a plus récent, tu peux télécharger l’installateur dans l’app (barre de progression) ou ouvrir le site.
 
 ## Mise à jour de yt-dlp
 
@@ -101,11 +108,11 @@ Le script :
 Résultats :
 
 ```text
-release\AgenFetch-Setup-0.2.1.exe
-release\AgenFetch-Extension-0.2.1.zip
+release\AgenFetch-Setup-0.2.2.exe
+release\AgenFetch-Extension-0.2.2.zip
 ```
 
-Un lancement manuel du workflow **Build Windows release** produit les mêmes fichiers comme artifact GitHub. La création du tag `v0.2.1` publie automatiquement une GitHub Release et `SHA256SUMS.txt`.
+Un lancement manuel du workflow **Build Windows release** produit les mêmes fichiers comme artifact GitHub. La création du tag `v0.2.2` publie automatiquement une GitHub Release et `SHA256SUMS.txt`.
 
 ## Site vitrine
 

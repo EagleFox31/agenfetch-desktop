@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.2 — bêta
+
+### Ajouté
+
+- Barre de titre style Explorateur Windows 11 (Mica) et menu ⋯.
+- Confirmation d’usage autorisé au premier lancement, enregistrée localement.
+- Écran À propos : version installée, vérification GitHub, téléchargement de l’installateur avec progression.
+
+### Modifié
+
+- Positionnement du site et de l’app : contenus autorisés, plus « tout YouTube chez toi ».
+- Mode 403 présenté comme dépannage optionnel, limité à 1080p.
+
 ## 0.2.1 — bêta
 
 ### Ajouté

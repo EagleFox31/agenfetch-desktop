@@ -1,10 +1,13 @@
 'use strict';
 
 const path = require('node:path');
+const os = require('node:os');
 const { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, Notification, shell } = require('electron');
 const { DownloaderService } = require('./core/downloader');
 const { DownloadQueue } = require('./core/download-queue');
 const { HistoryStore } = require('./core/history-store');
+const { ConsentStore } = require('./core/consent-store');
+const { AppUpdater } = require('./core/app-updater');
 const { ToolManager } = require('./core/tool-manager');
 const { findProtocolUrl, parseProtocolUrl, sanitizeDownloadOptions } = require('./core/validation');
 
@@ -12,6 +15,8 @@ let mainWindow = null;
 let downloader = null;
 let downloadQueue = null;
 let history = null;
+let consent = null;
+let appUpdater = null;
 let toolManager = null;
 let pendingDeepLink = null;
 
@@ -53,15 +58,34 @@ function isDevToolsShortcut(input) {
   return Boolean(input.control && input.shift && (key === 'I' || key === 'J' || key === 'C'));
 }
 
+function isWindows11() {
+  if (process.platform !== 'win32') return false;
+  const parts = os.release().split('.').map(Number);
+  const build = parts[2] || 0;
+  return build >= 22000;
+}
+
 function createWindow() {
+  const windows11 = isWindows11();
   mainWindow = new BrowserWindow({
     width: 1180,
     height: 790,
     minWidth: 940,
     minHeight: 680,
     show: false,
-    backgroundColor: '#08191f',
+    backgroundColor: windows11 ? '#00000000' : '#202020',
     autoHideMenuBar: true,
+    ...(process.platform === 'win32'
+      ? {
+          titleBarStyle: 'hidden',
+          titleBarOverlay: {
+            color: windows11 ? '#00000000' : '#202020',
+            symbolColor: '#f3f3f3',
+            height: 32
+          },
+          ...(windows11 ? { backgroundMaterial: 'tabbed' } : {})
+        }
+      : { backgroundColor: '#08191f' }),
     icon: path.join(__dirname, '..', 'assets', 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -74,7 +98,12 @@ function createWindow() {
   });
 
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
-  mainWindow.once('ready-to-show', () => mainWindow.show());
+  mainWindow.once('ready-to-show', () => {
+    if (windows11 && typeof mainWindow.setBackgroundMaterial === 'function') {
+      mainWindow.setBackgroundMaterial('tabbed');
+    }
+    mainWindow.show();
+  });
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   mainWindow.webContents.on('will-navigate', (event, targetUrl) => {
     if (!targetUrl.startsWith('file://')) event.preventDefault();
@@ -98,6 +127,10 @@ function createWindow() {
   });
 }
 
+function createAppMenu() {
+  Menu.setApplicationMenu(null);
+}
+
 function showDownloadNotification(result) {
   if (!Notification.isSupported() || result.cancelled) return;
   const notification = new Notification({
@@ -110,6 +143,12 @@ function showDownloadNotification(result) {
   });
   notification.on('click', focusWindow);
   notification.show();
+}
+
+function requireConsent() {
+  if (!consent?.hasAccepted()) {
+    throw new Error('Accepte d’abord les conditions d’utilisation d’AgenFetch.');
+  }
 }
 
 function sanitizeQueuePayloads(payloads) {
@@ -144,15 +183,35 @@ function wireIpc() {
     return shell.openPath(folderPath);
   });
 
-  ipcMain.handle('metadata:inspect', (_event, payload) => downloader.inspect(payload));
-  ipcMain.handle('download:start', (_event, payload) => downloadQueue.add(sanitizeQueuePayloads(payload)));
-  ipcMain.handle('download:enqueue', (_event, payloads) => downloadQueue.add(sanitizeQueuePayloads(payloads)));
+  ipcMain.handle('consent:status', () => consent.status());
+  ipcMain.handle('consent:accept', () => consent.accept());
+  ipcMain.handle('metadata:inspect', (_event, payload) => {
+    requireConsent();
+    return downloader.inspect(payload);
+  });
+  ipcMain.handle('download:start', (_event, payload) => {
+    requireConsent();
+    return downloadQueue.add(sanitizeQueuePayloads(payload));
+  });
+  ipcMain.handle('download:enqueue', (_event, payloads) => {
+    requireConsent();
+    return downloadQueue.add(sanitizeQueuePayloads(payloads));
+  });
   ipcMain.handle('download:cancel', () => downloadQueue.cancelActive());
   ipcMain.handle('queue:list', () => downloadQueue.snapshot());
   ipcMain.handle('queue:remove', (_event, itemId) => downloadQueue.remove(itemId));
   ipcMain.handle('queue:clear-finished', () => downloadQueue.clearFinished());
   ipcMain.handle('history:list', () => history.list());
   ipcMain.handle('history:clear', () => history.clear());
+  ipcMain.handle('app:info', () => appUpdater.info());
+  ipcMain.handle('update:check', () => appUpdater.check());
+  ipcMain.handle('update:download', () => appUpdater.download());
+  ipcMain.handle('update:cancel', () => appUpdater.cancel());
+  ipcMain.handle('update:install', () => appUpdater.install());
+  ipcMain.handle('update:open-website', () => appUpdater.openWebsite());
+  ipcMain.handle('app:quit', () => {
+    app.quit();
+  });
 
   downloader.on('progress', (value) => mainWindow?.webContents.send('download:progress', value));
   downloader.on('log', (value) => mainWindow?.webContents.send('download:log', value));
@@ -187,9 +246,7 @@ app.on('open-url', (event, value) => {
 });
 
 app.whenReady().then(() => {
-  if (app.isPackaged) {
-    Menu.setApplicationMenu(null);
-  }
+  createAppMenu();
   registerProtocol();
   toolManager = new ToolManager({
     resourcesPath: process.resourcesPath,
@@ -201,6 +258,14 @@ app.whenReady().then(() => {
   downloader = new DownloaderService(app.getPath('downloads'), { toolManager });
   downloadQueue = new DownloadQueue(downloader);
   history = new HistoryStore(app.getPath('userData'));
+  consent = new ConsentStore(app.getPath('userData'));
+  appUpdater = new AppUpdater({
+    currentVersion: app.getVersion(),
+    tempDir: path.join(app.getPath('temp'), 'agenfetch-updates'),
+    openExternal: (url) => shell.openExternal(url),
+    openPath: (filePath) => shell.openPath(filePath),
+    onProgress: (value) => mainWindow?.webContents.send('update:progress', value)
+  });
   wireIpc();
   createWindow();
 

@@ -6,7 +6,7 @@
 - Vidéos, Shorts, lives et playlists.
 - Progression, historique et annulation.
 - Diagnostic des prérequis.
-- Mode de compatibilité 403.
+- Mode de dépannage 403.
 - Extension Chrome/Edge et protocole `agenfetch://`.
 - Installateur NSIS dépendant des outils système.
 

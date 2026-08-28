@@ -271,7 +271,7 @@ class DownloaderService extends EventEmitter {
       };
 
       if (code !== 0 && !wasCancelled) {
-        result.error = 'Le téléchargement a échoué. Consulte le journal ou active le mode compatibilité 403.';
+        result.error = 'Le téléchargement a échoué. Consulte le journal ou active le mode dépannage 403.';
       }
 
       finalize(result);
