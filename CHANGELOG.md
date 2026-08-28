@@ -4,9 +4,12 @@
 
 ### Ajouté
 
-- Barre de navigation haute façon Google (logo, onglets soulignés, actions à droite).
-- Dossier de l’extension Chrome/Edge livré avec l’installateur, avec une page d’étapes dans l’onglet Extension.
+- Dossier de l’extension Chrome/Edge livré avec l’installateur, ouvrable depuis À propos.
 - Carte d’extension sur le site (téléchargement ZIP + consignes de chargement).
+
+### Modifié
+
+- Navbar du site vitrine : logo à gauche, liens texte à droite, bouton Télécharger style Google.
 
 ## 0.2.2 — bêta
 

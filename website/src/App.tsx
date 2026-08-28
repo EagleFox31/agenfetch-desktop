@@ -91,6 +91,7 @@ const navItems = [
   { label: 'Confiance', href: '#trust' },
   { label: 'Téléchargement', href: '#download' },
 ];
+const headerNavItems = navItems.filter((item) => item.href !== '#download');
 
 const capabilities = [
   { icon: MonitorDown, title: 'Vidéo, enfin local', text: 'MP4 ou MKV, de 360p à 4K — les fichiers restent sur ton PC, là où ils ont leur place.' },
@@ -262,25 +263,29 @@ function Home() {
 
   return (
     <div className="agen-page min-h-[100dvh]">
-      <header className="site-header relative z-20 mx-auto flex max-w-[1240px] items-center justify-between gap-3 px-5 py-4 sm:py-5 lg:px-8" data-testid="header-site">
-        <a href="#top" className="flex min-w-0 items-center gap-2.5" data-testid="link-brand">
-          <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-[9px] shadow-[0_3px_0_#171a29]">
-            <img src={asset('assets/agenfetch-mark.svg')} alt="" width="36" height="36" />
-          </span>
-          <span className="display-font min-w-0 truncate text-[15px] font-bold tracking-[-.03em] text-[#282d46]">
-            <span className="brand-studio">AgenStudio / </span>AgenFetch
-          </span>
-        </a>
-        <nav className="hidden items-center gap-5 text-[13px] font-semibold lg:flex xl:gap-7" aria-label="Navigation principale">
-          {navItems.map((item) => <a key={item.href} className="nav-link" href={item.href} data-testid={`link-nav-${item.href.slice(1)}`} onClick={(event) => { event.preventDefault(); scrollToSection(item.href); }}>{item.label}</a>)}
-        </nav>
-        <FileDownload className="button-dark hidden !px-4 !py-2.5 text-[12px] lg:inline-flex" href={setupExe} filename={setupName} testId="link-header-download"><ArrowDownToLine size={14} /> Télécharger</FileDownload>
-        <button className="menu-button rounded-lg border border-[#d5cec0] bg-[#faf8f2] p-2.5 text-[#282d46] lg:hidden" type="button" aria-label={mobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'} aria-expanded={mobileOpen} data-testid="button-mobile-menu" onClick={() => setMobileOpen(!mobileOpen)}>{mobileOpen ? <X size={19} /> : <Menu size={19} />}</button>
+      <header className="site-header" data-testid="header-site">
+        <div className="site-header-inner">
+          <a href="#top" className="site-logo" data-testid="link-brand">
+            <img src={asset('assets/agenfetch-mark.svg')} alt="" width="32" height="32" />
+            <span>AgenFetch</span>
+          </a>
+          <div className="site-header-end">
+            <nav className="site-nav" aria-label="Navigation principale">
+              {headerNavItems.map((item) => (
+                <a key={item.href} className="nav-link" href={item.href} data-testid={`link-nav-${item.href.slice(1)}`} onClick={(event) => { event.preventDefault(); scrollToSection(item.href); }}>{item.label}</a>
+              ))}
+              <a className="nav-link" href={GITHUB_REPO} target="_blank" rel="noreferrer" data-testid="link-header-github">GitHub</a>
+            </nav>
+            <FileDownload className="button-header site-header-download" href={setupExe} filename={setupName} testId="link-header-download">Télécharger</FileDownload>
+            <button className="menu-button lg:hidden" type="button" aria-label={mobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'} aria-expanded={mobileOpen} data-testid="button-mobile-menu" onClick={() => setMobileOpen(!mobileOpen)}>{mobileOpen ? <X size={22} /> : <Menu size={22} />}</button>
+          </div>
+        </div>
       </header>
       {mobileOpen && (
-        <nav className="mx-5 mb-3 flex flex-col gap-1 rounded-xl border border-[#d5cec0] bg-[#faf8f2] p-2 shadow-[0_12px_30px_rgba(44,50,71,.1)] lg:hidden" aria-label="Navigation mobile" data-testid="nav-mobile">
-          {navItems.map((item) => <a key={item.href} className="rounded-lg px-3 py-3 text-sm font-semibold text-[#4e5364] hover:bg-[#f0eade]" href={item.href} data-testid={`link-mobile-${item.href.slice(1)}`} onClick={(event) => { event.preventDefault(); scrollToSection(item.href, () => setMobileOpen(false)); }}>{item.label}</a>)}
-          <FileDownload className="button-dark mt-1" href={setupExe} filename={setupName} testId="link-mobile-download"><ArrowDownToLine size={15} /> Télécharger pour Windows</FileDownload>
+        <nav className="site-mobile-nav lg:hidden" aria-label="Navigation mobile" data-testid="nav-mobile">
+          {headerNavItems.map((item) => <a key={item.href} className="nav-link" href={item.href} data-testid={`link-mobile-${item.href.slice(1)}`} onClick={(event) => { event.preventDefault(); scrollToSection(item.href, () => setMobileOpen(false)); }}>{item.label}</a>)}
+          <a className="nav-link" href={GITHUB_REPO} target="_blank" rel="noreferrer" data-testid="link-mobile-github">GitHub</a>
+          <FileDownload className="button-header" href={setupExe} filename={setupName} testId="link-mobile-download">Télécharger</FileDownload>
         </nav>
       )}
 
@@ -424,7 +429,7 @@ function Home() {
               <p className="mt-4 text-[14px] leading-6 text-[#6e7079]">Après l’app. Pas encore sur le Chrome Web Store : tu charges un dossier, ou le ZIP de la Release.</p>
               <FileDownload className="button-dark mt-6 !px-4 !py-3 text-[13px]" href={extensionZip} filename="AgenFetch-Extension.zip" testId="link-download-extension"><Puzzle size={16} /> Télécharger l’extension</FileDownload>
               <ol className="extension-steps mt-6">
-                <li>Extrais le ZIP, ou ouvre le dossier livré avec l’app (onglet Extension).</li>
+                <li>Extrais le ZIP, ou ouvre le dossier livré avec l’app (À propos).</li>
                 <li>Va sur chrome://extensions ou edge://extensions, mode développeur.</li>
                 <li>Charge l’extension non empaquetée et sélectionne ce dossier.</li>
               </ol>
@@ -466,16 +471,14 @@ function LegalPage() {
 
   return (
     <div className="agen-page min-h-[100dvh]">
-      <header className="site-header relative z-20 mx-auto flex max-w-[1240px] items-center justify-between gap-3 px-5 py-4 sm:py-5 lg:px-8" data-testid="header-legal">
-        <a href="#top" className="flex min-w-0 items-center gap-2.5" data-testid="link-legal-brand">
-          <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-[9px] shadow-[0_3px_0_#171a29]">
-            <img src={asset('assets/agenfetch-mark.svg')} alt="" width="36" height="36" />
-          </span>
-          <span className="display-font min-w-0 truncate text-[15px] font-bold tracking-[-.03em] text-[#282d46]">
-            <span className="brand-studio">AgenStudio / </span>AgenFetch
-          </span>
-        </a>
-        <a className="nav-link text-[13px] font-semibold" href="#top" data-testid="link-legal-home">Retour à l’accueil</a>
+      <header className="site-header" data-testid="header-legal">
+        <div className="site-header-inner">
+          <a href="#top" className="site-logo" data-testid="link-legal-brand">
+            <img src={asset('assets/agenfetch-mark.svg')} alt="" width="32" height="32" />
+            <span>AgenFetch</span>
+          </a>
+          <a className="nav-link" href="#top" data-testid="link-legal-home">Retour à l’accueil</a>
+        </div>
       </header>
 
       <main className="mx-auto max-w-[760px] px-5 pb-24 pt-10 lg:px-8 lg:pb-32 lg:pt-16">
