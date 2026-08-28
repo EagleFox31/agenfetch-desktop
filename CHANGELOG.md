@@ -9,6 +9,7 @@
 ### Modifié
 
 - Accents du site vitrine alignés sur le teal du bouton Télécharger.
+- Retrait de `_redirects` qui faisait échouer le déploiement Cloudflare.
 
 ## 0.2.3 — bêta
 
