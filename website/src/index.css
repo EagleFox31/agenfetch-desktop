@@ -250,6 +250,16 @@
 .download-panel { position: relative; overflow: hidden; background: #eab14a; }
 .download-panel::after { content: 'AF'; position: absolute; right: -1rem; bottom: -4.8rem; color: rgba(255,255,255,.13); font-family: 'Space Grotesk'; font-size: 19rem; font-weight: 700; line-height: 1; pointer-events: none; }
 .download-panel > * { position: relative; z-index: 1; }
+.download-layout {
+  display: grid;
+  gap: 1rem;
+}
+@media (min-width: 1024px) {
+  .download-layout { grid-template-columns: 1.15fr .85fr; align-items: stretch; }
+}
+.extension-panel { display: flex; flex-direction: column; }
+.extension-steps { margin: 0; padding-left: 1.15rem; color: #6e7079; font-size: 13px; line-height: 1.55; }
+.extension-steps li + li { margin-top: .45rem; }
 .footer-link { color: #7b7f87; transition: color .2s ease; }
 .footer-link:hover { color: #f8f3e8; }
 
@@ -342,6 +352,11 @@
 #download .download-panel .button-ghost {
   border-color: #c8dcf4 !important;
   background: #fff !important;
+}
+#download .extension-panel {
+  border-color: #e1e1e6;
+  background: #f5f5f7;
+  box-shadow: 0 20px 55px rgba(0,0,0,.06);
 }
 
 .story-reveal {

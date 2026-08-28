@@ -3,7 +3,7 @@
 const api = window.agenFetch;
 
 const refs = {
-  navItems: [...document.querySelectorAll('[data-view-target]')],
+  navItems: [...document.querySelectorAll('.navbar-tabs [data-view-target]')],
   views: [...document.querySelectorAll('.view')],
   pageTitle: document.querySelector('#page-title'),
   form: document.querySelector('#download-form'),
@@ -71,7 +71,9 @@ const refs = {
   installAppUpdate: document.querySelector('#install-app-update'),
   systemStatus: document.querySelector('.system-status'),
   appMenuButton: document.querySelector('#app-menu-button'),
-  appMenu: document.querySelector('#app-menu')
+  appMenu: document.querySelector('#app-menu'),
+  extensionFolderPath: document.querySelector('#extension-folder-path'),
+  openExtensionFolder: document.querySelector('#open-extension-folder')
 };
 
 const state = {
@@ -102,15 +104,17 @@ function setView(viewId) {
   refs.navItems.forEach((item) => item.classList.toggle('is-active', item.dataset.viewTarget === viewId));
   refs.pageTitle.textContent = {
     'history-view': 'Ce que tu as déjà récupéré.',
-    'about-view': 'Version et mises à jour.'
+    'about-view': 'Version et mises à jour.',
+    'extension-view': 'Depuis YouTube, en un clic.'
   }[viewId] || 'Garde ce que tu as le droit de garder.';
   if (refs.pageEyebrow) {
     refs.pageEyebrow.textContent = {
       'history-view': 'Historique local',
-      'about-view': 'Application'
+      'about-view': 'Application',
+      'extension-view': 'Extension Chrome / Edge'
     }[viewId] || 'Téléchargement local';
   }
-  if (refs.systemStatus) refs.systemStatus.hidden = viewId === 'about-view';
+  if (refs.systemStatus) refs.systemStatus.hidden = viewId === 'about-view' || viewId === 'extension-view';
   if (viewId === 'history-view') renderHistory();
 }
 
@@ -443,6 +447,7 @@ async function renderHistory() {
 }
 
 refs.navItems.forEach((item) => item.addEventListener('click', () => setView(item.dataset.viewTarget)));
+document.querySelector('.navbar-brand')?.addEventListener('click', () => setView('download-view'));
 document.querySelectorAll('input[name="mode"]').forEach((input) => input.addEventListener('change', syncModeUi));
 
 refs.url.addEventListener('input', () => {
@@ -607,7 +612,22 @@ function applyUpdateCheck(result) {
 async function loadAppInfo() {
   const info = await api.getAppInfo();
   refs.appVersion.textContent = info.version;
-  if (refs.sidebarVersion) refs.sidebarVersion.textContent = `BÊTA ${info.version}`;
+  if (refs.sidebarVersion) {
+    refs.sidebarVersion.textContent = 'Beta';
+    refs.sidebarVersion.title = `Version ${info.version}`;
+  }
+  try {
+    const extension = await api.getExtensionInfo();
+    if (refs.extensionFolderPath) {
+      refs.extensionFolderPath.textContent = extension.available
+        ? extension.folder
+        : 'Dossier d’extension introuvable dans cette installation.';
+    }
+    if (refs.openExtensionFolder) refs.openExtensionFolder.disabled = !extension.available;
+  } catch {
+    if (refs.extensionFolderPath) refs.extensionFolderPath.textContent = 'Dossier d’extension indisponible.';
+    if (refs.openExtensionFolder) refs.openExtensionFolder.disabled = true;
+  }
 }
 
 async function checkAppUpdate() {
@@ -679,6 +699,10 @@ refs.cancelAppUpdate.addEventListener('click', async () => {
   await api.cancelAppUpdate();
 });
 refs.installAppUpdate.addEventListener('click', installAppUpdate);
+refs.openExtensionFolder?.addEventListener('click', async () => {
+  const error = await api.openExtensionFolder();
+  if (error) showToast(error, 'error');
+});
 api.onUpdateProgress(setUpdateProgress);
 api.onOpenAbout(() => setView('about-view'));
 api.onCheckUpdates(() => {

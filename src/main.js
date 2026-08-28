@@ -8,6 +8,7 @@ const { DownloadQueue } = require('./core/download-queue');
 const { HistoryStore } = require('./core/history-store');
 const { ConsentStore } = require('./core/consent-store');
 const { AppUpdater } = require('./core/app-updater');
+const { extensionStatus } = require('./core/extension-path');
 const { ToolManager } = require('./core/tool-manager');
 const { findProtocolUrl, parseProtocolUrl, sanitizeDownloadOptions } = require('./core/validation');
 
@@ -181,6 +182,21 @@ function wireIpc() {
   ipcMain.handle('folder:open', async (_event, folderPath) => {
     if (typeof folderPath !== 'string' || !folderPath.trim()) return 'Dossier invalide';
     return shell.openPath(folderPath);
+  });
+
+  ipcMain.handle('extension:info', () => extensionStatus({
+    isPackaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+    projectRoot: path.join(__dirname, '..')
+  }));
+  ipcMain.handle('extension:open-folder', async () => {
+    const info = extensionStatus({
+      isPackaged: app.isPackaged,
+      resourcesPath: process.resourcesPath,
+      projectRoot: path.join(__dirname, '..')
+    });
+    if (!info.available) return 'Dossier d’extension introuvable.';
+    return shell.openPath(info.folder);
   });
 
   ipcMain.handle('consent:status', () => consent.status());

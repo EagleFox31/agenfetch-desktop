@@ -36,14 +36,21 @@ La bêta n’est pas encore signée numériquement. Windows SmartScreen peut don
 
 ## Installer l’extension Chrome ou Edge
 
-L’extension reste optionnelle : AgenFetch fonctionne aussi en collant directement les liens.
+L’extension reste optionnelle : AgenFetch fonctionne aussi en collant directement les liens. Chrome et Edge n’installent pas d’extension hors store pour un utilisateur classique.
 
-1. Télécharge `AgenFetch-Extension-0.2.2.zip` dans la même Release.
-2. Extrais l’archive.
+**Depuis l’application installée**
+
+1. Ouvre l’onglet **Extension**.
+2. Clique sur **Ouvrir le dossier**.
 3. Ouvre `chrome://extensions` ou `edge://extensions`.
 4. Active **Mode développeur**.
 5. Clique sur **Charger l’extension non empaquetée**.
-6. Sélectionne le dossier extrait.
+6. Sélectionne le dossier ouvert.
+
+**Depuis la Release GitHub**
+
+1. Télécharge `AgenFetch-Extension-0.2.2.zip`.
+2. Extrais l’archive, puis suis les mêmes étapes à partir de `chrome://extensions`.
 
 Le bouton **AgenFetch** apparaîtra sur les pages vidéo compatibles. Le navigateur demandera l’autorisation d’ouvrir l’application locale au premier clic.
 
@@ -61,7 +68,7 @@ AgenFetch traite les éléments dans l’ordre. Les téléchargements terminés,
 
 ## Mise à jour de l’application
 
-Ouvre **À propos** dans la barre latérale, ou le menu **⋯** en haut à droite. AgenFetch compare ta version à GitHub Releases. S’il y a plus récent, tu peux télécharger l’installateur dans l’app (barre de progression) ou ouvrir le site.
+Ouvre l’onglet **À propos**, ou le menu **⋯** en haut à droite. AgenFetch compare ta version à GitHub Releases. S’il y a plus récent, tu peux télécharger l’installateur dans l’app (barre de progression) ou ouvrir le site.
 
 ## Mise à jour de yt-dlp
 

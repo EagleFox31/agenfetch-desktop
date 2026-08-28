@@ -30,7 +30,7 @@
 - Version portable.
 - Site vitrine avec téléchargement et documentation. *(landing FR initiale dans `website/`)*
 - Français et anglais.
-- Préparation de la distribution de l’extension.
+- Publication Chrome Web Store / Edge Add-ons.
 
 ## Version 1.0 — stable
 
