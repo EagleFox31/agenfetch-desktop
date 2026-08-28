@@ -2,6 +2,10 @@
 
 ## Non publié
 
+### Modifié
+
+- Accents du site vitrine alignés sur le teal du bouton Télécharger.
+
 ## 0.2.3 — bêta
 
 ### Ajouté
