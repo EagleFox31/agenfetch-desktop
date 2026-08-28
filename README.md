@@ -133,6 +133,11 @@ npm run dev
 
 Puis ouvre l’URL affichée (souvent `http://localhost:5173`). Un `npm run build` produit le site statique dans `website/dist`.
 
+Le site est publié sur **Cloudflare Pages** (`agenfetch-desktop.pages.dev` une fois le projet créé). Deux options :
+
+1. **GitHub Actions** (déjà dans le dépôt) : dans le dépôt GitHub, ajoute les secrets `CLOUDFLARE_API_TOKEN` (jeton *Edit Cloudflare Workers*) et `CLOUDFLARE_ACCOUNT_ID`, puis lance le workflow **Deploy website**.
+2. **Tableau Cloudflare** : Workers & Pages → Create → Pages → Import a Git repository → `EagleFox31/agenfetch-desktop`. Root directory `website`, build `npm run build`, output `dist`, variable `NODE_VERSION=22`.
+
 ## Structure
 
 ```text
@@ -145,7 +150,7 @@ agenfetch-desktop/
 ├── src/core/           Téléchargement, outils et file
 ├── src/renderer/       Interface Electron
 ├── test/               Tests Node.js
-├── website/            Landing page Vite (déployée via GitHub Pages)
+├── website/            Landing page Vite (déployée via Cloudflare Pages)
 └── vendor/bin/         Binaires générés localement, non commités
 ```
 
