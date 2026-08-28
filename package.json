@@ -1,6 +1,6 @@
 {
   "name": "agenfetch-desktop",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Application de bureau locale pour enregistrer tes contenus YouTube autorisés avec yt-dlp, depuis une interface et une extension Chrome/Edge.",
   "main": "src/main.js",
   "author": "AgenStudio",
