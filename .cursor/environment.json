@@ -1,0 +1,5 @@
+{
+  "name": "AgenFetch Desktop",
+  "user": "ubuntu",
+  "install": "npm install && node node_modules/electron/install.js"
+}
