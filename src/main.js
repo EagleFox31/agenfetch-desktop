@@ -1,8 +1,7 @@
 'use strict';
 
 const path = require('node:path');
-const os = require('node:os');
-const { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, Notification, safeStorage, shell } = require('electron');
+const { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, Notification, safeStorage, shell } = require('electron');
 const { DownloaderService } = require('./core/downloader');
 const { DownloadQueue } = require('./core/download-queue');
 const { HistoryStore } = require('./core/history-store');
@@ -66,32 +65,24 @@ function isDevToolsShortcut(input) {
   return Boolean(input.control && input.shift && (key === 'I' || key === 'J' || key === 'C'));
 }
 
-function isWindows11() {
-  if (process.platform !== 'win32') return false;
-  const parts = os.release().split('.').map(Number);
-  const build = parts[2] || 0;
-  return build >= 22000;
-}
-
 function createWindow() {
-  const windows11 = isWindows11();
+  nativeTheme.themeSource = 'dark';
   mainWindow = new BrowserWindow({
     width: 1180,
     height: 790,
     minWidth: 940,
     minHeight: 680,
     show: false,
-    backgroundColor: windows11 ? '#00000000' : '#202020',
+    backgroundColor: '#08191f',
     autoHideMenuBar: true,
     ...(process.platform === 'win32'
       ? {
           titleBarStyle: 'hidden',
           titleBarOverlay: {
-            color: windows11 ? '#00000000' : '#202020',
+            color: '#08191f',
             symbolColor: '#f3f3f3',
             height: 32
-          },
-          ...(windows11 ? { backgroundMaterial: 'tabbed' } : {})
+          }
         }
       : { backgroundColor: '#08191f' }),
     icon: path.join(__dirname, '..', 'assets', 'icon.png'),
@@ -107,9 +98,6 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   mainWindow.once('ready-to-show', () => {
-    if (windows11 && typeof mainWindow.setBackgroundMaterial === 'function') {
-      mainWindow.setBackgroundMaterial('tabbed');
-    }
     mainWindow.show();
   });
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
