@@ -23,12 +23,21 @@
 - Extension ZIP versionnée.
 - GitHub Actions et Releases automatisées.
 
-## Version 0.3 — distribution
+## Version 0.3 — sous-titres et runtime allégé
+
+- Détection et sélection des pistes YouTube officielles ou automatiques.
+- Téléchargement séparé, intégré ou sous-titres uniquement en SRT/VTT.
+- Recherche films/séries multilingue sur plusieurs fournisseurs.
+- Moteur Python optionnel, isolé et actualisable indépendamment.
+- Clés fournisseurs chiffrées localement.
+- FFmpeg partagé et budget de taille automatisé.
+- Site vitrine avec téléchargement et documentation. *(landing FR initiale dans `website/`)*
+
+## Version 0.4 — distribution étendue
 
 - Persistance de la file après redémarrage.
 - Reprise améliorée et nouveaux essais automatiques contrôlés.
-- Version portable.
-- Site vitrine avec téléchargement et documentation. *(landing FR initiale dans `website/`)*
+- Version portable et installateur web après validation du gestionnaire de composants.
 - Français et anglais.
 - Publication Chrome Web Store / Edge Add-ons.
 

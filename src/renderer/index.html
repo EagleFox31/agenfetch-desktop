@@ -57,6 +57,10 @@
             <span class="nav-icon" aria-hidden="true">↺</span>
             Historique
           </button>
+          <button class="nav-item" type="button" data-view-target="subtitles-view">
+            <span class="nav-icon" aria-hidden="true">CC</span>
+            Sous-titres
+          </button>
           <button class="nav-item" type="button" data-view-target="about-view">
             <span class="nav-icon" aria-hidden="true">i</span>
             À propos
@@ -162,14 +166,33 @@
                 </select>
               </div>
 
-              <div class="field-group" id="subtitles-group">
-                <label for="subtitles">Sous-titres intégrés</label>
-                <select id="subtitles" name="subtitles">
-                  <option value="none" selected>Aucun</option>
-                  <option value="fr">Français</option>
-                  <option value="en">Anglais</option>
-                  <option value="all">Toutes les langues</option>
-                </select>
+              <div class="field-group field-span subtitle-youtube-options" id="subtitles-group">
+                <div class="subtitle-options-heading">
+                  <div>
+                    <label for="subtitle-mode">Sous-titres YouTube</label>
+                    <small id="subtitle-track-summary">Analyse le lien pour afficher les langues disponibles.</small>
+                  </div>
+                  <label class="inline-check" for="include-auto-subtitles">
+                    <input id="include-auto-subtitles" type="checkbox" checked />
+                    Inclure les pistes automatiques
+                  </label>
+                </div>
+                <div class="subtitle-option-grid">
+                  <select id="subtitle-mode" name="subtitleMode">
+                    <option value="none" selected>Aucun sous-titre</option>
+                    <option value="embed">Intégrer à la vidéo</option>
+                    <option value="separate">Conserver séparément</option>
+                    <option value="only">Télécharger uniquement les sous-titres</option>
+                  </select>
+                  <select id="subtitle-format" name="subtitleFormat">
+                    <option value="srt" selected>SRT — compatible partout</option>
+                    <option value="vtt">VTT — web et lecteurs modernes</option>
+                    <option value="best">Format original</option>
+                  </select>
+                </div>
+                <div class="language-track-list" id="youtube-subtitle-tracks" aria-live="polite">
+                  <span class="language-empty">Aucune piste analysée.</span>
+                </div>
               </div>
 
               <div class="field-group field-span">
@@ -240,6 +263,127 @@
             </div>
             <div class="queue-list" id="queue-list">
               <div class="queue-empty">Ajoute plusieurs liens : AgenFetch les traitera dans l’ordre.</div>
+            </div>
+          </section>
+        </section>
+
+        <section class="view" id="subtitles-view">
+          <div class="hero-card subtitle-hero">
+            <div class="hero-copy">
+              <span class="hero-badge">FILMS • SÉRIES • MULTILINGUE</span>
+              <h2>Le bon épisode. La bonne langue. Le bon fichier.</h2>
+              <p>AgenFetch compare les fournisseurs configurés et classe les pistes les plus compatibles avec ton média local.</p>
+            </div>
+            <div class="orb" aria-hidden="true"><span>CC</span></div>
+          </div>
+
+          <section class="engine-banner" id="subtitle-engine-banner">
+            <div>
+              <p class="eyebrow">Composant optionnel</p>
+              <strong id="subtitle-engine-title">Vérification du moteur…</strong>
+              <span id="subtitle-engine-copy">Le moteur Python reste séparé pour garder AgenFetch léger.</span>
+            </div>
+            <button class="primary-button engine-install-button" id="install-subtitle-engine" type="button" hidden>
+              <span>Installer le moteur</span>
+            </button>
+            <div class="engine-progress" id="subtitle-engine-progress" hidden>
+              <div><span id="subtitle-engine-progress-bar"></span></div>
+              <small id="subtitle-engine-progress-label">0%</small>
+            </div>
+          </section>
+
+          <div class="subtitle-workspace">
+            <form class="subtitle-search-card" id="subtitle-search-form">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">Recherche locale</p>
+                  <h3>Identifier le média</h3>
+                </div>
+                <span class="provider-count" id="provider-count">0 fournisseur</span>
+              </div>
+
+              <div class="field-group field-span">
+                <label for="subtitle-media-path">Fichier vidéo</label>
+                <div class="folder-control">
+                  <input id="subtitle-media-path" type="text" readonly placeholder="Choisir un film ou un épisode" />
+                  <button class="secondary-button" id="choose-subtitle-media" type="button">Choisir</button>
+                </div>
+              </div>
+
+              <div class="subtitle-fields">
+                <div class="field-group title-field">
+                  <label for="subtitle-title">Titre</label>
+                  <input class="standalone-input" id="subtitle-title" type="text" maxlength="180" placeholder="Ex. The Last of Us" />
+                </div>
+                <div class="field-group">
+                  <label for="subtitle-year">Année</label>
+                  <input class="standalone-input" id="subtitle-year" type="number" min="1900" max="2100" placeholder="2025" />
+                </div>
+                <div class="field-group">
+                  <label for="subtitle-season">Saison</label>
+                  <input class="standalone-input" id="subtitle-season" type="number" min="0" max="99" placeholder="2" />
+                </div>
+                <div class="field-group">
+                  <label for="subtitle-episode">Épisode</label>
+                  <input class="standalone-input" id="subtitle-episode" type="number" min="0" max="999" placeholder="3" />
+                </div>
+              </div>
+
+              <fieldset class="field-group field-span">
+                <legend>Langues</legend>
+                <div class="language-picker" id="external-language-picker">
+                  <label><input type="checkbox" value="fr" checked /><span>FR</span> Français</label>
+                  <label><input type="checkbox" value="en" checked /><span>EN</span> English</label>
+                  <label><input type="checkbox" value="es" /><span>ES</span> Español</label>
+                  <label><input type="checkbox" value="de" /><span>DE</span> Deutsch</label>
+                  <label><input type="checkbox" value="pt" /><span>PT</span> Português</label>
+                  <label><input type="checkbox" value="ar" /><span>AR</span> العربية</label>
+                  <label><input type="checkbox" value="it" /><span>IT</span> Italiano</label>
+                </div>
+              </fieldset>
+
+              <div class="field-group">
+                <label for="external-subtitle-format">Format téléchargé</label>
+                <select id="external-subtitle-format">
+                  <option value="srt" selected>SRT</option>
+                  <option value="vtt">VTT</option>
+                </select>
+              </div>
+              <button class="primary-button subtitle-search-button" id="search-external-subtitles" type="submit">
+                <span>Rechercher partout</span><span aria-hidden="true">→</span>
+              </button>
+              <p class="privacy-copy field-span">Le nom du fichier et les critères de recherche sont envoyés directement aux fournisseurs activés, jamais à AgenStudio.</p>
+            </form>
+
+            <aside class="provider-card">
+              <p class="eyebrow">Fournisseurs</p>
+              <h3>Connecter les catalogues</h3>
+              <p>Utilise tes propres clés gratuites. Elles sont chiffrées par Windows et restent sur cet ordinateur.</p>
+              <div class="built-in-provider"><span>Podnapisi</span><b>Actif sans clé</b></div>
+              <label for="subdl-api-key">SubDL API key</label>
+              <div class="provider-key-control">
+                <input id="subdl-api-key" type="password" autocomplete="off" placeholder="Non configurée" />
+                <span id="subdl-configured">—</span>
+              </div>
+              <label for="opensubtitles-api-key">OpenSubtitles API key</label>
+              <div class="provider-key-control">
+                <input id="opensubtitles-api-key" type="password" autocomplete="off" placeholder="Non configurée" />
+                <span id="opensubtitles-configured">—</span>
+              </div>
+              <button class="secondary-button provider-save" id="save-subtitle-providers" type="button">Enregistrer les clés</button>
+            </aside>
+          </div>
+
+          <section class="subtitle-results-card">
+            <div class="queue-heading">
+              <div>
+                <p class="eyebrow">Résultats agrégés</p>
+                <h3 id="subtitle-results-title">Lance une recherche pour comparer les pistes.</h3>
+              </div>
+              <span class="provider-count" id="subtitle-result-count">0 résultat</span>
+            </div>
+            <div class="subtitle-results" id="subtitle-results">
+              <div class="queue-empty">Aucun résultat pour le moment.</div>
             </div>
           </section>
         </section>
@@ -327,6 +471,7 @@
         <ul>
           <li>YouTube n’autorise pas le téléchargement hors de ses fonctions officielles.</li>
           <li>Aucun cookie, compte ou mot de passe n’est demandé.</li>
+          <li>Pour les films et séries, les critères choisis sont envoyés directement aux fournisseurs que tu configures.</li>
           <li>Le mode dépannage 403 ne sert qu’en cas d’échec d’un téléchargement déjà autorisé.</li>
         </ul>
         <label class="consent-check" for="consent-accept-check">

@@ -2,7 +2,7 @@
 
 const path = require('node:path');
 const os = require('node:os');
-const { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, Notification, shell } = require('electron');
+const { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, Notification, safeStorage, shell } = require('electron');
 const { DownloaderService } = require('./core/downloader');
 const { DownloadQueue } = require('./core/download-queue');
 const { HistoryStore } = require('./core/history-store');
@@ -10,6 +10,9 @@ const { ConsentStore } = require('./core/consent-store');
 const { AppUpdater } = require('./core/app-updater');
 const { extensionStatus } = require('./core/extension-path');
 const { ToolManager } = require('./core/tool-manager');
+const { ProviderCredentialsStore } = require('./core/provider-credentials-store');
+const { SubtitleComponentInstaller } = require('./core/subtitle-component-installer');
+const { SubtitleEngineService } = require('./core/subtitle-engine-service');
 const { findProtocolUrl, parseProtocolUrl, sanitizeDownloadOptions } = require('./core/validation');
 
 let mainWindow = null;
@@ -19,6 +22,9 @@ let history = null;
 let consent = null;
 let appUpdater = null;
 let toolManager = null;
+let providerCredentials = null;
+let subtitleEngine = null;
+let subtitleInstaller = null;
 let pendingDeepLink = null;
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
@@ -179,6 +185,18 @@ function wireIpc() {
 
   ipcMain.handle('folder:default', () => app.getPath('downloads'));
 
+  ipcMain.handle('media:choose', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Choisir un film ou un épisode',
+      properties: ['openFile'],
+      filters: [
+        { name: 'Fichiers vidéo', extensions: ['mkv', 'mp4', 'avi', 'mov', 'webm', 'm4v', 'wmv'] },
+        { name: 'Tous les fichiers', extensions: ['*'] }
+      ]
+    });
+    return result.canceled ? null : result.filePaths[0];
+  });
+
   ipcMain.handle('folder:open', async (_event, folderPath) => {
     if (typeof folderPath !== 'string' || !folderPath.trim()) return 'Dossier invalide';
     return shell.openPath(folderPath);
@@ -219,6 +237,37 @@ function wireIpc() {
   ipcMain.handle('queue:clear-finished', () => downloadQueue.clearFinished());
   ipcMain.handle('history:list', () => history.list());
   ipcMain.handle('history:clear', () => history.clear());
+  ipcMain.handle('subtitle-engine:status', () => subtitleEngine.status());
+  ipcMain.handle('subtitle-engine:install', async () => {
+    requireConsent();
+    const result = await subtitleInstaller.install();
+    return { ...result, status: await subtitleEngine.status() };
+  });
+  ipcMain.handle('subtitle-engine:cancel-install', () => subtitleInstaller.cancel());
+  ipcMain.handle('subtitle-provider:status', () => providerCredentials.status());
+  ipcMain.handle('subtitle-provider:save', (_event, payload) => providerCredentials.save(payload));
+  ipcMain.handle('subtitle-provider:clear', (_event, provider) => providerCredentials.clear(provider));
+  ipcMain.handle('subtitle:parse', (_event, value) => subtitleEngine.parse(value));
+  ipcMain.handle('subtitle:search', (_event, payload) => {
+    requireConsent();
+    return subtitleEngine.search(payload);
+  });
+  ipcMain.handle('subtitle:download', async (_event, payload) => {
+    requireConsent();
+    const result = await subtitleEngine.download(payload, app.getPath('downloads'));
+    const historyEntry = history.add({
+      title: payload?.title || '',
+      mode: 'subtitle',
+      quality: '—',
+      container: payload?.format || 'srt',
+      subtitles: payload?.result?.language || 'und',
+      status: 'completed',
+      destination: result.filePath,
+      finishedAt: new Date().toISOString()
+    });
+    showDownloadNotification({ ok: true, cancelled: false });
+    return { ...result, historyEntry };
+  });
   ipcMain.handle('app:info', () => appUpdater.info());
   ipcMain.handle('update:check', () => appUpdater.check());
   ipcMain.handle('update:download', () => appUpdater.download());
@@ -239,7 +288,9 @@ function wireIpc() {
       mode: value.options?.mode || 'video',
       quality: value.options?.quality || '—',
       container: value.options?.container || 'mp4',
-      subtitles: value.options?.subtitles || 'none',
+      subtitles: value.options?.subtitleMode && value.options.subtitleMode !== 'none'
+        ? (value.options.subtitleLanguages || []).join(',')
+        : value.options?.subtitles || 'none',
       status: value.cancelled ? 'cancelled' : value.ok ? 'completed' : 'failed',
       destination: value.destination || '',
       startedAt: value.options?.startedAt || null,
@@ -275,6 +326,23 @@ app.whenReady().then(() => {
   downloadQueue = new DownloadQueue(downloader);
   history = new HistoryStore(app.getPath('userData'));
   consent = new ConsentStore(app.getPath('userData'));
+  providerCredentials = new ProviderCredentialsStore(app.getPath('userData'), {
+    encryptionAvailable: () => safeStorage.isEncryptionAvailable(),
+    encryptString: (value) => safeStorage.encryptString(value),
+    decryptString: (value) => safeStorage.decryptString(value)
+  });
+  subtitleEngine = new SubtitleEngineService({
+    resourcesPath: process.resourcesPath,
+    userDataPath: app.getPath('userData'),
+    projectRoot: path.join(__dirname, '..'),
+    isPackaged: app.isPackaged,
+    credentialsStore: providerCredentials
+  });
+  subtitleInstaller = new SubtitleComponentInstaller({
+    currentVersion: app.getVersion(),
+    destination: subtitleEngine.managedExecutable,
+    onProgress: (value) => mainWindow?.webContents.send('subtitle-engine:install-progress', value)
+  });
   appUpdater = new AppUpdater({
     currentVersion: app.getVersion(),
     tempDir: path.join(app.getPath('temp'), 'agenfetch-updates'),

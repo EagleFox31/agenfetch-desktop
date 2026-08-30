@@ -20,7 +20,11 @@ const refs = {
   qualityGroup: document.querySelector('#quality-group'),
   container: document.querySelector('#container'),
   containerGroup: document.querySelector('#container-group'),
-  subtitles: document.querySelector('#subtitles'),
+  subtitleMode: document.querySelector('#subtitle-mode'),
+  subtitleFormat: document.querySelector('#subtitle-format'),
+  includeAutoSubtitles: document.querySelector('#include-auto-subtitles'),
+  youtubeSubtitleTracks: document.querySelector('#youtube-subtitle-tracks'),
+  subtitleTrackSummary: document.querySelector('#subtitle-track-summary'),
   subtitlesGroup: document.querySelector('#subtitles-group'),
   outputFolder: document.querySelector('#output-folder'),
   chooseFolder: document.querySelector('#choose-folder'),
@@ -73,7 +77,32 @@ const refs = {
   appMenuButton: document.querySelector('#app-menu-button'),
   appMenu: document.querySelector('#app-menu'),
   extensionFolderPath: document.querySelector('#extension-folder-path'),
-  openExtensionFolder: document.querySelector('#open-extension-folder')
+  openExtensionFolder: document.querySelector('#open-extension-folder'),
+  subtitleEngineTitle: document.querySelector('#subtitle-engine-title'),
+  subtitleEngineCopy: document.querySelector('#subtitle-engine-copy'),
+  installSubtitleEngine: document.querySelector('#install-subtitle-engine'),
+  subtitleEngineProgress: document.querySelector('#subtitle-engine-progress'),
+  subtitleEngineProgressBar: document.querySelector('#subtitle-engine-progress-bar'),
+  subtitleEngineProgressLabel: document.querySelector('#subtitle-engine-progress-label'),
+  subtitleSearchForm: document.querySelector('#subtitle-search-form'),
+  subtitleMediaPath: document.querySelector('#subtitle-media-path'),
+  chooseSubtitleMedia: document.querySelector('#choose-subtitle-media'),
+  subtitleTitle: document.querySelector('#subtitle-title'),
+  subtitleYear: document.querySelector('#subtitle-year'),
+  subtitleSeason: document.querySelector('#subtitle-season'),
+  subtitleEpisode: document.querySelector('#subtitle-episode'),
+  externalLanguagePicker: document.querySelector('#external-language-picker'),
+  externalSubtitleFormat: document.querySelector('#external-subtitle-format'),
+  searchExternalSubtitles: document.querySelector('#search-external-subtitles'),
+  providerCount: document.querySelector('#provider-count'),
+  subdlApiKey: document.querySelector('#subdl-api-key'),
+  opensubtitlesApiKey: document.querySelector('#opensubtitles-api-key'),
+  subdlConfigured: document.querySelector('#subdl-configured'),
+  opensubtitlesConfigured: document.querySelector('#opensubtitles-configured'),
+  saveSubtitleProviders: document.querySelector('#save-subtitle-providers'),
+  subtitleResultsTitle: document.querySelector('#subtitle-results-title'),
+  subtitleResultCount: document.querySelector('#subtitle-result-count'),
+  subtitleResults: document.querySelector('#subtitle-results')
 };
 
 const state = {
@@ -88,7 +117,10 @@ const state = {
   previewTimer: null,
   previewRequestId: 0,
   previewingUrl: '',
-  appUpdate: null
+  appUpdate: null,
+  subtitleEngineInstalled: false,
+  subtitleResults: [],
+  subtitleQuery: null
 };
 
 function showToast(message, type = 'info') {
@@ -104,16 +136,19 @@ function setView(viewId) {
   refs.navItems.forEach((item) => item.classList.toggle('is-active', item.dataset.viewTarget === viewId));
   refs.pageTitle.textContent = {
     'history-view': 'Ce que tu as déjà récupéré.',
+    'subtitles-view': 'Trouve la piste qui colle vraiment.',
     'about-view': 'Version et mises à jour.'
   }[viewId] || 'Garde ce que tu as le droit de garder.';
   if (refs.pageEyebrow) {
     refs.pageEyebrow.textContent = {
       'history-view': 'Historique local',
+      'subtitles-view': 'Films et séries',
       'about-view': 'Application'
     }[viewId] || 'Téléchargement local';
   }
   if (refs.systemStatus) refs.systemStatus.hidden = viewId === 'about-view';
   if (viewId === 'history-view') renderHistory();
+  if (viewId === 'subtitles-view') loadSubtitleWorkspace();
 }
 
 function setStatus(element, result) {
@@ -173,7 +208,10 @@ function syncModeUi() {
   });
   refs.quality.disabled = isAudio;
   refs.container.disabled = isAudio;
-  refs.subtitles.disabled = isAudio;
+  refs.subtitleMode.disabled = isAudio;
+  refs.subtitleFormat.disabled = isAudio;
+  refs.includeAutoSubtitles.disabled = isAudio;
+  refs.youtubeSubtitleTracks.querySelectorAll('input').forEach((input) => { input.disabled = isAudio; });
 }
 
 function setRunning(value) {
@@ -256,6 +294,46 @@ function clearMetadata() {
   refs.metadataPreview.hidden = true;
   refs.metadataPreview.classList.remove('is-loading');
   refs.metadataThumbnail.removeAttribute('src');
+  renderYoutubeSubtitleTracks([]);
+}
+
+function selectedYoutubeSubtitleLanguages() {
+  return [...refs.youtubeSubtitleTracks.querySelectorAll('input[type="checkbox"]:checked')]
+    .map((input) => input.value);
+}
+
+function renderYoutubeSubtitleTracks(tracks) {
+  const values = Array.isArray(tracks) ? tracks : [];
+  refs.youtubeSubtitleTracks.replaceChildren();
+  const items = values.length
+    ? values
+    : [
+        { code: 'fr', name: 'Français', manual: false, automatic: false, fallback: true },
+        { code: 'en', name: 'English', manual: false, automatic: false, fallback: true },
+        { code: 'all', name: 'Toutes', manual: false, automatic: false, fallback: true }
+      ];
+  items.slice(0, 36).forEach((track) => {
+    const label = document.createElement('label');
+    label.className = 'language-track';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.value = track.code;
+    input.checked = track.code === 'fr' || (track.code === 'en' && !items.some((item) => item.code === 'fr'));
+    input.dataset.automaticOnly = String(Boolean(track.automatic && !track.manual));
+    const code = document.createElement('b');
+    code.textContent = String(track.code).toUpperCase();
+    const copy = document.createElement('span');
+    const availability = track.fallback
+      ? 'langue souhaitée'
+      : track.manual ? 'officiel' : 'automatique';
+    copy.textContent = `${track.name || track.code} · ${availability}`;
+    label.append(input, code, copy);
+    refs.youtubeSubtitleTracks.append(label);
+  });
+  refs.subtitleTrackSummary.textContent = values.length
+    ? `${values.length} langue${values.length > 1 ? 's' : ''} détectée${values.length > 1 ? 's' : ''}.`
+    : 'Choisis une langue souhaitée ; les pistes exactes apparaîtront après analyse.';
+  syncModeUi();
 }
 
 function showPreviewLoading() {
@@ -311,6 +389,7 @@ async function inspectMetadata() {
     refs.metadataUploader.textContent = metadata.uploader;
     refs.metadataDuration.textContent = metadata.durationLabel;
     refs.metadataKind.textContent = metadata.isPlaylist ? `PLAYLIST • ${metadata.itemCount} ÉLÉMENTS` : 'VIDÉO';
+    renderYoutubeSubtitleTracks(metadata.subtitleTracks || []);
     refs.metadataThumbnail.hidden = !metadata.thumbnail;
     if (metadata.thumbnail) refs.metadataThumbnail.src = metadata.thumbnail;
     refs.metadataPreview.hidden = false;
@@ -328,13 +407,22 @@ function buildPayloads() {
   if (!urls.length) throw new Error('Colle au moins un lien YouTube.');
   if (urls.length > 50) throw new Error('Tu peux ajouter au maximum 50 liens à la fois.');
 
+  const subtitleMode = refs.subtitleMode.value;
+  const subtitleLanguages = selectedYoutubeSubtitleLanguages();
+  if (subtitleMode !== 'none' && !subtitleLanguages.length) {
+    throw new Error('Sélectionne au moins une langue de sous-titres.');
+  }
   return urls.map((url) => ({
     url,
     title: urls.length === 1 && state.metadataUrl === url ? state.metadata?.title || '' : '',
     mode: currentMode(),
     quality: refs.quality.value,
     container: refs.container.value,
-    subtitles: refs.subtitles.value,
+    subtitles: 'none',
+    subtitleMode,
+    subtitleLanguages,
+    subtitleFormat: refs.subtitleFormat.value,
+    includeAutoSubtitles: refs.includeAutoSubtitles.checked,
     outputFolder: state.outputFolder,
     playlist: refs.playlist.checked,
     compatibilityMode: refs.compatibilityMode.checked
@@ -343,8 +431,11 @@ function buildPayloads() {
 
 function queueItemMeta(item) {
   if (item.mode === 'audio') return 'MP3';
+  if (item.subtitleMode === 'only') {
+    return `${String(item.subtitleFormat || 'srt').toUpperCase()} • sous-titres uniquement`;
+  }
   const quality = item.quality === 'best' ? 'meilleure qualité' : `${item.quality}p`;
-  const subtitle = item.subtitles && item.subtitles !== 'none' ? ' • sous-titres' : '';
+  const subtitle = item.subtitleMode && item.subtitleMode !== 'none' ? ' • sous-titres' : '';
   return `${String(item.container || 'mp4').toUpperCase()} • ${quality}${subtitle}`;
 }
 
@@ -422,7 +513,7 @@ async function renderHistory() {
 
     const icon = document.createElement('div');
     icon.className = 'history-icon';
-    icon.textContent = item.mode === 'audio' ? '♪' : '▶';
+    icon.textContent = item.mode === 'audio' ? '♪' : item.mode === 'subtitle' ? 'CC' : '▶';
 
     const body = document.createElement('div');
     body.className = 'history-body';
@@ -432,7 +523,9 @@ async function renderHistory() {
     const date = item.finishedAt ? new Date(item.finishedAt).toLocaleString('fr-FR') : 'Date inconnue';
     const format = item.mode === 'audio'
       ? 'MP3'
-      : `${String(item.container || 'mp4').toUpperCase()} • ${item.quality === 'best' ? 'meilleure qualité' : `${item.quality}p`}`;
+      : item.mode === 'subtitle'
+        ? `${String(item.container || 'srt').toUpperCase()} • ${String(item.subtitles || 'und').toUpperCase()}`
+        : `${String(item.container || 'mp4').toUpperCase()} • ${item.quality === 'best' ? 'meilleure qualité' : `${item.quality}p`}`;
     meta.textContent = `${format} • ${date}`;
     body.append(title, meta);
 
@@ -444,8 +537,232 @@ async function renderHistory() {
   });
 }
 
+function configuredProviderCount(status) {
+  return 1 + Object.values(status?.providers || {}).filter(Boolean).length;
+}
+
+async function loadProviderStatus() {
+  try {
+    const status = await api.getSubtitleProviderStatus();
+    const count = configuredProviderCount(status);
+    refs.providerCount.textContent = `${count} fournisseur${count > 1 ? 's' : ''}`;
+    refs.subdlConfigured.textContent = status.providers?.subdl ? 'Configurée' : 'Absente';
+    refs.opensubtitlesConfigured.textContent = status.providers?.opensubtitles ? 'Configurée' : 'Absente';
+    refs.subdlConfigured.classList.toggle('is-configured', Boolean(status.providers?.subdl));
+    refs.opensubtitlesConfigured.classList.toggle('is-configured', Boolean(status.providers?.opensubtitles));
+    refs.subdlApiKey.placeholder = status.providers?.subdl ? 'Clé enregistrée' : 'Non configurée';
+    refs.opensubtitlesApiKey.placeholder = status.providers?.opensubtitles ? 'Clé enregistrée' : 'Non configurée';
+    if (!status.encryptionAvailable) {
+      refs.saveSubtitleProviders.disabled = true;
+      refs.saveSubtitleProviders.title = 'Le stockage sécurisé Windows est indisponible.';
+    }
+    return status;
+  } catch (error) {
+    showToast(error.message || 'Impossible de lire la configuration des fournisseurs.', 'error');
+    return null;
+  }
+}
+
+async function loadSubtitleEngineStatus() {
+  try {
+    const status = await api.getSubtitleEngineStatus();
+    state.subtitleEngineInstalled = Boolean(status.installed);
+    refs.installSubtitleEngine.hidden = status.installed;
+    refs.subtitleEngineTitle.textContent = status.installed
+      ? `Moteur ${status.version || ''} prêt`
+      : 'Moteur de sous-titres non installé';
+    refs.subtitleEngineCopy.textContent = status.installed
+      ? `${(status.providers || []).length} connecteurs disponibles · ${status.source}`
+      : 'Installe le composant signé par checksum lorsque tu en as besoin.';
+    refs.searchExternalSubtitles.disabled = !status.installed;
+    return status;
+  } catch (error) {
+    refs.subtitleEngineTitle.textContent = 'Diagnostic du moteur impossible';
+    refs.subtitleEngineCopy.textContent = error.message || 'Réessaie dans un moment.';
+    refs.searchExternalSubtitles.disabled = true;
+    return null;
+  }
+}
+
+async function loadSubtitleWorkspace() {
+  await Promise.all([loadSubtitleEngineStatus(), loadProviderStatus()]);
+}
+
+function selectedExternalLanguages() {
+  return [...refs.externalLanguagePicker.querySelectorAll('input:checked')].map((input) => input.value);
+}
+
+function externalSubtitlePayload() {
+  const languages = selectedExternalLanguages();
+  if (!languages.length) throw new Error('Sélectionne au moins une langue.');
+  return {
+    mediaPath: refs.subtitleMediaPath.value,
+    title: refs.subtitleTitle.value,
+    year: refs.subtitleYear.value,
+    season: refs.subtitleSeason.value,
+    episode: refs.subtitleEpisode.value,
+    languages
+  };
+}
+
+function renderSubtitleResults(response) {
+  state.subtitleResults = response?.results || [];
+  state.subtitleQuery = response?.query || null;
+  refs.subtitleResults.replaceChildren();
+  refs.subtitleResultCount.textContent = `${state.subtitleResults.length} résultat${state.subtitleResults.length > 1 ? 's' : ''}`;
+  const providerErrors = response?.errors || [];
+  refs.subtitleResultsTitle.textContent = providerErrors.length
+    ? `${state.subtitleResults.length} pistes · ${providerErrors.length} fournisseur${providerErrors.length > 1 ? 's' : ''} indisponible${providerErrors.length > 1 ? 's' : ''}`
+    : `${state.subtitleResults.length} pistes classées par compatibilité`;
+
+  if (!state.subtitleResults.length) {
+    const empty = document.createElement('div');
+    empty.className = 'queue-empty';
+    empty.textContent = providerErrors[0]?.message || 'Aucun sous-titre trouvé avec ces critères.';
+    refs.subtitleResults.append(empty);
+    return;
+  }
+
+  state.subtitleResults.forEach((result, index) => {
+    const row = document.createElement('article');
+    row.className = 'subtitle-result';
+    const score = document.createElement('div');
+    score.className = 'subtitle-score';
+    const scoreValue = document.createElement('strong');
+    scoreValue.textContent = String(Number(result.score || 0));
+    const scoreLabel = document.createElement('span');
+    scoreLabel.textContent = 'score';
+    score.append(scoreValue, scoreLabel);
+    const copy = document.createElement('div');
+    copy.className = 'subtitle-result-copy';
+    const title = document.createElement('strong');
+    title.textContent = result.release || result.fileName || 'Sous-titre';
+    const meta = document.createElement('span');
+    meta.textContent = [
+      String(result.language || 'und').toUpperCase(),
+      result.providerLabel,
+      result.fps ? `${result.fps} FPS` : '',
+      result.hearingImpaired ? 'SME' : '',
+      String(result.format || 'srt').toUpperCase()
+    ].filter(Boolean).join(' · ');
+    copy.append(title, meta);
+    const button = document.createElement('button');
+    button.className = 'secondary-button subtitle-download-button';
+    button.type = 'button';
+    button.textContent = 'Télécharger';
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      button.textContent = 'Téléchargement…';
+      try {
+        const downloaded = await api.downloadSubtitle({
+          result: state.subtitleResults[index],
+          mediaPath: refs.subtitleMediaPath.value,
+          destination: state.outputFolder,
+          title: state.subtitleQuery?.title || refs.subtitleTitle.value,
+          format: refs.externalSubtitleFormat.value
+        });
+        button.textContent = 'Téléchargé';
+        showToast(`Sous-titre enregistré : ${downloaded.filePath}`);
+      } catch (error) {
+        button.disabled = false;
+        button.textContent = 'Réessayer';
+        showToast(error.message || 'Téléchargement du sous-titre impossible.', 'error');
+      }
+    });
+    row.append(score, copy, button);
+    refs.subtitleResults.append(row);
+  });
+}
+
 refs.navItems.forEach((item) => item.addEventListener('click', () => setView(item.dataset.viewTarget)));
 document.querySelectorAll('input[name="mode"]').forEach((input) => input.addEventListener('change', syncModeUi));
+refs.includeAutoSubtitles.addEventListener('change', () => {
+  refs.youtubeSubtitleTracks.querySelectorAll('[data-automatic-only="true"]').forEach((input) => {
+    input.disabled = !refs.includeAutoSubtitles.checked || currentMode() === 'audio';
+    if (input.disabled) input.checked = false;
+  });
+});
+
+refs.installSubtitleEngine.addEventListener('click', async () => {
+  refs.installSubtitleEngine.disabled = true;
+  refs.subtitleEngineProgress.hidden = false;
+  refs.subtitleEngineTitle.textContent = 'Installation du moteur…';
+  try {
+    await api.installSubtitleEngine();
+    refs.subtitleEngineProgress.hidden = true;
+    showToast('Moteur de sous-titres installé et vérifié.');
+    await loadSubtitleEngineStatus();
+  } catch (error) {
+    refs.installSubtitleEngine.disabled = false;
+    refs.subtitleEngineProgress.hidden = true;
+    refs.subtitleEngineTitle.textContent = 'Installation impossible';
+    refs.subtitleEngineCopy.textContent = error.message || 'Le composant n’a pas pu être installé.';
+    showToast(refs.subtitleEngineCopy.textContent, 'error');
+  }
+});
+
+api.onSubtitleEngineInstallProgress((progress) => {
+  const percent = Math.max(0, Math.min(100, Number(progress?.percent || 0)));
+  refs.subtitleEngineProgressBar.style.width = `${percent}%`;
+  refs.subtitleEngineProgressLabel.textContent = `${progress?.percentLabel || `${percent.toFixed(0)}%`} · ${progress?.receivedLabel || '—'} / ${progress?.totalLabel || '—'}`;
+});
+
+refs.chooseSubtitleMedia.addEventListener('click', async () => {
+  const mediaPath = await api.chooseMedia();
+  if (!mediaPath) return;
+  refs.subtitleMediaPath.value = mediaPath;
+  try {
+    const detected = await api.parseSubtitleMedia(mediaPath);
+    refs.subtitleTitle.value = detected.title || '';
+    refs.subtitleYear.value = detected.year || '';
+    refs.subtitleSeason.value = detected.season ?? '';
+    refs.subtitleEpisode.value = detected.episode ?? '';
+  } catch (error) {
+    showToast(error.message || 'Le nom du fichier n’a pas pu être analysé.', 'error');
+  }
+});
+
+refs.saveSubtitleProviders.addEventListener('click', async () => {
+  const payload = {};
+  if (refs.subdlApiKey.value.trim()) payload.subdl = refs.subdlApiKey.value.trim();
+  if (refs.opensubtitlesApiKey.value.trim()) payload.opensubtitles = refs.opensubtitlesApiKey.value.trim();
+  if (!Object.keys(payload).length) {
+    showToast('Colle au moins une nouvelle clé fournisseur.', 'error');
+    return;
+  }
+  refs.saveSubtitleProviders.disabled = true;
+  try {
+    await api.saveSubtitleProviders(payload);
+    refs.subdlApiKey.value = '';
+    refs.opensubtitlesApiKey.value = '';
+    await loadProviderStatus();
+    showToast('Clés chiffrées et enregistrées sur cet ordinateur.');
+  } catch (error) {
+    showToast(error.message || 'Impossible d’enregistrer les clés.', 'error');
+  } finally {
+    refs.saveSubtitleProviders.disabled = false;
+  }
+});
+
+refs.subtitleSearchForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!state.subtitleEngineInstalled) {
+    showToast('Installe d’abord le moteur de sous-titres.', 'error');
+    return;
+  }
+  refs.searchExternalSubtitles.disabled = true;
+  refs.searchExternalSubtitles.querySelector('span').textContent = 'Recherche en cours…';
+  refs.subtitleResultsTitle.textContent = 'Interrogation simultanée des fournisseurs…';
+  try {
+    renderSubtitleResults(await api.searchSubtitles(externalSubtitlePayload()));
+  } catch (error) {
+    renderSubtitleResults({ results: [], errors: [{ message: error.message || 'Recherche impossible.' }] });
+    showToast(error.message || 'Recherche de sous-titres impossible.', 'error');
+  } finally {
+    refs.searchExternalSubtitles.disabled = false;
+    refs.searchExternalSubtitles.querySelector('span').textContent = 'Rechercher partout';
+  }
+});
 
 refs.url.addEventListener('input', () => {
   refs.urlError.textContent = '';
@@ -781,6 +1098,7 @@ async function initialize() {
     state.outputFolder = await api.getDefaultFolder();
   }
   refs.outputFolder.value = state.outputFolder;
+  renderYoutubeSubtitleTracks([]);
   syncModeUi();
   renderQueue(await api.getQueue());
   await checkSystem({ quiet: true });

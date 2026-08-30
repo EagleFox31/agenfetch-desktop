@@ -30,29 +30,77 @@ jobs:
         shell: powershell
         run: .\scripts\build-windows.ps1
 
-      - name: Generate SHA-256 checksums
+      - name: Measure packaged application
         shell: powershell
-        run: |
-          $assets = Get-ChildItem -LiteralPath release -File | Where-Object { $_.Name -match '^AgenFetch-Setup-.*\.exe$' -or $_.Name -match '^AgenFetch-Extension-.*\.zip$' }
-          $lines = foreach ($asset in $assets) {
-            $hash = (Get-FileHash -LiteralPath $asset.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-            "$hash  $($asset.Name)"
-          }
-          $lines | Set-Content -LiteralPath release\SHA256SUMS.txt -Encoding ascii
+        run: .\scripts\report-build-size.ps1
 
-      - name: Upload workflow artifact
+      - name: Upload application artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: AgenFetch-Windows-${{ github.run_number }}
+          name: AgenFetch-App-${{ github.run_number }}
           path: |
             release/AgenFetch-Setup-*.exe
             release/AgenFetch-Extension-*.zip
-            release/SHA256SUMS.txt
+            release/SIZE-REPORT.json
+          if-no-files-found: error
+
+  build-subtitle-engine:
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned packager
+        run: python -m pip install --disable-pip-version-check pyinstaller==6.16.0
+
+      - name: Test subtitle engine
+        working-directory: subtitle-engine
+        run: python -m unittest -v
+
+      - name: Build optional subtitle component
+        shell: powershell
+        run: .\scripts\build-subtitle-engine.ps1
+
+      - name: Upload subtitle engine
+        uses: actions/upload-artifact@v4
+        with:
+          name: AgenFetch-Subtitle-Engine-${{ github.run_number }}
+          path: release/AgenFetch-Subtitle-Engine-*.exe
+          if-no-files-found: error
+
+  bundle-release:
+    needs: [build-windows, build-subtitle-engine]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: AgenFetch-*-${{ github.run_number }}
+          path: release
+          merge-multiple: true
+
+      - name: Generate SHA-256 checksums
+        working-directory: release
+        run: sha256sum AgenFetch-Setup-*.exe AgenFetch-Extension-*.zip AgenFetch-Subtitle-Engine-*.exe > SHA256SUMS.txt
+
+      - name: Upload verified release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: AgenFetch-Windows-${{ github.run_number }}
+          path: release
           if-no-files-found: error
 
   publish-release:
     if: startsWith(github.ref, 'refs/tags/')
-    needs: build-windows
+    needs: bundle-release
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -61,7 +109,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Download Windows artifacts
+
+      - name: Download release bundle
         uses: actions/download-artifact@v4
         with:
           name: AgenFetch-Windows-${{ github.run_number }}
@@ -72,9 +121,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           shopt -s nullglob
-          assets=(release/AgenFetch-Setup-*.exe release/AgenFetch-Extension-*.zip release/SHA256SUMS.txt)
-          if [ ${#assets[@]} -lt 3 ]; then
-            echo "Missing release assets in $(pwd)/release" >&2
+          assets=(release/AgenFetch-Setup-*.exe release/AgenFetch-Extension-*.zip release/AgenFetch-Subtitle-Engine-*.exe release/SHA256SUMS.txt release/SIZE-REPORT.json)
+          if [ ${#assets[@]} -lt 5 ]; then
+            echo "Missing release assets" >&2
             ls -la release || true
             exit 1
           fi

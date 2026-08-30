@@ -54,6 +54,37 @@ function safeThumbnailUrl(value) {
   }
 }
 
+function summarizeSubtitleTracks(metadata) {
+  const representative = Array.isArray(metadata?.entries)
+    ? metadata.entries.find(Boolean) || metadata
+    : metadata;
+  const manual = representative?.subtitles || metadata?.subtitles || {};
+  const automatic = representative?.automatic_captions || metadata?.automatic_captions || {};
+  const languageCodes = new Set([...Object.keys(manual), ...Object.keys(automatic)]);
+
+  return [...languageCodes]
+    .filter((code) => code && code !== 'live_chat')
+    .map((code) => {
+      const manualFormats = Array.isArray(manual[code]) ? manual[code] : [];
+      const automaticFormats = Array.isArray(automatic[code]) ? automatic[code] : [];
+      const formats = [...new Set([...manualFormats, ...automaticFormats]
+        .map((item) => String(item?.ext || '').toLowerCase())
+        .filter(Boolean))];
+      const namedTrack = [...manualFormats, ...automaticFormats].find((item) => item?.name);
+      return {
+        code,
+        name: String(namedTrack?.name || code),
+        manual: manualFormats.length > 0,
+        automatic: automaticFormats.length > 0,
+        formats
+      };
+    })
+    .sort((left, right) => {
+      if (left.manual !== right.manual) return left.manual ? -1 : 1;
+      return left.name.localeCompare(right.name);
+    });
+}
+
 function summarizeMetadata(metadata) {
   const entries = Array.isArray(metadata?.entries) ? metadata.entries.filter(Boolean) : [];
   const representative = entries[0] || metadata || {};
@@ -63,6 +94,7 @@ function summarizeMetadata(metadata) {
     || '';
   const duration = representative.duration ?? metadata?.duration;
 
+  const subtitleTracks = summarizeSubtitleTracks(representative);
   return {
     id: String(representative.id || metadata?.id || ''),
     title: String(metadata?.title || representative.title || 'Vidéo YouTube'),
@@ -72,8 +104,17 @@ function summarizeMetadata(metadata) {
     thumbnail: safeThumbnailUrl(thumbnail),
     isPlaylist: entries.length > 0 || metadata?._type === 'playlist',
     itemCount: entries.length || Number(metadata?.playlist_count) || 1,
-    webpageUrl: String(representative.webpage_url || metadata?.webpage_url || '')
+    webpageUrl: String(representative.webpage_url || metadata?.webpage_url || ''),
+    subtitleTracks,
+    subtitleTrackCount: subtitleTracks.length
   };
+}
+
+function buildSubtitleLanguageExpression(languages) {
+  const values = Array.isArray(languages) ? languages : [];
+  if (values.includes('all')) return 'all,-live_chat';
+  const expressions = values.flatMap((language) => [`${language}.*`, language]);
+  return [...new Set([...expressions, '-live_chat'])].join(',');
 }
 
 function buildYtDlpArgs(options, defaultFolder) {
@@ -99,7 +140,9 @@ function buildYtDlpArgs(options, defaultFolder) {
     args.push('--extractor-args', 'youtube:player_client=web_safari');
   }
 
-  if (safe.mode === 'audio') {
+  if (safe.subtitleMode === 'only') {
+    args.push('--skip-download');
+  } else if (safe.mode === 'audio') {
     args.push('-x', '--audio-format', 'mp3', '--audio-quality', '0');
   } else {
     const format = safe.container === 'mp4'
@@ -117,20 +160,32 @@ function buildYtDlpArgs(options, defaultFolder) {
       args.push('-S', `res:${effectiveQuality}`);
     }
 
-    if (safe.subtitles !== 'none') {
-      const subtitleLanguages = {
-        fr: 'fr.*,fr,-live_chat',
-        en: 'en.*,en,-live_chat',
-        all: 'all,-live_chat'
-      }[safe.subtitles];
+    if (safe.subtitleMode !== 'none') {
+      const subtitleLanguages = buildSubtitleLanguageExpression(safe.subtitleLanguages);
       args.push(
         '--write-subs',
-        '--write-auto-subs',
         '--sub-langs',
         subtitleLanguages,
-        '--embed-subs'
+        '--sub-format',
+        safe.subtitleFormat === 'best' ? 'best' : `${safe.subtitleFormat}/best`
       );
+      if (safe.includeAutoSubtitles) args.push('--write-auto-subs');
+      if (safe.subtitleFormat !== 'best') args.push('--convert-subs', safe.subtitleFormat);
+      if (safe.subtitleMode === 'embed') args.push('--embed-subs');
     }
+  }
+
+  if (safe.subtitleMode === 'only') {
+    const subtitleLanguages = buildSubtitleLanguageExpression(safe.subtitleLanguages);
+    args.push(
+      '--write-subs',
+      '--sub-langs',
+      subtitleLanguages,
+      '--sub-format',
+      safe.subtitleFormat === 'best' ? 'best' : `${safe.subtitleFormat}/best`
+    );
+    if (safe.includeAutoSubtitles) args.push('--write-auto-subs');
+    if (safe.subtitleFormat !== 'best') args.push('--convert-subs', safe.subtitleFormat);
   }
 
   args.push(safe.url);
@@ -331,10 +386,12 @@ class DownloaderService extends EventEmitter {
 
 module.exports = {
   DownloaderService,
+  buildSubtitleLanguageExpression,
   buildYtDlpArgs,
   checkPrerequisites,
   formatDuration,
   safeThumbnailUrl,
   summarizeMetadata,
+  summarizeSubtitleTracks,
   parseProgressLine
 };

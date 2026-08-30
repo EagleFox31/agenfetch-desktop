@@ -4,16 +4,21 @@ AgenFetch est une application Windows locale qui pilote yt-dlp depuis une interf
 
 > Utilise AgenFetch uniquement pour tes contenus, les contenus libres de droits ou ceux pour lesquels tu disposes d’une autorisation. Le projet ne contourne pas les DRM et ne demande ni compte, ni mot de passe, ni cookies YouTube.
 
-## Version 0.2 — bêta installable
+## Version 0.3 — sous-titres multilingues
 
 - Installateur Windows x64 autonome.
-- yt-dlp, FFmpeg, ffprobe et Deno intégrés au paquet.
+- yt-dlp, FFmpeg partagé, ffprobe et Deno intégrés au paquet.
 - Copie modifiable de yt-dlp dans le profil Windows pour les mises à jour.
 - Vérification SHA-256 des outils pendant le build.
 - File d’attente jusqu’à 50 liens.
 - Aperçu du titre, de la chaîne, de la durée et de la miniature.
 - Vidéo MP4 ou MKV, audio MP3 et qualité jusqu’à 4K.
-- Sous-titres français, anglais ou multilingues.
+- Pistes YouTube détectées avant téléchargement : officielles ou automatiques.
+- Sous-titres YouTube seuls, séparés ou intégrés, en SRT, VTT ou format original.
+- Recherche de sous-titres de films et séries via plusieurs fournisseurs.
+- Détection du titre, de l’année, de la saison et de l’épisode depuis le nom du fichier.
+- Moteur Python optionnel téléchargé à la demande et vérifié par SHA-256.
+- Clés SubDL et OpenSubtitles chiffrées par le stockage sécurisé Windows.
 - Vidéos, Shorts, lives et playlists.
 - Progression, vitesse, ETA, journal, annulation et historique.
 - Notifications Windows.
@@ -26,7 +31,7 @@ AgenFetch est une application Windows locale qui pilote yt-dlp depuis une interf
 Configuration minimale : Windows 10 ou 11, processeur x64.
 
 1. Ouvre la section **Releases** du dépôt.
-2. Télécharge `AgenFetch-Setup-0.2.3.exe`.
+2. Télécharge `AgenFetch-Setup-0.3.0.exe`.
 3. Lance l’installateur.
 4. Ouvre AgenFetch depuis le bureau ou le menu Démarrer.
 
@@ -49,7 +54,7 @@ L’extension reste optionnelle : AgenFetch fonctionne aussi en collant directem
 
 **Depuis la Release GitHub**
 
-1. Télécharge `AgenFetch-Extension-0.2.3.zip`.
+1. Télécharge `AgenFetch-Extension-0.3.0.zip`.
 2. Extrais l’archive, puis suis les mêmes étapes à partir de `chrome://extensions`.
 
 Le bouton **AgenFetch** apparaîtra sur les pages vidéo compatibles. Le navigateur demandera l’autorisation d’ouvrir l’application locale au premier clic.
@@ -63,6 +68,17 @@ Au premier lancement, AgenFetch demande de confirmer un usage limité à tes con
 3. Choisis vidéo ou audio, qualité, conteneur et sous-titres.
 4. Sélectionne le dossier de destination.
 5. Clique sur **Ajouter à la file**.
+
+### Films et séries
+
+1. Ouvre **Sous-titres** dans la barre latérale.
+2. Installe le moteur optionnel si AgenFetch le propose.
+3. Podnapisi fonctionne sans clé. Ajoute éventuellement une clé gratuite SubDL et/ou OpenSubtitles, chiffrée localement.
+4. Choisis un fichier vidéo ou saisis le titre, l’année, la saison et l’épisode.
+5. Sélectionne une ou plusieurs langues, puis lance la recherche.
+6. Compare le score, le fournisseur, le FPS et la release avant de télécharger.
+
+Le nom du fichier et les critères de recherche sont transmis directement aux fournisseurs activés. Ils ne transitent pas par AgenStudio.
 
 AgenFetch traite les éléments dans l’ordre. Les téléchargements terminés, échoués ou annulés restent visibles dans la file jusqu’au nettoyage.
 
@@ -107,7 +123,7 @@ Sous Windows :
 Le script :
 
 1. exécute les tests ;
-2. télécharge les releases officielles de yt-dlp et Deno, ainsi qu’un build FFmpeg LGPL ;
+2. télécharge les releases officielles de yt-dlp et Deno, ainsi qu’un build FFmpeg LGPL partagé ;
 3. vérifie leurs sommes SHA-256 publiées ;
 4. génère l’installateur NSIS ;
 5. crée l’archive de l’extension.
@@ -115,11 +131,13 @@ Le script :
 Résultats :
 
 ```text
-release\AgenFetch-Setup-0.2.3.exe
-release\AgenFetch-Extension-0.2.3.zip
+release\AgenFetch-Setup-0.3.0.exe
+release\AgenFetch-Extension-0.3.0.zip
+release\AgenFetch-Subtitle-Engine-0.3.0.exe
+release\SIZE-REPORT.json
 ```
 
-Un lancement manuel du workflow **Build Windows release** produit les mêmes fichiers comme artifact GitHub. La création du tag `v0.2.3` publie automatiquement une GitHub Release et `SHA256SUMS.txt`.
+Un lancement manuel du workflow **Build Windows release** produit les mêmes fichiers comme artifact GitHub. La création du tag `v0.3.0` publie automatiquement une GitHub Release et `SHA256SUMS.txt`.
 
 ## Site vitrine
 
@@ -149,6 +167,7 @@ agenfetch-desktop/
 ├── scripts/            Préparation, build et empaquetage
 ├── src/core/           Téléchargement, outils et file
 ├── src/renderer/       Interface Electron
+├── subtitle-engine/    Sidecar Python optionnel films/séries
 ├── test/               Tests Node.js
 ├── website/            Landing page Vite (déployée via Cloudflare Pages)
 └── vendor/bin/         Binaires générés localement, non commités
@@ -156,7 +175,7 @@ agenfetch-desktop/
 
 ## Confidentialité
 
-AgenFetch n’envoie aucune donnée vers un serveur AgenStudio. L’historique et la file restent sur l’ordinateur. L’extension transmet uniquement l’URL YouTube ouverte à l’application installée sur la même machine.
+AgenFetch n’envoie aucune donnée vers un serveur AgenStudio. L’historique, les clés chiffrées et la file restent sur l’ordinateur. L’extension transmet uniquement l’URL YouTube ouverte à l’application installée sur la même machine. Les recherches films/séries contactent directement les fournisseurs configurés par l’utilisateur.
 
 ## Licences
 
