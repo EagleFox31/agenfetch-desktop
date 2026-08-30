@@ -2,6 +2,17 @@ name: Build Windows release
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "Publier la GitHub Release après le build"
+        required: false
+        default: false
+        type: boolean
+      release_tag:
+        description: "Tag à publier lors d'un lancement manuel"
+        required: false
+        default: "v0.3.0"
+        type: string
   pull_request:
     branches:
       - main
@@ -100,7 +111,7 @@ jobs:
           if-no-files-found: error
 
   publish-release:
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.publish_release)
     needs: bundle-release
     runs-on: ubuntu-latest
     permissions:
@@ -120,6 +131,7 @@ jobs:
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || inputs.release_tag }}
         run: |
           shopt -s nullglob
           assets=(release/AgenFetch-Setup-*.exe release/AgenFetch-Extension-*.zip release/AgenFetch-Subtitle-Engine-*.exe release/AgenFetch-Deno-Runtime-*.exe release/SHA256SUMS.txt release/SIZE-REPORT.json)
@@ -128,10 +140,11 @@ jobs:
             ls -la release || true
             exit 1
           fi
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --clobber
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
           else
-            gh release create "$GITHUB_REF_NAME" "${assets[@]}" \
+            gh release create "$RELEASE_TAG" "${assets[@]}" \
+              --target "$GITHUB_SHA" \
               --generate-notes \
-              --title "AgenFetch $GITHUB_REF_NAME"
+              --title "AgenFetch $RELEASE_TAG"
           fi
