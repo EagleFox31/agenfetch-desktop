@@ -30,7 +30,7 @@ import {
 
 const GITHUB_REPO = 'https://github.com/EagleFox31/agenfetch-desktop';
 const GITHUB_API_LATEST = 'https://api.github.com/repos/EagleFox31/agenfetch-desktop/releases/latest';
-const PRODUCT_VERSION = '0.3.0';
+const PRODUCT_VERSION = '0.3.1';
 const INSTALLER_SIZE = '181 Mo';
 const FALLBACK_LINKS = {
   setupExe: `${GITHUB_REPO}/releases/download/v${PRODUCT_VERSION}/AgenFetch-Setup-${PRODUCT_VERSION}.exe`,
