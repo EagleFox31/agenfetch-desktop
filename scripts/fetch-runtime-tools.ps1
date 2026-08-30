@@ -10,7 +10,7 @@ $TempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("agenfetch-runtime-" + 
 
 $YtDlpAsset = "yt-dlp.exe"
 $DenoAsset = "deno-x86_64-pc-windows-msvc.zip"
-$FfmpegAsset = "ffmpeg-master-latest-win64-lgpl.zip"
+$FfmpegAsset = "ffmpeg-master-latest-win64-lgpl-shared.zip"
 
 $YtDlpUrl = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/$YtDlpAsset"
 $YtDlpChecksumsUrl = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS"
@@ -79,8 +79,11 @@ $ExpectedFiles = @(
 )
 
 if (-not $Force -and ($ExpectedFiles | Where-Object { -not (Test-Path -LiteralPath $_) }).Count -eq 0) {
-    Write-Host "Les outils Windows sont déjà prêts dans vendor\bin. Utilise -Force pour les actualiser." -ForegroundColor Green
-    return
+    $ExistingDlls = @(Get-ChildItem -LiteralPath $VendorBin -Filter "*.dll" -File -ErrorAction SilentlyContinue)
+    if ($ExistingDlls.Count -gt 0) {
+        Write-Host "Les outils Windows partagés sont déjà prêts dans vendor\bin. Utilise -Force pour les actualiser." -ForegroundColor Green
+        return
+    }
 }
 
 New-Item -ItemType Directory -Path $VendorBin -Force | Out-Null
@@ -106,11 +109,16 @@ try {
     Expand-Archive -LiteralPath $FfmpegTemp -DestinationPath $FfmpegExtract -Force
     $FfmpegBinary = Get-ChildItem -LiteralPath $FfmpegExtract -Recurse -Filter "ffmpeg.exe" | Select-Object -First 1
     $FfprobeBinary = Get-ChildItem -LiteralPath $FfmpegExtract -Recurse -Filter "ffprobe.exe" | Select-Object -First 1
-    if (-not $FfmpegBinary -or -not $FfprobeBinary) {
-        throw "L’archive FFmpeg ne contient pas les exécutables attendus."
+    $FfmpegLibraries = @(Get-ChildItem -LiteralPath $FfmpegExtract -Recurse -Filter "*.dll" -File)
+    if (-not $FfmpegBinary -or -not $FfprobeBinary -or $FfmpegLibraries.Count -eq 0) {
+        throw "L’archive FFmpeg partagée ne contient pas les exécutables et DLL attendus."
     }
+    Get-ChildItem -LiteralPath $VendorBin -Filter "*.dll" -File -ErrorAction SilentlyContinue | Remove-Item -Force
     Copy-Item -LiteralPath $FfmpegBinary.FullName -Destination (Join-Path $VendorBin "ffmpeg.exe") -Force
     Copy-Item -LiteralPath $FfprobeBinary.FullName -Destination (Join-Path $VendorBin "ffprobe.exe") -Force
+    foreach ($Library in $FfmpegLibraries) {
+        Copy-Item -LiteralPath $Library.FullName -Destination (Join-Path $VendorBin $Library.Name) -Force
+    }
 
     $Manifest = [ordered]@{
         generatedAt = (Get-Date).ToUniversalTime().ToString("o")
@@ -122,6 +130,9 @@ try {
             [ordered]@{ name = "ffprobe"; file = "ffprobe.exe"; source = $FfmpegUrl; archiveSha256 = $FfmpegArchiveHash; fileSha256 = (Get-FileHash -LiteralPath (Join-Path $VendorBin "ffprobe.exe") -Algorithm SHA256).Hash.ToLowerInvariant() },
             [ordered]@{ name = "Deno"; file = "deno.exe"; source = $DenoUrl; archiveSha256 = $DenoArchiveHash; fileSha256 = (Get-FileHash -LiteralPath (Join-Path $VendorBin "deno.exe") -Algorithm SHA256).Hash.ToLowerInvariant() }
         )
+        sharedLibraries = @($FfmpegLibraries | ForEach-Object {
+            [ordered]@{ file = $_.Name; fileSha256 = (Get-FileHash -LiteralPath (Join-Path $VendorBin $_.Name) -Algorithm SHA256).Hash.ToLowerInvariant() }
+        })
     }
     $Manifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $VendorBin "TOOLS-MANIFEST.json") -Encoding UTF8
     Write-Host "Outils Windows vérifiés et prêts dans vendor\bin." -ForegroundColor Green

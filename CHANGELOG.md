@@ -4,12 +4,22 @@
 
 ### Ajouté
 
+- Détection des pistes YouTube officielles et automatiques avant téléchargement.
+- Sélection de plusieurs langues et modes intégré, séparé ou sous-titres uniquement.
+- Formats SRT, VTT et original pour les sous-titres YouTube.
+- Nouvel espace Films et séries avec détection depuis le nom du fichier.
+- Agrégateur multilingue Podnapisi, SubDL et OpenSubtitles avec classement par compatibilité.
+- Moteur Python optionnel compilé séparément et installé avec vérification SHA-256.
+- Stockage chiffré des clés fournisseurs via Windows.
+- Rapport détaillé du poids de chaque composant dans GitHub Actions.
 - Publication du site vitrine sur Cloudflare Pages.
 
 ### Modifié
 
 - Accents du site vitrine alignés sur le teal du bouton Télécharger.
 - Retrait de `_redirects` qui faisait échouer le déploiement Cloudflare.
+- Passage au build FFmpeg LGPL partagé pour mutualiser les bibliothèques.
+- Pipeline de release composé de l’application, l’extension et du moteur optionnel.
 
 ## 0.2.3 — bêta
 

@@ -1,4 +1,4 @@
-# Architecture d’AgenFetch 0.2
+# Architecture d’AgenFetch 0.3
 
 ## Flux principal
 
@@ -33,6 +33,9 @@ Les binaires ne sont pas commités. electron-builder les place dans `resources/b
 - `src/preload.js` : API minimale exposée à l’interface.
 - `src/core/validation.js` : liste blanche YouTube et assainissement des options.
 - `src/core/tool-manager.js` : découverte, diagnostic et mise à jour des outils.
+- `src/core/subtitle-engine-service.js` : processus JSON isolé pour les films et séries.
+- `src/core/subtitle-component-installer.js` : installation SHA-256 du sidecar optionnel.
+- `src/core/provider-credentials-store.js` : clés API chiffrées avec Windows `safeStorage`.
 - `src/core/downloader.js` : métadonnées, arguments yt-dlp, processus et progression.
 - `src/core/download-queue.js` : ordonnancement séquentiel en mémoire.
 - `src/core/history-store.js` : historique JSON local limité à 100 entrées.
@@ -41,6 +44,7 @@ Les binaires ne sont pas commités. electron-builder les place dans `resources/b
 - `src/core/extension-path.js` : dossier de l’extension livré avec l’installateur.
 - `src/renderer/` : interface HTML, CSS et JavaScript sans accès direct à Node.js.
 - `extension/` : extension Manifest V3 pour Chrome et Edge.
+- `subtitle-engine/` : moteur Python standard library, compilé séparément avec PyInstaller.
 
 ## Sécurité
 
@@ -53,6 +57,9 @@ Les binaires ne sont pas commités. electron-builder les place dans `resources/b
 - Binaires de build contrôlés par les SHA-256 publiés en amont.
 - Un lien reçu par l’extension remplit le formulaire mais ne lance rien sans confirmation.
 - Les mises à jour de l’app ne se téléchargent que depuis GitHub Releases, avec contrôle SHA-256 si `SHA256SUMS.txt` est publié.
+- Le moteur de sous-titres exige toujours une empreinte SHA-256 publiée avant installation.
+- Les URL de téléchargement des fournisseurs sont limitées à leurs domaines HTTPS autorisés.
+- Les clés SubDL et OpenSubtitles ne sont jamais exposées au renderer ou aux journaux.
 
 ## Limites de la bêta
 

@@ -12,6 +12,17 @@ const ALLOWED_QUALITIES = new Set(['best', '2160', '1440', '1080', '720', '480',
 const ALLOWED_MODES = new Set(['video', 'audio']);
 const ALLOWED_CONTAINERS = new Set(['mp4', 'mkv']);
 const ALLOWED_SUBTITLE_LANGUAGES = new Set(['none', 'fr', 'en', 'all']);
+const ALLOWED_SUBTITLE_MODES = new Set(['none', 'separate', 'embed', 'only']);
+const ALLOWED_SUBTITLE_FORMATS = new Set(['srt', 'vtt', 'best']);
+const SUBTITLE_LANGUAGE_PATTERN = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/i;
+
+function sanitizeSubtitleLanguages(input) {
+  const values = Array.isArray(input) ? input : [];
+  const normalized = values
+    .map((value) => String(value || '').trim().toLowerCase())
+    .filter((value) => value === 'all' || SUBTITLE_LANGUAGE_PATTERN.test(value));
+  return [...new Set(normalized)].slice(0, 12);
+}
 
 function normalizeYouTubeUrl(input) {
   if (typeof input !== 'string' || !input.trim()) {
@@ -50,6 +61,15 @@ function sanitizeDownloadOptions(input, defaultFolder) {
   const quality = ALLOWED_QUALITIES.has(String(source.quality)) ? String(source.quality) : '1080';
   const container = ALLOWED_CONTAINERS.has(source.container) ? source.container : 'mp4';
   const subtitles = ALLOWED_SUBTITLE_LANGUAGES.has(source.subtitles) ? source.subtitles : 'none';
+  const requestedLanguages = sanitizeSubtitleLanguages(source.subtitleLanguages);
+  const subtitleLanguages = requestedLanguages.length
+    ? requestedLanguages
+    : (subtitles === 'none' ? [] : [subtitles]);
+  const requestedSubtitleMode = ALLOWED_SUBTITLE_MODES.has(source.subtitleMode)
+    ? source.subtitleMode
+    : (subtitles === 'none' ? 'none' : 'embed');
+  const subtitleMode = subtitleLanguages.length ? requestedSubtitleMode : 'none';
+  const subtitleFormat = ALLOWED_SUBTITLE_FORMATS.has(source.subtitleFormat) ? source.subtitleFormat : 'srt';
   const outputFolder = typeof source.outputFolder === 'string' && source.outputFolder.trim()
     ? source.outputFolder.trim()
     : defaultFolder;
@@ -64,6 +84,10 @@ function sanitizeDownloadOptions(input, defaultFolder) {
     quality,
     container,
     subtitles,
+    subtitleMode,
+    subtitleLanguages,
+    subtitleFormat,
+    includeAutoSubtitles: source.includeAutoSubtitles !== false,
     outputFolder,
     playlist: Boolean(source.playlist),
     compatibilityMode: Boolean(source.compatibilityMode)
@@ -107,8 +131,11 @@ module.exports = {
   ALLOWED_MODES,
   ALLOWED_QUALITIES,
   ALLOWED_SUBTITLE_LANGUAGES,
+  ALLOWED_SUBTITLE_FORMATS,
+  ALLOWED_SUBTITLE_MODES,
   findProtocolUrl,
   normalizeYouTubeUrl,
   parseProtocolUrl,
+  sanitizeSubtitleLanguages,
   sanitizeDownloadOptions
 };

@@ -1,7 +1,7 @@
 {
   "name": "agenfetch-desktop",
-  "version": "0.2.3",
-  "description": "Application de bureau locale pour enregistrer tes contenus YouTube autorisés avec yt-dlp, depuis une interface et une extension Chrome/Edge.",
+  "version": "0.3.0",
+  "description": "Application Windows locale pour enregistrer des contenus autorisés et trouver leurs sous-titres multilingues.",
   "main": "src/main.js",
   "author": "AgenStudio",
   "license": "MIT",
@@ -39,6 +39,7 @@
         "to": "bin",
         "filter": [
           "**/*.exe",
+          "**/*.dll",
           "**/TOOLS-MANIFEST.json"
         ]
       },

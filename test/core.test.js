@@ -22,6 +22,11 @@ const {
 const { DownloadQueue } = require('../src/core/download-queue');
 const { ToolManager } = require('../src/core/tool-manager');
 const { ConsentStore, TERMS_VERSION } = require('../src/core/consent-store');
+const { ProviderCredentialsStore } = require('../src/core/provider-credentials-store');
+const {
+  sanitizeProviderResult,
+  sanitizeSearchPayload
+} = require('../src/core/subtitle-engine-service');
 
 test('accepte les principaux liens YouTube', () => {
   const urls = [
@@ -108,6 +113,8 @@ test('assainit les valeurs inconnues', () => {
   assert.equal(safe.quality, '1080');
   assert.equal(safe.container, 'mp4');
   assert.equal(safe.subtitles, 'none');
+  assert.equal(safe.subtitleMode, 'none');
+  assert.deepEqual(safe.subtitleLanguages, []);
   assert.equal(safe.outputFolder, 'C:\\Downloads');
 });
 
@@ -124,6 +131,26 @@ test('construit une vidéo MKV avec sous-titres français', () => {
   assert.equal(args[args.indexOf('--merge-output-format') + 1], 'mkv');
   assert.ok(args.includes('--embed-subs'));
   assert.equal(args[args.indexOf('--sub-langs') + 1], 'fr.*,fr,-live_chat');
+});
+
+test('construit un téléchargement multilingue de sous-titres uniquement', () => {
+  const { args, options } = buildYtDlpArgs({
+    url: 'https://youtu.be/zw30rfxoV04',
+    mode: 'video',
+    subtitleMode: 'only',
+    subtitleLanguages: ['fr', 'en', '../../danger'],
+    subtitleFormat: 'srt',
+    includeAutoSubtitles: false,
+    outputFolder: 'C:\\Downloads'
+  });
+  assert.equal(options.subtitleMode, 'only');
+  assert.deepEqual(options.subtitleLanguages, ['fr', 'en']);
+  assert.ok(args.includes('--skip-download'));
+  assert.ok(args.includes('--write-subs'));
+  assert.ok(!args.includes('--write-auto-subs'));
+  assert.ok(!args.includes('--embed-subs'));
+  assert.equal(args[args.indexOf('--sub-langs') + 1], 'fr.*,fr,en.*,en,-live_chat');
+  assert.equal(args[args.indexOf('--convert-subs') + 1], 'srt');
 });
 
 test('analyse la sortie de progression dédiée', () => {
@@ -149,6 +176,24 @@ test('résume les métadonnées sans exposer une miniature non approuvée', () =
   assert.equal(metadata.durationLabel, '02:05');
   assert.equal(metadata.thumbnail, 'https://i.ytimg.com/vi/demo/maxresdefault.jpg');
   assert.equal(safeThumbnailUrl('https://example.com/tracker.png'), '');
+});
+
+test('distingue les pistes YouTube officielles et automatiques', () => {
+  const metadata = summarizeMetadata({
+    id: 'demo',
+    title: 'Vidéo multilingue',
+    subtitles: {
+      fr: [{ ext: 'vtt', name: 'Français' }]
+    },
+    automatic_captions: {
+      en: [{ ext: 'vtt', name: 'English' }],
+      live_chat: [{ ext: 'json' }]
+    }
+  });
+  assert.equal(metadata.subtitleTrackCount, 2);
+  assert.deepEqual(metadata.subtitleTracks.map((track) => track.code), ['fr', 'en']);
+  assert.equal(metadata.subtitleTracks[0].manual, true);
+  assert.equal(metadata.subtitleTracks[1].automatic, true);
 });
 
 test('analyse un lien avec le binaire géré et ses runtimes', async () => {
@@ -446,4 +491,44 @@ test('résout le dossier de l’extension packagée et en développement', () =>
   });
   assert.equal(status.available, true);
   assert.ok(status.folder.endsWith('extension'));
+});
+
+test('chiffre les clés des fournisseurs sans les exposer dans le statut', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'agenfetch-providers-'));
+  const store = new ProviderCredentialsStore(tempRoot, {
+    encryptionAvailable: () => true,
+    encryptString: (value) => Buffer.from(`encrypted:${value}`, 'utf8'),
+    decryptString: (value) => value.toString('utf8').replace(/^encrypted:/, '')
+  });
+  try {
+    const status = store.save({ subdl: 'secret-subdl' });
+    assert.equal(status.providers.subdl, true);
+    assert.equal(status.providers.opensubtitles, false);
+    assert.deepEqual(store.getAll(), { subdl: 'secret-subdl' });
+    const raw = fs.readFileSync(path.join(tempRoot, 'provider-credentials.json'), 'utf8');
+    assert.equal(raw.includes('secret-subdl'), false);
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('assainit une recherche locale et les références fournisseur', () => {
+  const search = sanitizeSearchPayload({
+    mediaPath: 'C:\\Videos\\The.Last.of.Us.S02E03.mkv',
+    languages: ['fr', 'EN', '../../danger', 'fr']
+  });
+  assert.deepEqual(search.languages, ['fr', 'en']);
+  assert.throws(() => sanitizeSearchPayload({ mediaPath: 'C:\\Videos\\payload.exe' }));
+  assert.deepEqual(sanitizeProviderResult({
+    provider: 'subdl',
+    language: 'FR',
+    fileName: '../episode.srt',
+    downloadRef: { path: '/subtitle/123.zip' }
+  }), {
+    provider: 'subdl',
+    language: 'fr',
+    fileName: 'episode.srt',
+    downloadRef: { path: '/subtitle/123.zip' }
+  });
+  assert.throws(() => sanitizeProviderResult({ provider: 'evil', downloadRef: {} }));
 });
