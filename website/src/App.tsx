@@ -6,11 +6,14 @@ import {
   Check,
   CircleCheck,
   Copy,
+  Database,
   Download,
   ExternalLink,
   Files,
+  Film,
   Github,
   HardDrive,
+  Languages,
   ListVideo,
   LockKeyhole,
   Menu,
@@ -19,6 +22,7 @@ import {
   PackageCheck,
   Play,
   Puzzle,
+  Search,
   ShieldCheck,
   Subtitles,
   X,
@@ -26,10 +30,12 @@ import {
 
 const GITHUB_REPO = 'https://github.com/EagleFox31/agenfetch-desktop';
 const GITHUB_API_LATEST = 'https://api.github.com/repos/EagleFox31/agenfetch-desktop/releases/latest';
+const PRODUCT_VERSION = '0.3.0';
+const INSTALLER_SIZE = '181 Mo';
 const FALLBACK_LINKS = {
-  setupExe: `${GITHUB_REPO}/releases/download/v0.2.0/AgenFetch-Setup-0.2.0.exe`,
-  setupName: 'AgenFetch-Setup-0.2.0.exe',
-  extensionZip: `${GITHUB_REPO}/releases/download/v0.2.0/AgenFetch-Extension-0.2.0.zip`,
+  setupExe: `${GITHUB_REPO}/releases/download/v0.2.3/AgenFetch-Setup-0.2.3.exe`,
+  setupName: 'AgenFetch-Setup-0.2.3.exe',
+  extensionZip: `${GITHUB_REPO}/releases/download/v0.2.3/AgenFetch-Extension-0.2.3.zip`,
   checksums: `${GITHUB_REPO}/releases/latest/download/SHA256SUMS.txt`,
 };
 const asset = (file: string) => `${import.meta.env.BASE_URL}${file}`;
@@ -96,8 +102,10 @@ const headerNavItems = navItems.filter((item) => item.href !== '#download');
 const capabilities = [
   { icon: MonitorDown, title: 'Vidéo, enfin local', text: 'MP4 ou MKV, de 360p à 4K — les fichiers restent sur ton PC, là où ils ont leur place.' },
   { icon: AudioLines, title: 'L’audio sans détour', text: 'MP3, M4A ou FLAC selon la source. Parfait pour écouter hors connexion.' },
-  { icon: Subtitles, title: 'Sous-titres bien rangés', text: 'FR, EN, auto-générés ou toutes les langues disponibles, enregistrés à côté de la vidéo.' },
-  { icon: ListVideo, title: 'Du lien à la liste', text: 'Vidéos, Shorts, lives, playlists et jusqu’à 50 liens traités dans une file séquentielle.' },
+  { icon: Subtitles, title: 'Sous-titres YouTube', text: 'Pistes manuelles ou automatiques, en SRT, VTT ou format original — intégrées, séparées ou téléchargées seules.' },
+  { icon: Film, title: 'Films et séries', text: 'Choisis ton fichier : AgenFetch détecte le titre, l’année, la saison et l’épisode avant de chercher.' },
+  { icon: Languages, title: 'Sept langues', text: 'Français, anglais, espagnol, allemand, portugais, arabe et italien dans la même recherche.' },
+  { icon: Database, title: 'Plusieurs catalogues', text: 'Podnapisi, SubDL et OpenSubtitles sont interrogés ensemble puis les résultats sont classés.' },
 ];
 
 function scrollToSection(href: string, closeMenu?: () => void) {
@@ -222,6 +230,7 @@ function AppWindow() {
   const [quality, setQuality] = useState('1080p');
   const [queueCleared, setQueueCleared] = useState(false);
   const [notice, setNotice] = useState('2 éléments dans la file');
+  const [view, setView] = useState<'downloads' | 'subtitles'>('subtitles');
 
   const addLink = () => {
     setNotice('Lien ajouté à la file');
@@ -232,7 +241,7 @@ function AppWindow() {
     <div className="product-window" data-testid="mockup-agenfetch-window">
       <div className="window-titlebar">
         <div className="window-dots" aria-hidden="true"><span /><span /><span /></div>
-        <span className="window-title">AgenFetch Desktop — beta 0.2.3</span>
+        <span className="window-title">AgenFetch Desktop — beta {PRODUCT_VERSION}</span>
         <div className="window-controls">
           <button className="window-control" type="button" aria-label="Réduire la fenêtre" data-testid="button-mockup-minimize" onClick={() => setNotice('Fenêtre réduite en aperçu')}><Minus size={11} /></button>
           <button className="window-control" type="button" aria-label="Agrandir la fenêtre" data-testid="button-mockup-maximize" onClick={() => setNotice('Aperçu plein écran activé')}><span style={{ fontSize: 11 }}>□</span></button>
@@ -243,31 +252,34 @@ function AppWindow() {
         <aside className="window-sidebar" aria-label="Navigation AgenFetch">
           <div className="app-mark"><span className="app-mark-symbol">AF</span><span>AgenFetch</span></div>
           <p className="sidebar-label">Espace local</p>
-          <button className="sidebar-item active" type="button" data-testid="button-mockup-downloads" onClick={() => setNotice('Vue Téléchargements active')}><Download size={13} /> Téléchargements</button>
+          <button className={`sidebar-item${view === 'downloads' ? ' active' : ''}`} type="button" data-testid="button-mockup-downloads" onClick={() => { setView('downloads'); setNotice('Vue Téléchargements active'); }}><Download size={13} /> Télécharger</button>
           <button className="sidebar-item" type="button" data-testid="button-mockup-history" onClick={() => setNotice('Historique local ouvert')}><Files size={13} /> Historique</button>
-          <button className="sidebar-item" type="button" data-testid="button-mockup-settings" onClick={() => setNotice('Réglages locaux ouverts')}><HardDrive size={13} /> Réglages</button>
-          <div className="sidebar-bottom"><span style={{ color: '#eab14a' }}>●</span> Tout reste sur ce PC<br />yt-dlp prêt · FFmpeg prêt</div>
+          <button className={`sidebar-item${view === 'subtitles' ? ' active' : ''}`} type="button" data-testid="button-mockup-subtitles" onClick={() => { setView('subtitles'); setNotice('Recherche multilingue prête'); }}><Subtitles size={13} /> Sous-titres</button>
+          <button className="sidebar-item" type="button" data-testid="button-mockup-about" onClick={() => setNotice('À propos ouvert')}><HardDrive size={13} /> À propos</button>
+          <div className="sidebar-bottom"><span style={{ color: '#eab14a' }}>●</span> Tout reste sur ce PC<br />yt-dlp · FFmpeg · QuickJS</div>
         </aside>
         <main className="window-content">
           <div className="window-heading">
-            <div><h3>Nouveau téléchargement</h3><p>Colle un lien, choisis ton format.</p></div>
-            <span className="status-pill">BETA 0.2.3</span>
+            <div><h3>{view === 'downloads' ? 'Nouveau téléchargement' : 'Trouver des sous-titres'}</h3><p>{view === 'downloads' ? 'Colle un lien, choisis ton format.' : 'Le bon épisode. La bonne langue.'}</p></div>
+            <span className="status-pill">BETA {PRODUCT_VERSION}</span>
           </div>
-          <div className="url-box">
-            <Play size={12} color="#eab14a" fill="#eab14a" />
-            <input aria-label="Lien YouTube" data-testid="input-mockup-url" value={url} onChange={(event) => setUrl(event.target.value)} />
-            <button className="url-add" type="button" data-testid="button-mockup-add-link" onClick={addLink}>Ajouter</button>
-          </div>
-          <div className="preview-card" data-testid="status-mockup-preview">
-            <div className="preview-art">APERÇU</div>
-            <div className="preview-meta"><strong>Construire un outil simple, qui reste à toi</strong><span>AGENSTUDIO · 08:42 · 1080p disponible</span></div>
-          </div>
-          <div className="settings-row">
-            <button className="mock-select" type="button" data-testid="button-mockup-format" onClick={() => setFormat(format === 'MP4' ? 'MKV' : 'MP4')}><span>FORMAT</span>{format} <span style={{ display: 'inline', float: 'right', color: '#eab14a' }}>⌄</span></button>
-            <button className="mock-select" type="button" data-testid="button-mockup-quality" onClick={() => setQuality(quality === '1080p' ? '4K' : '1080p')}><span>QUALITÉ</span>{quality} <span style={{ display: 'inline', float: 'right', color: '#eab14a' }}>⌄</span></button>
-          </div>
-          <div className="queue-header"><span>File séquentielle</span><button type="button" data-testid="button-mockup-clear-queue" onClick={() => { setQueueCleared(true); setNotice('File vidée'); }}>Vider</button></div>
-          {!queueCleared ? (
+          {view === 'downloads' ? <>
+            <div className="url-box">
+              <Play size={12} color="#eab14a" fill="#eab14a" />
+              <input aria-label="Lien YouTube" data-testid="input-mockup-url" value={url} onChange={(event) => setUrl(event.target.value)} />
+              <button className="url-add" type="button" data-testid="button-mockup-add-link" onClick={addLink}>Ajouter</button>
+            </div>
+            <div className="preview-card" data-testid="status-mockup-preview">
+              <div className="preview-art">APERÇU</div>
+              <div className="preview-meta"><strong>Construire un outil simple, qui reste à toi</strong><span>AGENSTUDIO · 08:42 · 1080p disponible</span></div>
+            </div>
+            <div className="settings-row">
+              <button className="mock-select" type="button" data-testid="button-mockup-format" onClick={() => setFormat(format === 'MP4' ? 'MKV' : 'MP4')}><span>FORMAT</span>{format} <span style={{ display: 'inline', float: 'right', color: '#eab14a' }}>⌄</span></button>
+              <button className="mock-select" type="button" data-testid="button-mockup-quality" onClick={() => setQuality(quality === '1080p' ? '4K' : '1080p')}><span>QUALITÉ</span>{quality} <span style={{ display: 'inline', float: 'right', color: '#eab14a' }}>⌄</span></button>
+            </div>
+            <div className="subtitle-strip"><Subtitles size={12} /><span>Sous-titres YouTube</span><b>FR · EN · SRT</b></div>
+            <div className="queue-header"><span>File séquentielle</span><button type="button" data-testid="button-mockup-clear-queue" onClick={() => { setQueueCleared(true); setNotice('File vidée'); }}>Vider</button></div>
+            {!queueCleared ? (
             <>
               <div className="queue-item">
                 <div className="queue-icon">01</div>
@@ -280,10 +292,19 @@ function AppWindow() {
                 <span className="queue-state" style={{ color: '#7f8aa5' }}>à suivre</span>
               </div>
             </>
-          ) : (
+            ) : (
             <div style={{ padding: '1.2rem 0 .6rem', color: '#8e99b2', fontSize: '.65rem' }}>La file est prête pour de nouveaux liens.</div>
-          )}
-          <div className="queue-header" style={{ marginTop: '.65rem', textTransform: 'none', letterSpacing: 0 }}><span>{notice}</span><span style={{ color: '#7f8aa5' }}>Dossier local · Vidéos</span></div>
+            )}
+          </> : <div className="subtitle-mock" data-testid="mockup-subtitle-search">
+            <div className="mock-file"><Film size={14} /><div><small>FICHIER LOCAL</small><strong>The Last Horizon.S02E03.1080p.mkv</strong></div><span>Choisir</span></div>
+            <div className="mock-detected"><span><small>TITRE DÉTECTÉ</small><b>The Last Horizon</b></span><span><small>ÉPISODE</small><b>S02 · E03</b></span></div>
+            <div className="mock-language-row"><small>LANGUES</small><div><span className="is-active">FR</span><span className="is-active">EN</span><span>ES</span><span>DE</span><span>PT</span><span>AR</span><span>IT</span></div></div>
+            <button className="mock-search-button" type="button" onClick={() => setNotice('12 pistes trouvées et classées')}><Search size={12} /> Rechercher partout</button>
+            <div className="mock-provider-row"><span><i /> Podnapisi</span><span><i /> SubDL</span><span><i /> OpenSubtitles</span></div>
+            <div className="mock-result"><span className="mock-score">96%</span><div><strong>The Last Horizon · S02E03</strong><small>Français · SRT · Podnapisi</small></div><button type="button" onClick={() => setNotice('Sous-titre enregistré à côté de la vidéo')}>Télécharger</button></div>
+            <div className="mock-result"><span className="mock-score is-second">91%</span><div><strong>The Last Horizon · S02E03</strong><small>English · SRT · OpenSubtitles</small></div><button type="button" onClick={() => setNotice('Sous-titre anglais sélectionné')}>Télécharger</button></div>
+          </div>}
+          <div className="queue-header window-footer-status" style={{ marginTop: '.65rem', textTransform: 'none', letterSpacing: 0 }}><span>{notice}</span><span style={{ color: '#7f8aa5' }}>100 % local</span></div>
         </main>
       </div>
     </div>
@@ -295,8 +316,8 @@ function Home() {
   const { setupExe, setupName, extensionZip, checksums } = useReleaseLinks();
 
   useEffect(() => {
-    document.title = 'AgenFetch Desktop — tes contenus, en local';
-    const description = 'AgenFetch Desktop est une application Windows locale pour enregistrer tes contenus YouTube autorisés avec yt-dlp, sans cloud et sans compte.';
+    document.title = 'AgenFetch 0.3 — vidéos et sous-titres, en local';
+    const description = 'AgenFetch 0.3 est une application Windows locale pour enregistrer tes contenus autorisés et trouver des sous-titres multilingues pour tes films et séries.';
     let meta = document.querySelector('meta[name="description"]');
     if (!meta) {
       meta = document.createElement('meta');
@@ -305,7 +326,7 @@ function Home() {
     }
     meta.setAttribute('content', description);
     const ogTitle = document.querySelector('meta[property="og:title"]');
-    if (ogTitle) ogTitle.setAttribute('content', 'AgenFetch Desktop — tes contenus, en local.');
+    if (ogTitle) ogTitle.setAttribute('content', 'AgenFetch 0.3 — vidéos et sous-titres, en local.');
   }, []);
 
   const copyChecksum = async () => {
@@ -325,44 +346,36 @@ function Home() {
       <main id="top">
         <section className="hero-grid relative mx-auto grid max-w-[1240px] items-center gap-12 px-5 pb-20 pt-12 lg:grid-cols-[.92fr_1.08fr] lg:px-8 lg:pb-28 lg:pt-20" aria-labelledby="hero-title">
           <div className="relative z-10">
-            <div className="reveal eyebrow">AgenFetch Desktop <span className="rounded-full bg-[#e9e3d6] px-2 py-1 text-[9px] tracking-[.08em] text-[#77736c]">BETA 0.2.3</span></div>
-            <h1 id="hero-title" className="display-font reveal reveal-delay-1 mt-5 max-w-[620px] text-[clamp(2.15rem,8.4vw,5.65rem)] font-bold leading-[.96] tracking-[-.075em] text-[#282d46]">Tes contenus, en local.<br /><span className="text-[#176d64]">Sans cloud, sans compte.</span></h1>
-            <p className="reveal reveal-delay-2 mt-6 max-w-[490px] text-[16px] leading-7 text-[#5f6370] sm:text-[17px]">Une interface propre pour yt-dlp, installée sur ton PC Windows. Pour tes vidéos, le libre de droits, ou ce que tu as le droit d’enregistrer — sans Node, yt-dlp ou FFmpeg à configurer à la main.</p>
+            <div className="reveal eyebrow">AgenFetch Desktop <span className="rounded-full bg-[#e9e3d6] px-2 py-1 text-[9px] tracking-[.08em] text-[#77736c]">BETA {PRODUCT_VERSION}</span></div>
+            <h1 id="hero-title" className="display-font reveal reveal-delay-1 mt-5 max-w-[760px] text-[clamp(2.15rem,8.4vw,5.65rem)] font-bold leading-[.96] tracking-[-.075em] text-[#282d46]">Tes vidéos. Leurs sous-titres.<br /><span className="text-[#176d64]">Tout reste local.</span></h1>
+            <p className="reveal reveal-delay-2 mt-6 max-w-[620px] text-[16px] leading-7 text-[#5f6370] sm:text-[17px]">Télécharge tes contenus autorisés, récupère leurs pistes YouTube ou trouve le bon sous-titre pour un film ou une série. Une seule app Windows, sans cloud AgenStudio et sans configuration technique.</p>
             <div className="hero-cta reveal reveal-delay-3 mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
               <FileDownload className="button-primary" href={setupExe} filename={setupName} testId="link-hero-download"><ArrowDownToLine size={17} /> Télécharger pour Windows</FileDownload>
               <a className="inline-flex items-center gap-2 px-1 py-3 text-[13px] font-bold text-[#282d46] underline decoration-[#eab14a] decoration-2 underline-offset-4 transition hover:text-[#176d64]" href="#workflow" data-testid="link-hero-how"><span>Voir comment ça marche</span><ArrowRight size={15} /></a>
             </div>
-            <div className="reveal reveal-delay-3 mt-8 flex flex-wrap gap-x-5 gap-y-2 text-[11px] font-semibold text-[#7b7f87]"><span className="inline-flex items-center gap-1.5"><CircleCheck size={13} className="text-[#176d64]" /> Windows 10 / 11 x64</span><span className="inline-flex items-center gap-1.5"><CircleCheck size={13} className="text-[#176d64]" /> Local par défaut</span><span className="inline-flex items-center gap-1.5"><CircleCheck size={13} className="text-[#176d64]" /> Open source MIT</span></div>
+            <div className="reveal reveal-delay-3 mt-8 flex flex-wrap gap-x-5 gap-y-2 text-[11px] font-semibold text-[#7b7f87]"><span className="inline-flex items-center gap-1.5"><CircleCheck size={13} className="text-[#176d64]" /> Windows 10 / 11 x64</span><span className="inline-flex items-center gap-1.5"><CircleCheck size={13} className="text-[#176d64]" /> {INSTALLER_SIZE}</span><span className="inline-flex items-center gap-1.5"><CircleCheck size={13} className="text-[#176d64]" /> Open source MIT</span></div>
           </div>
           <div className="reveal reveal-delay-2 relative z-10 lg:pl-4">
-            <div className="hero-chip hero-chip-local">100% local</div>
+            <div className="hero-chip hero-chip-local">Sous-titres multilingues</div>
             <Parallax speed={0.07} className="hero-float hero-float-one">
               <span className="hero-float-icon"><Download size={13} /></span>
-              <span className="hero-float-copy"><strong>MP4 · 1080p</strong><small>Prêt à enregistrer</small></span>
+              <span className="hero-float-copy"><strong>SRT · 7 langues</strong><small>Prêt à enregistrer</small></span>
             </Parallax>
             <Parallax speed={-0.05} className="hero-float hero-float-two">
               <span className="hero-float-icon hero-float-icon-queue"><ListVideo size={13} /></span>
-              <span className="hero-float-copy"><strong>File séquentielle</strong><small>2 éléments · local</small></span>
+              <span className="hero-float-copy"><strong>3 catalogues</strong><small>Résultats classés</small></span>
             </Parallax>
             <AppWindow />
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 px-2 font-mono text-[9px] uppercase tracking-[.11em] text-[#89867f]"><span>Une fenêtre, pas une usine à gaz</span><span>Electron · Windows</span></div>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 px-2 font-mono text-[9px] uppercase tracking-[.11em] text-[#89867f]"><span>Clique sur Télécharger ou Sous-titres dans la fenêtre</span><span>Electron · Windows</span></div>
           </div>
         </section>
 
         <section className="mx-auto max-w-[1240px] px-5 pb-20 lg:px-8 lg:pb-28" aria-label="Résumé produit">
           <div className="section-rule" />
           <div className="grid gap-7 py-8 md:grid-cols-[1.1fr_1fr_1fr] md:gap-10">
-            <p className="max-w-[320px] text-[15px] font-semibold leading-6 text-[#282d46]">Le confort d’une app de bureau.<br /><span className="font-normal text-[#77736c]">La maîtrise de tes fichiers.</span></p>
-            <div><p className="mono-font text-[10px] uppercase tracking-[.12em] text-[#176d64]">Aucune infra</p><p className="mt-2 text-[13px] leading-5 text-[#6e7079]">AgenStudio ne voit pas tes liens. Il n’y a rien à synchroniser.</p></div>
-            <div><p className="mono-font text-[10px] uppercase tracking-[.12em] text-[#176d64]">Aucun compte</p><p className="mt-2 text-[13px] leading-5 text-[#6e7079]">Lance l’app et commence. L’historique reste dans ton installation.</p></div>
-          </div>
-        </section>
-
-        <section className="mx-auto max-w-[1240px] px-5 pb-20 lg:px-8 lg:pb-8" aria-label="Usage autorisé">
-          <div className="rounded-xl border border-[#d5cec0] bg-[#f7f3ea] px-6 py-7 sm:px-10 sm:py-9" data-testid="card-usage-notice">
-            <p className="mono-font text-[10px] uppercase tracking-[.12em] text-[#176d64]">Usage autorisé</p>
-            <p className="mt-3 max-w-[720px] text-[15px] leading-6 text-[#555a68]">AgenFetch sert à enregistrer tes propres vidéos, les œuvres libres de droits, et les contenus pour lesquels tu as une autorisation. YouTube n’autorise pas le téléchargement hors de ses fonctions officielles.</p>
-            <a className="mt-5 inline-flex items-center gap-2 text-[13px] font-bold text-[#176d64] underline decoration-[#eab14a] decoration-2 underline-offset-4 hover:text-[#282d46]" href="#mentions-legales" data-testid="link-usage-legal">Mentions légales et conditions d’usage <ArrowRight size={14} /></a>
+            <p className="max-w-[320px] text-[15px] font-semibold leading-6 text-[#282d46]">Deux besoins. Une seule app.<br /><span className="font-normal text-[#77736c]">Télécharger et retrouver les bons sous-titres.</span></p>
+            <div><p className="mono-font text-[10px] uppercase tracking-[.12em] text-[#176d64]">Côté YouTube</p><p className="mt-2 text-[13px] leading-5 text-[#6e7079]">Vidéo, audio, playlists et pistes de sous-titres disponibles.</p></div>
+            <div><p className="mono-font text-[10px] uppercase tracking-[.12em] text-[#176d64]">Côté médiathèque</p><p className="mt-2 text-[13px] leading-5 text-[#6e7079]">Films et séries identifiés puis comparés sur plusieurs catalogues.</p></div>
           </div>
         </section>
 
@@ -370,8 +383,8 @@ function Home() {
           <Reveal className="story-scene-grid">
             <div className="story-copy">
               <div className="eyebrow">01 / Le point de départ</div>
-              <h2 id="problem-title" className="display-font mt-5 max-w-[440px] text-4xl font-bold leading-[1.01] tracking-[-.06em] text-[#282d46] sm:text-5xl">Un lien n’est pas encore un fichier.</h2>
-              <p className="mt-5 max-w-[390px] text-[15px] leading-6 text-[#6e7079]">Il est perdu dans un onglet, une playlist à faire défiler, une adresse que tu ne reverras peut-être pas. Quand tu as le droit de le garder, AgenFetch en fait un fichier local, simple.</p>
+              <h2 id="problem-title" className="display-font mt-5 max-w-[460px] text-4xl font-bold leading-[1.01] tracking-[-.06em] text-[#282d46] sm:text-5xl">Un lien n’est pas un fichier. Un fichier n’a pas toujours les bons sous-titres.</h2>
+              <p className="mt-5 max-w-[410px] text-[15px] leading-6 text-[#6e7079]">AgenFetch relie les deux bouts : garder localement ce que tu as le droit d’enregistrer, puis retrouver une piste lisible dans la langue qui te convient.</p>
               <div className="browser-fragment mt-8" data-testid="card-browser-fragment">
                 <div className="browser-fragment-bar"><span /><span /><span /><small>youtube.com</small></div>
                 <div className="browser-fragment-body"><div className="browser-play"><Play size={13} fill="currentColor" /></div><div><strong>Un contenu que tu as le droit de garder</strong><small>Tes vidéos, le libre de droits, une autorisation</small></div><ArrowRight size={15} /></div>
@@ -391,10 +404,34 @@ function Home() {
 
         <section id="workflow" className="mx-auto max-w-[1240px] scroll-mt-8 px-5 pb-24 lg:px-8 lg:pb-32" aria-labelledby="workflow-title">
           <div className="grid gap-12 lg:grid-cols-[.65fr_1.35fr]">
-            <div><div className="eyebrow">Le geste en trois temps</div><h2 id="workflow-title" className="display-font mt-5 max-w-[360px] text-4xl font-bold leading-[1.03] tracking-[-.06em] text-[#282d46] sm:text-5xl">De l’URL au fichier. <span className="text-[#176d64]">C’est tout.</span></h2><p className="mt-5 max-w-[340px] text-[15px] leading-6 text-[#6e7079]">Pas de terminal à ouvrir, pas de dépendance à chercher. Une petite app qui fait exactement ce qu’elle promet.</p></div>
+            <div><div className="eyebrow">Le geste en trois temps</div><h2 id="workflow-title" className="display-font mt-5 max-w-[360px] text-4xl font-bold leading-[1.03] tracking-[-.06em] text-[#282d46] sm:text-5xl">De l’URL au fichier. <span className="text-[#176d64]">Sans détour.</span></h2><p className="mt-5 max-w-[340px] text-[15px] leading-6 text-[#6e7079]">Pas de terminal, pas de dépendance à chercher. Et si tu veux seulement les sous-titres YouTube, AgenFetch sait s’arrêter là.</p></div>
             <div className="grid gap-8 md:grid-cols-3">
-              {[{ n: '01', title: 'Colle un lien autorisé', text: 'Ta vidéo, un Short libre de droits, un live ou une playlist dont tu as l’autorisation. Ou envoie-le depuis l’extension Chrome / Edge. AgenFetch affiche un aperçu avant de commencer.' }, { n: '02', title: 'Choisis ton format', text: 'MP4, MKV ou MP3. Sélectionne la qualité et les sous-titres FR, EN ou toutes les langues.' }, { n: '03', title: 'Récupère localement', text: 'La file séquentielle travaille proprement. Ton fichier est enregistré dans le dossier choisi.' }].map((step) => <div className="feature-tile" key={step.n} data-testid={`card-step-${step.n}`}><span className="step-number">{step.n}</span><h3 className="display-font mt-5 text-[20px] font-bold tracking-[-.04em] text-[#282d46]">{step.title}</h3><p className="mt-3 text-[13px] leading-5">{step.text}</p></div>)}
+              {[{ n: '01', title: 'Colle un lien autorisé', text: 'Une vidéo, un Short, un live ou une playlist. L’extension Chrome / Edge peut aussi transmettre le lien en un clic.' }, { n: '02', title: 'Choisis précisément', text: 'MP4, MKV ou MP3, qualité jusqu’à 4K et pistes manuelles ou automatiques dans les langues disponibles.' }, { n: '03', title: 'Récupère ce qu’il te faut', text: 'Vidéo avec sous-titres intégrés, fichiers séparés ou sous-titres uniquement en SRT, VTT ou format original.' }].map((step) => <div className="feature-tile" key={step.n} data-testid={`card-step-${step.n}`}><span className="step-number">{step.n}</span><h3 className="display-font mt-5 text-[20px] font-bold tracking-[-.04em] text-[#282d46]">{step.title}</h3><p className="mt-3 text-[13px] leading-5">{step.text}</p></div>)}
             </div>
+          </div>
+        </section>
+
+        <section className="subtitle-spotlight scroll-mt-8 py-24 lg:py-32" aria-labelledby="subtitle-spotlight-title">
+          <div className="mx-auto grid max-w-[1240px] items-center gap-14 px-5 lg:grid-cols-[.84fr_1.16fr] lg:px-8">
+            <Reveal className="subtitle-spotlight-copy">
+              <div className="eyebrow">Nouveau dans la v0.3</div>
+              <h2 id="subtitle-spotlight-title" className="display-font mt-5 max-w-[510px] text-4xl font-bold leading-[1.01] tracking-[-.06em] text-[#282d46] sm:text-5xl">Ton épisode est déjà là. <span className="text-[#176d64]">Trouve juste la bonne voix.</span></h2>
+              <p className="mt-6 max-w-[450px] text-[15px] leading-6 text-[#6e7079]">Choisis un film ou un épisode sur ton PC. AgenFetch lit son nom, détecte les informations utiles, interroge les catalogues activés et classe les pistes compatibles.</p>
+              <div className="subtitle-stat-grid mt-9">
+                <div><strong>3</strong><span>catalogues comparés</span></div>
+                <div><strong>7</strong><span>langues proposées</span></div>
+                <div><strong>2</strong><span>formats : SRT et VTT</span></div>
+              </div>
+              <p className="subtitle-privacy-note mt-7"><LockKeyhole size={15} /> Tes clés API sont chiffrées par Windows. AgenStudio ne reçoit ni ton fichier ni ta recherche.</p>
+            </Reveal>
+            <Reveal className="subtitle-product-card" delay={120}>
+              <div className="subtitle-product-top"><span><Subtitles size={15} /> Recherche multilingue</span><b>LOCAL</b></div>
+              <div className="subtitle-product-file"><Film size={18} /><div><small>FICHIER IDENTIFIÉ</small><strong>The Last Horizon · Saison 2 · Épisode 3</strong></div><CircleCheck size={17} /></div>
+              <div className="subtitle-product-languages"><span className="active">FR</span><span className="active">EN</span><span>ES</span><span>DE</span><span>PT</span><span>AR</span><span>IT</span></div>
+              <div className="subtitle-product-providers"><span><i />Podnapisi</span><span><i />SubDL</span><span><i />OpenSubtitles</span></div>
+              <div className="subtitle-product-result"><span className="result-rank">01</span><div><strong>Français · SRT</strong><small>Correspondance épisode · 96 %</small></div><span className="result-ready">Prêt</span></div>
+              <div className="subtitle-product-result"><span className="result-rank">02</span><div><strong>English · SRT</strong><small>Correspondance épisode · 91 %</small></div><span className="result-ready">Prêt</span></div>
+            </Reveal>
           </div>
         </section>
 
@@ -420,8 +457,8 @@ function Home() {
 
         <section id="features" className="scroll-mt-8 bg-[#e9e3d7] py-24 lg:py-32" aria-labelledby="features-title">
           <div className="mx-auto max-w-[1240px] px-5 lg:px-8">
-            <div className="flex flex-col justify-between gap-7 md:flex-row md:items-end"><div><div className="eyebrow">Ce que tu peux faire</div><h2 id="features-title" className="display-font mt-5 max-w-[550px] text-4xl font-bold leading-[1.02] tracking-[-.06em] text-[#282d46] sm:text-5xl">Un outil sérieux pour des usages simples.</h2></div><p className="max-w-[300px] text-[13px] leading-5 text-[#6e7079]">Pensé pour tes contenus autorisés — tes vidéos, le libre de droits, une permission. Pas pour collectionner des réglages.</p></div>
-            <div className="mt-16 grid gap-x-10 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">{capabilities.map(({ icon: Icon, title, text }, index) => <article className="feature-tile" key={title} data-testid={`card-feature-${index}`}><Icon size={22} strokeWidth={1.7} className="text-[#176d64]" /><h3 className="display-font mt-5 text-[19px] font-bold tracking-[-.04em] text-[#282d46]">{title}</h3><p className="mt-3 text-[13px] leading-5">{text}</p></article>)}</div>
+            <div className="flex flex-col justify-between gap-7 md:flex-row md:items-end"><div><div className="eyebrow">Ce que tu peux faire</div><h2 id="features-title" className="display-font mt-5 max-w-[650px] text-4xl font-bold leading-[1.02] tracking-[-.06em] text-[#282d46] sm:text-5xl">Plus qu’un downloader. Ton assistant média local.</h2></div><p className="max-w-[320px] text-[13px] leading-5 text-[#6e7079]">AgenFetch rassemble le téléchargement autorisé et la recherche de sous-titres dans une expérience Windows cohérente.</p></div>
+            <div className="mt-16 grid gap-x-10 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">{capabilities.map(({ icon: Icon, title, text }, index) => <article className="feature-tile" key={title} data-testid={`card-feature-${index}`}><Icon size={22} strokeWidth={1.7} className="text-[#176d64]" /><h3 className="display-font mt-5 text-[19px] font-bold tracking-[-.04em] text-[#282d46]">{title}</h3><p className="mt-3 text-[13px] leading-5">{text}</p></article>)}</div>
             <div className="mt-16 grid overflow-hidden rounded-xl border border-[#d0c7b7] bg-[#f9f6ee] md:grid-cols-[.9fr_1.1fr]">
               <div className="p-7 sm:p-10"><div className="mono-font text-[10px] uppercase tracking-[.12em] text-[#176d64]">Une file qui ne s’emballe pas</div><h3 className="display-font mt-4 text-3xl font-bold leading-tight tracking-[-.055em] text-[#282d46]">Jusqu’à 50 liens.<br />Un par un, proprement.</h3><p className="mt-4 max-w-[400px] text-[14px] leading-6 text-[#6e7079]">La queue séquentielle évite de saturer ta connexion et rend l’avancement lisible. Tu peux fermer l’app, la relancer et retrouver ton historique local.</p><div className="mt-7 flex flex-wrap gap-2"><span className="rounded-full bg-[#e9e3d7] px-3 py-1.5 font-mono text-[10px] text-[#555a68]">50 liens max</span><span className="rounded-full bg-[#e9e3d7] px-3 py-1.5 font-mono text-[10px] text-[#555a68]">Queue locale</span><span className="rounded-full bg-[#e9e3d7] px-3 py-1.5 font-mono text-[10px] text-[#555a68]">Historique local</span></div></div>
               <div className="flex min-h-[250px] items-end justify-center bg-[#282d46] p-7"><div className="w-full max-w-[440px] border-t border-[#525b77] pt-4 font-mono text-[10px] text-[#aeb6c5]"><div className="mb-5 flex justify-between text-[#eab14a]"><span>QUEUE / LOCAL</span><span>03 / 07 terminé</span></div><div className="mb-3 flex items-center gap-3"><span className="text-[#eab14a]">01</span><span className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#464e69]"><span className="block h-full w-[93%] rounded-full bg-[#eab14a]" /></span><span>93%</span></div><div className="mb-3 flex items-center gap-3 text-[#7e89a5]"><span>02</span><span className="h-1.5 flex-1 rounded-full bg-[#464e69]" /><span>attente</span></div><div className="flex items-center gap-3 text-[#7e89a5]"><span>03</span><span className="h-1.5 flex-1 rounded-full bg-[#464e69]" /><span>attente</span></div></div></div>
@@ -431,8 +468,8 @@ function Home() {
 
         <section id="trust" className="scroll-mt-8 py-24 lg:py-32" aria-labelledby="trust-title">
           <div className="mx-auto grid max-w-[1240px] gap-6 px-5 lg:grid-cols-[1.1fr_.9fr] lg:px-8">
-            <div className="trust-panel rounded-xl p-8 sm:p-12"><div className="eyebrow">La confiance, concrètement</div><h2 id="trust-title" className="display-font mt-5 max-w-[530px] text-4xl font-bold leading-[1.02] tracking-[-.06em] sm:text-5xl">Tes téléchargements. Ton PC. <span className="text-[#eab14a]">Point.</span></h2><p className="mt-6 max-w-[500px] text-[15px] leading-6 text-[#c1c5cf]">AgenFetch n’est pas un service en ligne déguisé. C’est une app Windows locale qui emballe yt-dlp dans une interface compréhensible, avec une whitelist YouTube explicite.</p><ul className="trust-list mt-9 grid gap-5 text-[13px] leading-5 text-[#e2e1d9]"><li><ShieldCheck size={17} /><span><strong className="text-[#f8f3e8]">Pas d’AgenStudio cloud.</strong><br />Aucun compte, aucune donnée envoyée à un serveur AgenStudio.</span></li><li><LockKeyhole size={17} /><span><strong className="text-[#f8f3e8]">Open source MIT.</strong><br />Le code est public, inspectable et améliorable sur GitHub.</span></li><li><PackageCheck size={17} /><span><strong className="text-[#f8f3e8]">Empreinte vérifiable.</strong><br />Les releases publient leurs sommes SHA-256.</span></li></ul><a className="mt-9 inline-flex items-center gap-2 text-[13px] font-bold text-[#eab14a] underline underline-offset-4 hover:text-[#f8f3e8]" href={GITHUB_REPO} target="_blank" rel="noreferrer" data-testid="link-trust-repository">Voir le dépôt GitHub <ExternalLink size={14} /></a></div>
-            <div className="flex flex-col justify-between rounded-xl border border-[#d5cec0] bg-[#f7f3ea] p-8 sm:p-10"><div><div className="eyebrow">Avant d’installer</div><h3 className="display-font mt-5 text-3xl font-bold leading-tight tracking-[-.05em] text-[#282d46]">Une beta honnête.</h3><p className="mt-4 text-[14px] leading-6 text-[#6e7079]">Windows SmartScreen peut signaler que l’application est non signée. C’est attendu pour cette beta 0.2.3 distribuée directement depuis GitHub — pas un abonnement caché, pas un installateur opaque.</p></div><div className="mt-10 border-t border-[#d5cec0] pt-5"><p className="font-mono text-[10px] uppercase tracking-[.1em] text-[#7b7f87]">À utiliser pour</p><p className="mt-3 text-[13px] leading-5 text-[#555a68]">Tes propres vidéos, les œuvres libres de droits, ou un contenu avec autorisation. YouTube n’autorise pas le téléchargement hors de ses fonctions officielles.</p></div></div>
+            <div className="trust-panel rounded-xl p-8 sm:p-12"><div className="eyebrow">La confiance, concrètement</div><h2 id="trust-title" className="display-font mt-5 max-w-[530px] text-4xl font-bold leading-[1.02] tracking-[-.06em] sm:text-5xl">Tes médias. Ton PC. <span className="text-[#eab14a]">Ton contrôle.</span></h2><p className="mt-6 max-w-[520px] text-[15px] leading-6 text-[#c1c5cf]">AgenFetch n’est pas un service en ligne déguisé. L’application reste locale ; seules les recherches films et séries vont directement vers les catalogues que tu actives.</p><ul className="trust-list mt-9 grid gap-5 text-[13px] leading-5 text-[#e2e1d9]"><li><ShieldCheck size={17} /><span><strong className="text-[#f8f3e8]">Pas de cloud AgenStudio.</strong><br />Aucun compte, aucune télémétrie et aucun média envoyé chez nous.</span></li><li><LockKeyhole size={17} /><span><strong className="text-[#f8f3e8]">Clés protégées.</strong><br />Les clés SubDL et OpenSubtitles sont chiffrées avec la protection Windows.</span></li><li><PackageCheck size={17} /><span><strong className="text-[#f8f3e8]">Composants vérifiables.</strong><br />Installateur, moteur optionnel et runtimes sont contrôlés par SHA-256.</span></li></ul><a className="mt-9 inline-flex items-center gap-2 text-[13px] font-bold text-[#eab14a] underline underline-offset-4 hover:text-[#f8f3e8]" href={GITHUB_REPO} target="_blank" rel="noreferrer" data-testid="link-trust-repository">Inspecter le code sur GitHub <ExternalLink size={14} /></a></div>
+            <div className="flex flex-col justify-between rounded-xl border border-[#d5cec0] bg-[#f7f3ea] p-8 sm:p-10"><div><div className="eyebrow">Avant d’installer</div><h3 className="display-font mt-5 text-3xl font-bold leading-tight tracking-[-.05em] text-[#282d46]">Une beta transparente.</h3><p className="mt-4 text-[14px] leading-6 text-[#6e7079]">Windows SmartScreen peut signaler que l’application n’est pas encore signée. La v{PRODUCT_VERSION} est distribuée directement depuis GitHub, avec son code source et ses empreintes de vérification.</p><div className="release-facts mt-8"><span>v{PRODUCT_VERSION}</span><span>{INSTALLER_SIZE}</span><span>Windows x64</span></div></div><div className="mt-10 border-t border-[#d5cec0] pt-5"><p className="font-mono text-[10px] uppercase tracking-[.1em] text-[#7b7f87]">Usage autorisé</p><p className="mt-3 text-[13px] leading-5 text-[#555a68]">Utilise AgenFetch pour tes propres contenus, le libre de droits ou ce que tu as l’autorisation d’enregistrer.</p><a className="mt-4 inline-flex items-center gap-1 text-[12px] font-bold text-[#176d64] underline underline-offset-4" href="#mentions-legales">Lire les conditions <ArrowRight size={12} /></a></div></div>
           </div>
         </section>
 
@@ -449,7 +486,7 @@ function Home() {
               <div className="max-w-[670px]">
                 <div className="eyebrow" style={{ color: '#282d46' }}>Téléchargement beta</div>
                 <h2 id="download-title" className="display-font mt-5 text-[2rem] font-bold leading-[1.01] tracking-[-.06em] text-[#282d46] sm:text-4xl lg:text-6xl">Prêt à installer AgenFetch ?</h2>
-                <p className="mt-5 max-w-[540px] text-[15px] leading-6 text-[#4c4b46]">AgenFetch Desktop 0.2.3 pour Windows 10 / 11 x64. Pour tes contenus, le libre de droits, ou ce que tu as le droit d’enregistrer.</p>
+                <p className="mt-5 max-w-[560px] text-[15px] leading-6 text-[#4c4b46]">AgenFetch Desktop {PRODUCT_VERSION} pour Windows 10 / 11 x64 · {INSTALLER_SIZE}. Téléchargements autorisés et sous-titres multilingues, dans une seule application locale.</p>
                 <div className="download-actions mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                   <FileDownload className="button-dark" href={setupExe} filename={setupName} testId="link-download-release"><ArrowDownToLine size={17} /> Télécharger pour Windows</FileDownload>
                   <a className="button-ghost !border-[#b49345] !bg-[#f3ca72]" href={GITHUB_REPO} target="_blank" rel="noreferrer" data-testid="link-download-source"><Github size={16} /> Voir le code source</a>
@@ -476,7 +513,7 @@ function Home() {
       </main>
 
       <footer className="border-t border-[#3d4050] bg-[#282d46] text-[#f8f3e8]" data-testid="footer-site">
-        <div className="mx-auto grid max-w-[1240px] gap-10 px-5 py-12 lg:grid-cols-[1.3fr_1fr_1fr] lg:px-8"><div><div className="flex items-center gap-2.5"><span className="grid h-8 w-8 place-items-center overflow-hidden rounded-[8px]"><img src={asset('assets/agenfetch-mark.svg')} alt="" width="32" height="32" /></span><span className="display-font text-[15px] font-bold">AgenStudio / AgenFetch</span></div><p className="mt-5 max-w-[330px] text-[13px] leading-5 text-[#a9adba]">Une petite app locale, faite pour garder tes fichiers près de toi.</p><p className="mt-8 font-mono text-[10px] uppercase tracking-[.12em] text-[#737a91]">Electron beta 0.2.3 · Windows x64</p></div><div><p className="font-mono text-[10px] uppercase tracking-[.12em] text-[#eab14a]">Explorer</p><div className="mt-4 flex flex-col items-start gap-3 text-[13px]">{navItems.slice(0, 3).map((item) => <a className="footer-link" key={item.href} href={item.href} data-testid={`link-footer-${item.href.slice(1)}`} onClick={(event) => { event.preventDefault(); scrollToSection(item.href); }}>{item.label}</a>)}<a className="footer-link inline-flex items-center gap-1" href={GITHUB_REPO} target="_blank" rel="noreferrer" data-testid="link-footer-github">GitHub <ExternalLink size={12} /></a></div></div><div><p className="font-mono text-[10px] uppercase tracking-[.12em] text-[#eab14a]">À garder en tête</p><p className="mt-4 max-w-[260px] text-[13px] leading-5 text-[#a9adba]">Enregistre uniquement tes contenus, le libre de droits, ou ce pour quoi tu as une autorisation.</p><a className="footer-link mt-4 inline-block text-[13px]" href="#mentions-legales" data-testid="link-footer-legal">Mentions légales</a></div></div>
+        <div className="mx-auto grid max-w-[1240px] gap-10 px-5 py-12 lg:grid-cols-[1.3fr_1fr_1fr] lg:px-8"><div><div className="flex items-center gap-2.5"><span className="grid h-8 w-8 place-items-center overflow-hidden rounded-[8px]"><img src={asset('assets/agenfetch-mark.svg')} alt="" width="32" height="32" /></span><span className="display-font text-[15px] font-bold">AgenStudio / AgenFetch</span></div><p className="mt-5 max-w-[330px] text-[13px] leading-5 text-[#a9adba]">Tes vidéos et leurs sous-titres, près de toi — pas perdus dans un cloud.</p><p className="mt-8 font-mono text-[10px] uppercase tracking-[.12em] text-[#737a91]">Electron beta {PRODUCT_VERSION} · Windows x64</p></div><div><p className="font-mono text-[10px] uppercase tracking-[.12em] text-[#eab14a]">Explorer</p><div className="mt-4 flex flex-col items-start gap-3 text-[13px]">{navItems.slice(0, 3).map((item) => <a className="footer-link" key={item.href} href={item.href} data-testid={`link-footer-${item.href.slice(1)}`} onClick={(event) => { event.preventDefault(); scrollToSection(item.href); }}>{item.label}</a>)}<a className="footer-link inline-flex items-center gap-1" href={GITHUB_REPO} target="_blank" rel="noreferrer" data-testid="link-footer-github">GitHub <ExternalLink size={12} /></a></div></div><div><p className="font-mono text-[10px] uppercase tracking-[.12em] text-[#eab14a]">À garder en tête</p><p className="mt-4 max-w-[260px] text-[13px] leading-5 text-[#a9adba]">Enregistre uniquement tes contenus, le libre de droits, ou ce pour quoi tu as une autorisation.</p><a className="footer-link mt-4 inline-block text-[13px]" href="#mentions-legales" data-testid="link-footer-legal">Mentions légales</a></div></div>
         <div className="mx-auto flex max-w-[1240px] flex-col gap-2 border-t border-[#3d4050] px-5 py-5 font-mono text-[10px] text-[#737a91] sm:flex-row sm:items-center sm:justify-between lg:px-8"><span>© 2026 AgenStudio. Open source sous licence MIT.</span><a className="hover:text-[#f8f3e8]" href="#mentions-legales" data-testid="link-footer-legal-copy">Mentions légales · usage autorisé</a></div>
       </footer>
     </div>
@@ -510,7 +547,7 @@ function LegalPage() {
       <main className="mx-auto max-w-[760px] px-5 pb-24 pt-10 lg:px-8 lg:pb-32 lg:pt-16">
         <p className="eyebrow">Informations légales</p>
         <h1 className="display-font mt-5 text-4xl font-bold leading-[1.05] tracking-[-.06em] text-[#282d46] sm:text-5xl">Mentions légales</h1>
-        <p className="mt-5 text-[15px] leading-6 text-[#6e7079]">Dernière mise à jour : 28 août 2026. Ces mentions s’appliquent au site vitrine AgenFetch et à l’application de bureau associée.</p>
+        <p className="mt-5 text-[15px] leading-6 text-[#6e7079]">Dernière mise à jour : 30 août 2026. Ces mentions s’appliquent au site vitrine AgenFetch et à l’application de bureau associée.</p>
 
         <section className="legal-block mt-14" aria-labelledby="legal-publisher">
           <h2 id="legal-publisher" className="display-font text-2xl font-bold tracking-[-.04em] text-[#282d46]">Éditeur</h2>
@@ -525,12 +562,11 @@ function LegalPage() {
 
         <section className="legal-block mt-12" aria-labelledby="legal-host">
           <h2 id="legal-host" className="display-font text-2xl font-bold tracking-[-.04em] text-[#282d46]">Hébergement</h2>
-          <p className="mt-4 text-[15px] leading-6 text-[#555a68]">Le site vitrine est hébergé par GitHub Pages.</p>
+          <p className="mt-4 text-[15px] leading-6 text-[#555a68]">Le site vitrine est hébergé par Cloudflare Workers.</p>
           <ul className="mt-4 grid gap-2 text-[14px] leading-6 text-[#555a68]">
-            <li>GitHub, Inc.</li>
-            <li>88 Colin P. Kelly Jr. Street</li>
-            <li>San Francisco, CA 94107, États-Unis</li>
-            <li><a className="font-semibold text-[#176d64] underline underline-offset-2" href="https://github.com" target="_blank" rel="noreferrer">github.com</a></li>
+            <li>Cloudflare, Inc.</li>
+            <li>Service d’hébergement et de diffusion du site</li>
+            <li><a className="font-semibold text-[#176d64] underline underline-offset-2" href="https://www.cloudflare.com" target="_blank" rel="noreferrer">cloudflare.com</a></li>
           </ul>
         </section>
 
@@ -549,12 +585,13 @@ function LegalPage() {
         <section className="legal-block mt-12" aria-labelledby="legal-privacy">
           <h2 id="legal-privacy" className="display-font text-2xl font-bold tracking-[-.04em] text-[#282d46]">Confidentialité</h2>
           <p className="mt-4 text-[15px] leading-6 text-[#555a68]">AgenStudio ne collecte pas de données personnelles via l’application : pas de compte, pas de télémétrie, pas de serveur AgenStudio. L’historique et la file restent sur l’ordinateur. L’extension transmet uniquement l’URL YouTube ouverte à l’application installée sur la même machine.</p>
+          <p className="mt-4 text-[15px] leading-6 text-[#555a68]">Pour la recherche de sous-titres de films et séries, le titre, l’année, la saison, l’épisode et les langues sélectionnées sont envoyés directement aux fournisseurs activés. Les fichiers vidéo ne sont pas téléversés. Les éventuelles clés API sont chiffrées localement par la protection Windows.</p>
           <p className="mt-4 text-[15px] leading-6 text-[#555a68]">Le site vitrine peut interroger l’API publique GitHub pour afficher le lien de la dernière version. Cette requête est traitée par GitHub, Inc., selon sa propre politique de confidentialité.</p>
         </section>
 
         <section className="legal-block mt-12" aria-labelledby="legal-licences">
           <h2 id="legal-licences" className="display-font text-2xl font-bold tracking-[-.04em] text-[#282d46]">Licences</h2>
-          <p className="mt-4 text-[15px] leading-6 text-[#555a68]">Le code AgenFetch est publié sous licence MIT. Les composants redistribués (yt-dlp, FFmpeg LGPL, Deno, Electron) conservent leurs licences, détaillées dans le fichier THIRD_PARTY_NOTICES du dépôt.</p>
+          <p className="mt-4 text-[15px] leading-6 text-[#555a68]">Le code AgenFetch est publié sous licence MIT. Les composants redistribués ou proposés séparément — yt-dlp, FFmpeg LGPL, QuickJS-NG, Deno et Electron — conservent leurs licences, détaillées dans le fichier THIRD_PARTY_NOTICES du dépôt.</p>
         </section>
       </main>
 

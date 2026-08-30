@@ -6,6 +6,10 @@ on:
     paths:
       - 'website/**'
       - '.github/workflows/deploy-website.yml'
+  pull_request:
+    paths:
+      - 'website/**'
+      - '.github/workflows/deploy-website.yml'
   workflow_dispatch:
 
 permissions:
@@ -35,6 +39,7 @@ jobs:
           npm run build
 
       - name: Publish to Cloudflare Pages
+        if: github.event_name != 'pull_request'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
