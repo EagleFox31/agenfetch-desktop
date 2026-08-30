@@ -1,6 +1,6 @@
 {
   "name": "agenfetch-desktop",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Application Windows locale pour enregistrer des contenus autorisés et trouver leurs sous-titres multilingues.",
   "main": "src/main.js",
   "author": "AgenStudio",
