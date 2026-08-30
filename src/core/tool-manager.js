@@ -25,6 +25,12 @@ const TOOL_DEFINITIONS = Object.freeze({
     windowsBinary: 'deno.exe',
     unixBinary: 'deno',
     versionArgs: ['--version']
+  },
+  quickjs: {
+    command: 'qjs',
+    windowsBinary: 'qjs.exe',
+    unixBinary: 'qjs',
+    versionArgs: ['--version']
   }
 });
 
@@ -132,11 +138,14 @@ class ToolManager {
     const args = [];
     const ffmpeg = this.resolveCommand('ffmpeg');
     const deno = this.resolveCommand('deno');
+    const quickjs = this.resolveCommand('quickjs');
     if (path.isAbsolute(ffmpeg)) {
       args.push('--ffmpeg-location', path.dirname(ffmpeg));
     }
     if (path.isAbsolute(deno)) {
       args.push('--js-runtimes', `deno:${deno}`);
+    } else if (path.isAbsolute(quickjs)) {
+      args.push('--js-runtimes', `quickjs:${quickjs}`);
     }
     return args;
   }
@@ -170,12 +179,21 @@ class ToolManager {
 
   async checkAll() {
     this.prepare();
-    const [ytDlp, ffmpeg, deno] = await Promise.all([
+    const [ytDlp, ffmpeg, deno, quickjs] = await Promise.all([
       this.checkTool('ytDlp'),
       this.checkTool('ffmpeg'),
-      this.checkTool('deno')
+      this.checkTool('deno'),
+      this.checkTool('quickjs')
     ]);
-    return { ytDlp, ffmpeg, deno, portable: [ytDlp, ffmpeg, deno].every((tool) => tool.installed) };
+    const jsRuntime = deno.installed ? deno : quickjs;
+    return {
+      ytDlp,
+      ffmpeg,
+      deno,
+      quickjs,
+      jsRuntime,
+      portable: ytDlp.installed && ffmpeg.installed && jsRuntime.installed
+    };
   }
 
   async updateYtDlp() {

@@ -229,7 +229,7 @@ test('prépare et résout les outils Windows embarqués', async () => {
   const bundledBin = path.join(resourcesPath, 'bin');
   const userDataPath = path.join(tempRoot, 'user');
   fs.mkdirSync(bundledBin, { recursive: true });
-  ['yt-dlp.exe', 'ffmpeg.exe', 'deno.exe'].forEach((file) => {
+  ['yt-dlp.exe', 'ffmpeg.exe', 'qjs.exe'].forEach((file) => {
     fs.writeFileSync(path.join(bundledBin, file), 'fake', 'utf8');
   });
 
@@ -241,15 +241,27 @@ test('prépare et résout les outils Windows embarqués', async () => {
       isPackaged: true,
       platform: 'win32',
       environment: { Path: 'C:\\Windows' },
-      execFileImpl: async (command) => ({ stdout: `${path.basename(command)} 1.0`, stderr: '' })
+      execFileImpl: async (command) => {
+        if (command === 'deno') {
+          const error = new Error('not found');
+          error.code = 'ENOENT';
+          throw error;
+        }
+        return { stdout: `${path.basename(command)} 1.0`, stderr: '' };
+      }
     });
     manager.prepare();
     assert.equal(manager.resolveCommand('ytDlp'), path.join(userDataPath, 'tools', 'yt-dlp.exe'));
     assert.equal(manager.resolveCommand('ffmpeg'), path.join(bundledBin, 'ffmpeg.exe'));
-    assert.ok(manager.getYtDlpRuntimeArgs().includes(`deno:${path.join(bundledBin, 'deno.exe')}`));
+    assert.ok(manager.getYtDlpRuntimeArgs().includes(`quickjs:${path.join(bundledBin, 'qjs.exe')}`));
     const status = await manager.checkAll();
     assert.equal(status.portable, true);
+    assert.equal(status.quickjs.installed, true);
+    assert.equal(status.deno.installed, false);
     assert.equal(status.ytDlp.source, 'géré par AgenFetch');
+
+    fs.writeFileSync(path.join(userDataPath, 'tools', 'deno.exe'), 'fake', 'utf8');
+    assert.ok(manager.getYtDlpRuntimeArgs().includes(`deno:${path.join(userDataPath, 'tools', 'deno.exe')}`));
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }

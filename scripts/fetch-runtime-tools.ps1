@@ -6,16 +6,19 @@ $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $VendorBin = Join-Path $ProjectRoot "vendor\bin"
+$VendorOptional = Join-Path $ProjectRoot "vendor\optional"
 $TempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("agenfetch-runtime-" + [Guid]::NewGuid().ToString("N"))
 
 $YtDlpAsset = "yt-dlp.exe"
 $DenoAsset = "deno-x86_64-pc-windows-msvc.zip"
+$QuickJsAsset = "qjs-windows-x86_64.exe"
 $FfmpegAsset = "ffmpeg-master-latest-win64-lgpl-shared.zip"
 
 $YtDlpUrl = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/$YtDlpAsset"
 $YtDlpChecksumsUrl = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS"
 $DenoUrl = "https://github.com/denoland/deno/releases/latest/download/$DenoAsset"
 $DenoChecksumsUrl = $DenoUrl + ".sha256sum"
+$QuickJsReleaseApi = "https://api.github.com/repos/quickjs-ng/quickjs/releases/latest"
 $FfmpegUrl = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/$FfmpegAsset"
 $FfmpegChecksumsUrl = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/checksums.sha256"
 
@@ -70,11 +73,34 @@ function Invoke-VerifiedDownload {
     return $ExpectedHash
 }
 
+function Invoke-VerifiedGitHubAsset {
+    param(
+        [Parameter(Mandatory = $true)][string]$ReleaseApiUrl,
+        [Parameter(Mandatory = $true)][string]$AssetName,
+        [Parameter(Mandatory = $true)][string]$DestinationPath
+    )
+
+    Write-Host "Résolution de $AssetName depuis GitHub Releases..." -ForegroundColor Cyan
+    $Release = Invoke-RestMethod -Uri $ReleaseApiUrl -Headers @{ Accept = "application/vnd.github+json"; "User-Agent" = "AgenFetch-Build" }
+    $Asset = $Release.assets | Where-Object { $_.name -eq $AssetName } | Select-Object -First 1
+    if (-not $Asset -or -not $Asset.browser_download_url -or -not $Asset.digest) {
+        throw "GitHub n’a pas fourni l’asset $AssetName avec son empreinte."
+    }
+    $ExpectedHash = [string]$Asset.digest -replace '^sha256:', ''
+    if ($ExpectedHash -notmatch '^[a-fA-F0-9]{64}$') {
+        throw "Empreinte GitHub invalide pour $AssetName."
+    }
+    Invoke-WebRequest -Uri $Asset.browser_download_url -OutFile $DestinationPath -MaximumRedirection 10
+    Assert-FileHash -FilePath $DestinationPath -ExpectedHash $ExpectedHash
+    return [ordered]@{ hash = $ExpectedHash.ToLowerInvariant(); url = [string]$Asset.browser_download_url }
+}
+
 $ExpectedFiles = @(
     (Join-Path $VendorBin "yt-dlp.exe"),
     (Join-Path $VendorBin "ffmpeg.exe"),
     (Join-Path $VendorBin "ffprobe.exe"),
-    (Join-Path $VendorBin "deno.exe"),
+    (Join-Path $VendorBin "qjs.exe"),
+    (Join-Path $VendorOptional "deno.exe"),
     (Join-Path $VendorBin "TOOLS-MANIFEST.json")
 )
 
@@ -87,6 +113,7 @@ if (-not $Force -and ($ExpectedFiles | Where-Object { -not (Test-Path -LiteralPa
 }
 
 New-Item -ItemType Directory -Path $VendorBin -Force | Out-Null
+New-Item -ItemType Directory -Path $VendorOptional -Force | Out-Null
 New-Item -ItemType Directory -Path $TempRoot -Force | Out-Null
 
 try {
@@ -100,7 +127,11 @@ try {
     $DenoArchiveHash = Invoke-VerifiedDownload -AssetUrl $DenoUrl -ChecksumsUrl $DenoChecksumsUrl -AssetName $DenoAsset -DestinationPath $DenoTemp -ChecksumPath $DenoSums
     $DenoExtract = Join-Path $TempRoot "deno"
     Expand-Archive -LiteralPath $DenoTemp -DestinationPath $DenoExtract -Force
-    Copy-Item -LiteralPath (Join-Path $DenoExtract "deno.exe") -Destination (Join-Path $VendorBin "deno.exe") -Force
+    Copy-Item -LiteralPath (Join-Path $DenoExtract "deno.exe") -Destination (Join-Path $VendorOptional "deno.exe") -Force
+
+    $QuickJsTemp = Join-Path $TempRoot $QuickJsAsset
+    $QuickJsRelease = Invoke-VerifiedGitHubAsset -ReleaseApiUrl $QuickJsReleaseApi -AssetName $QuickJsAsset -DestinationPath $QuickJsTemp
+    Copy-Item -LiteralPath $QuickJsTemp -Destination (Join-Path $VendorBin "qjs.exe") -Force
 
     $FfmpegTemp = Join-Path $TempRoot $FfmpegAsset
     $FfmpegSums = Join-Path $TempRoot "ffmpeg-checksums.sha256"
@@ -128,7 +159,8 @@ try {
             [ordered]@{ name = "yt-dlp"; file = "yt-dlp.exe"; source = $YtDlpUrl; archiveSha256 = $YtDlpArchiveHash; fileSha256 = (Get-FileHash -LiteralPath (Join-Path $VendorBin "yt-dlp.exe") -Algorithm SHA256).Hash.ToLowerInvariant() },
             [ordered]@{ name = "FFmpeg"; file = "ffmpeg.exe"; source = $FfmpegUrl; archiveSha256 = $FfmpegArchiveHash; fileSha256 = (Get-FileHash -LiteralPath (Join-Path $VendorBin "ffmpeg.exe") -Algorithm SHA256).Hash.ToLowerInvariant() },
             [ordered]@{ name = "ffprobe"; file = "ffprobe.exe"; source = $FfmpegUrl; archiveSha256 = $FfmpegArchiveHash; fileSha256 = (Get-FileHash -LiteralPath (Join-Path $VendorBin "ffprobe.exe") -Algorithm SHA256).Hash.ToLowerInvariant() },
-            [ordered]@{ name = "Deno"; file = "deno.exe"; source = $DenoUrl; archiveSha256 = $DenoArchiveHash; fileSha256 = (Get-FileHash -LiteralPath (Join-Path $VendorBin "deno.exe") -Algorithm SHA256).Hash.ToLowerInvariant() }
+            [ordered]@{ name = "QuickJS-NG"; file = "qjs.exe"; source = $QuickJsRelease.url; archiveSha256 = $QuickJsRelease.hash; fileSha256 = (Get-FileHash -LiteralPath (Join-Path $VendorBin "qjs.exe") -Algorithm SHA256).Hash.ToLowerInvariant() },
+            [ordered]@{ name = "Deno (optionnel)"; file = "optional/deno.exe"; source = $DenoUrl; archiveSha256 = $DenoArchiveHash; fileSha256 = (Get-FileHash -LiteralPath (Join-Path $VendorOptional "deno.exe") -Algorithm SHA256).Hash.ToLowerInvariant() }
         )
         sharedLibraries = @($FfmpegLibraries | ForEach-Object {
             [ordered]@{ file = $_.Name; fileSha256 = (Get-FileHash -LiteralPath (Join-Path $VendorBin $_.Name) -Algorithm SHA256).Hash.ToLowerInvariant() }

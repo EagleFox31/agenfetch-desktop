@@ -19,6 +19,7 @@
 - Accents du site vitrine alignés sur le teal du bouton Télécharger.
 - Retrait de `_redirects` qui faisait échouer le déploiement Cloudflare.
 - Passage au build FFmpeg LGPL partagé pour mutualiser les bibliothèques.
+- Remplacement de Deno dans l’installateur principal par QuickJS-NG ; Deno devient un composant renforcé optionnel.
 - Pipeline de release composé de l’application, l’extension et du moteur optionnel.
 
 ## 0.2.3 — bêta
