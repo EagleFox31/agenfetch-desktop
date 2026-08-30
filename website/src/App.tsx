@@ -33,9 +33,9 @@ const GITHUB_API_LATEST = 'https://api.github.com/repos/EagleFox31/agenfetch-des
 const PRODUCT_VERSION = '0.3.0';
 const INSTALLER_SIZE = '181 Mo';
 const FALLBACK_LINKS = {
-  setupExe: `${GITHUB_REPO}/releases/download/v0.2.3/AgenFetch-Setup-0.2.3.exe`,
-  setupName: 'AgenFetch-Setup-0.2.3.exe',
-  extensionZip: `${GITHUB_REPO}/releases/download/v0.2.3/AgenFetch-Extension-0.2.3.zip`,
+  setupExe: `${GITHUB_REPO}/releases/download/v${PRODUCT_VERSION}/AgenFetch-Setup-${PRODUCT_VERSION}.exe`,
+  setupName: `AgenFetch-Setup-${PRODUCT_VERSION}.exe`,
+  extensionZip: `${GITHUB_REPO}/releases/download/v${PRODUCT_VERSION}/AgenFetch-Extension-${PRODUCT_VERSION}.zip`,
   checksums: `${GITHUB_REPO}/releases/latest/download/SHA256SUMS.txt`,
 };
 const asset = (file: string) => `${import.meta.env.BASE_URL}${file}`;
