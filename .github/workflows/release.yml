@@ -17,8 +17,12 @@ on:
     branches:
       - main
   push:
+    branches:
+      - main
     tags:
       - "v*"
+    paths:
+      - ".github/workflows/release.yml"
 
 permissions:
   contents: read
@@ -111,7 +115,7 @@ jobs:
           if-no-files-found: error
 
   publish-release:
-    if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.publish_release)
+    if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.publish_release) || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     needs: bundle-release
     runs-on: ubuntu-latest
     permissions:
@@ -131,7 +135,7 @@ jobs:
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || inputs.release_tag }}
+          RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || inputs.release_tag || 'v0.3.0' }}
         run: |
           shopt -s nullglob
           assets=(release/AgenFetch-Setup-*.exe release/AgenFetch-Extension-*.zip release/AgenFetch-Subtitle-Engine-*.exe release/AgenFetch-Deno-Runtime-*.exe release/SHA256SUMS.txt release/SIZE-REPORT.json)
