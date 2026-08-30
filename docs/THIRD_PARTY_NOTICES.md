@@ -1,6 +1,6 @@
 # Composants tiers distribués avec AgenFetch
 
-L’installateur Windows AgenFetch 0.2 télécharge ces composants pendant le build, vérifie les sommes SHA-256 publiées par leurs projets, puis les place dans le paquet final. Ils conservent leurs licences respectives.
+Le build Windows AgenFetch 0.3 télécharge ces composants, vérifie leurs sommes SHA-256 publiées, puis les place dans l’installateur ou dans les composants optionnels de la Release. Ils conservent leurs licences respectives.
 
 ## yt-dlp
 
@@ -12,16 +12,22 @@ L’installateur Windows AgenFetch 0.2 télécharge ces composants pendant le bu
 
 - Projet : https://ffmpeg.org/
 - Build Windows : https://github.com/BtbN/FFmpeg-Builds
-- Variante distribuée : build statique LGPL pour Windows x64
+- Variante distribuée : build partagé LGPL pour Windows x64
 - Licence : LGPL 2.1 ou ultérieure, selon les options du build amont
-- Binaires distribués : `ffmpeg.exe` et `ffprobe.exe`
+- Binaires distribués : `ffmpeg.exe`, `ffprobe.exe` et leurs DLL communes
 - Sources FFmpeg : https://ffmpeg.org/download.html#get-sources
 
-## Deno
+## QuickJS-NG
+
+- Projet : https://github.com/quickjs-ng/quickjs
+- Licence : MIT
+- Binaire intégré : `qjs.exe`
+
+## Deno — composant optionnel
 
 - Projet : https://github.com/denoland/deno
 - Licence : MIT
-- Binaire distribué : `deno.exe`
+- Binaire publié séparément : `AgenFetch-Deno-Runtime-<version>.exe`
 
 ## Electron
 

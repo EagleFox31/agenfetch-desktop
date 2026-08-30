@@ -6,7 +6,7 @@
 2. Le processus principal valide chaque URL et assainit toutes les options.
 3. `DownloadQueue` conserve au maximum 50 tâches et n’en exécute qu’une à la fois.
 4. `DownloaderService` lance la copie gérée de yt-dlp avec `shell: false`.
-5. yt-dlp utilise le FFmpeg et le Deno intégrés grâce à des chemins explicites et à un environnement local.
+5. yt-dlp utilise FFmpeg et QuickJS-NG intégrés, ou Deno optionnel lorsqu’il est installé, grâce à des chemins explicites.
 6. Le processus de rendu reçoit la file, la progression, les journaux et les résultats via une API IPC minimale.
 7. Le résultat est ajouté à l’historique local et une notification Windows est affichée.
 
@@ -15,14 +15,16 @@
 `ToolManager` recherche les binaires dans cet ordre :
 
 - yt-dlp : copie modifiable dans `userData/tools`, puis binaire embarqué, puis `PATH` ;
-- FFmpeg et Deno : binaires embarqués, puis copie gérée, puis `PATH`.
+- FFmpeg et QuickJS-NG : binaires embarqués, puis copie gérée, puis `PATH`.
+- Deno : composant renforcé optionnel dans le profil utilisateur, prioritaire sur QuickJS lorsqu’il est installé.
 
 Au premier lancement, le yt-dlp embarqué est copié dans le profil utilisateur. Le bouton de mise à jour exécute `yt-dlp -U` sur cette copie, ce qui évite d’écrire dans le dossier protégé de l’application.
 
 Pendant le build Windows, `scripts/fetch-runtime-tools.ps1` télécharge et vérifie :
 
 - `yt-dlp.exe` depuis les releases officielles yt-dlp ;
-- `deno.exe` depuis les releases officielles Deno ;
+- `qjs.exe` depuis les releases officielles QuickJS-NG ;
+- `deno.exe` depuis les releases officielles Deno, publié comme composant optionnel ;
 - `ffmpeg.exe` et `ffprobe.exe` depuis les builds Windows LGPL de BtbN.
 
 Les binaires ne sont pas commités. electron-builder les place dans `resources/bin` via `extraResources`.
@@ -60,6 +62,7 @@ Les binaires ne sont pas commités. electron-builder les place dans `resources/b
 - Le moteur de sous-titres exige toujours une empreinte SHA-256 publiée avant installation.
 - Les URL de téléchargement des fournisseurs sont limitées à leurs domaines HTTPS autorisés.
 - Les clés SubDL et OpenSubtitles ne sont jamais exposées au renderer ou aux journaux.
+- QuickJS-NG réduit fortement la taille, mais yt-dlp doit créer des scripts temporaires pour ce runtime. L’utilisateur peut installer Deno, prioritaire et mieux isolé, depuis l’écran À propos.
 
 ## Limites de la bêta
 

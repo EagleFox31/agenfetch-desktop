@@ -44,7 +44,7 @@ const refs = {
   activityDot: document.querySelector('#activity-dot'),
   ytDlpStatus: document.querySelector('#yt-dlp-status'),
   ffmpegStatus: document.querySelector('#ffmpeg-status'),
-  denoStatus: document.querySelector('#deno-status'),
+  jsRuntimeStatus: document.querySelector('#js-runtime-status'),
   checkSystem: document.querySelector('#check-system'),
   updateYtDlp: document.querySelector('#update-yt-dlp'),
   queueList: document.querySelector('#queue-list'),
@@ -102,7 +102,14 @@ const refs = {
   saveSubtitleProviders: document.querySelector('#save-subtitle-providers'),
   subtitleResultsTitle: document.querySelector('#subtitle-results-title'),
   subtitleResultCount: document.querySelector('#subtitle-result-count'),
-  subtitleResults: document.querySelector('#subtitle-results')
+  subtitleResults: document.querySelector('#subtitle-results'),
+  jsRuntimeTitle: document.querySelector('#js-runtime-title'),
+  jsRuntimeCopy: document.querySelector('#js-runtime-copy'),
+  installDenoRuntime: document.querySelector('#install-deno-runtime'),
+  denoRuntimeProgress: document.querySelector('#deno-runtime-progress'),
+  denoRuntimeProgressBar: document.querySelector('#deno-runtime-progress-bar'),
+  denoRuntimeProgressPercent: document.querySelector('#deno-runtime-progress-percent'),
+  denoRuntimeProgressMeta: document.querySelector('#deno-runtime-progress-meta')
 };
 
 const state = {
@@ -120,7 +127,8 @@ const state = {
   appUpdate: null,
   subtitleEngineInstalled: false,
   subtitleResults: [],
-  subtitleQuery: null
+  subtitleQuery: null,
+  system: null
 };
 
 function showToast(message, type = 'info') {
@@ -160,7 +168,7 @@ function setStatus(element, result) {
 }
 
 async function checkSystem({ quiet = false } = {}) {
-  [refs.ytDlpStatus, refs.ffmpegStatus, refs.denoStatus].forEach((item) => {
+  [refs.ytDlpStatus, refs.ffmpegStatus, refs.jsRuntimeStatus].forEach((item) => {
     item.classList.remove('is-ok', 'is-error');
     item.classList.add('is-checking');
   });
@@ -168,17 +176,29 @@ async function checkSystem({ quiet = false } = {}) {
     const result = await api.checkSystem();
     setStatus(refs.ytDlpStatus, result.ytDlp);
     setStatus(refs.ffmpegStatus, result.ffmpeg);
-    setStatus(refs.denoStatus, result.deno);
+    setStatus(refs.jsRuntimeStatus, result.jsRuntime);
+    applyJsRuntimeStatus(result);
     if (!result.portable) {
       showToast('Un outil intégré manque. Réinstalle AgenFetch ou relance le diagnostic.', 'error');
     } else if (!quiet) {
-      showToast('AgenFetch est prêt : yt-dlp, FFmpeg et Deno sont disponibles.');
+      showToast(`AgenFetch est prêt : yt-dlp, FFmpeg et ${result.deno?.installed ? 'Deno' : 'QuickJS'} sont disponibles.`);
     }
     return result;
   } catch (error) {
     showToast(error.message || 'Impossible de vérifier les outils.', 'error');
     return null;
   }
+}
+
+function applyJsRuntimeStatus(result) {
+  state.system = result;
+  if (!refs.jsRuntimeTitle) return;
+  const usesDeno = Boolean(result?.deno?.installed);
+  refs.jsRuntimeTitle.textContent = usesDeno ? 'Deno actif' : 'QuickJS léger actif';
+  refs.jsRuntimeCopy.textContent = usesDeno
+    ? 'AgenFetch privilégie Deno pour son isolation renforcée des scripts JavaScript.'
+    : 'QuickJS garde l’installation légère. Deno reste disponible comme runtime renforcé optionnel.';
+  refs.installDenoRuntime.hidden = usesDeno;
 }
 
 async function updateYtDlp() {
@@ -705,6 +725,29 @@ api.onSubtitleEngineInstallProgress((progress) => {
   const percent = Math.max(0, Math.min(100, Number(progress?.percent || 0)));
   refs.subtitleEngineProgressBar.style.width = `${percent}%`;
   refs.subtitleEngineProgressLabel.textContent = `${progress?.percentLabel || `${percent.toFixed(0)}%`} · ${progress?.receivedLabel || '—'} / ${progress?.totalLabel || '—'}`;
+});
+
+refs.installDenoRuntime.addEventListener('click', async () => {
+  refs.installDenoRuntime.disabled = true;
+  refs.denoRuntimeProgress.hidden = false;
+  refs.jsRuntimeTitle.textContent = 'Installation de Deno…';
+  try {
+    const result = await api.installDenoRuntime();
+    applyJsRuntimeStatus(result.system);
+    refs.denoRuntimeProgress.hidden = true;
+    showToast('Deno installé et vérifié. Il devient le runtime YouTube prioritaire.');
+  } catch (error) {
+    refs.installDenoRuntime.disabled = false;
+    refs.denoRuntimeProgress.hidden = true;
+    showToast(error.message || 'Installation de Deno impossible.', 'error');
+  }
+});
+
+api.onDenoRuntimeInstallProgress((progress) => {
+  const percent = Math.max(0, Math.min(100, Number(progress?.percent || 0)));
+  refs.denoRuntimeProgressBar.style.width = `${percent}%`;
+  refs.denoRuntimeProgressPercent.textContent = progress?.percentLabel || `${percent.toFixed(0)}%`;
+  refs.denoRuntimeProgressMeta.textContent = `${progress?.receivedLabel || '—'} / ${progress?.totalLabel || '—'}`;
 });
 
 refs.chooseSubtitleMedia.addEventListener('click', async () => {

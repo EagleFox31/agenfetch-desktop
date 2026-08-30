@@ -31,6 +31,7 @@
 - Moteur Python optionnel, isolé et actualisable indépendamment.
 - Clés fournisseurs chiffrées localement.
 - FFmpeg partagé et budget de taille automatisé.
+- QuickJS-NG léger par défaut, avec Deno renforcé disponible à la demande.
 - Site vitrine avec téléchargement et documentation. *(landing FR initiale dans `website/`)*
 
 ## Version 0.4 — distribution étendue

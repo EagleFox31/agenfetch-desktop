@@ -19,9 +19,18 @@ function hashFile(filePath) {
 }
 
 class SubtitleComponentInstaller {
-  constructor({ currentVersion, destination, fetchImpl = fetch, onProgress = () => {} }) {
+  constructor({
+    currentVersion,
+    destination,
+    assetName = null,
+    componentLabel = 'moteur de sous-titres',
+    fetchImpl = fetch,
+    onProgress = () => {}
+  }) {
     this.currentVersion = normalizeVersion(currentVersion);
     this.destination = destination;
+    this.assetName = assetName || `AgenFetch-Subtitle-Engine-${this.currentVersion}.exe`;
+    this.componentLabel = componentLabel;
     this.fetchImpl = fetchImpl;
     this.onProgress = onProgress;
     this.activeController = null;
@@ -40,18 +49,18 @@ class SubtitleComponentInstaller {
     const tag = `v${this.currentVersion}`;
     const releaseUrl = `https://api.github.com/repos/EagleFox31/agenfetch-desktop/releases/tags/${encodeURIComponent(tag)}`;
     const release = await (await this.request(releaseUrl, 'application/vnd.github+json')).json();
-    const expectedName = `AgenFetch-Subtitle-Engine-${this.currentVersion}.exe`;
+    const expectedName = this.assetName;
     const asset = (release.assets || []).find((item) => item?.name === expectedName);
     const checksumAsset = (release.assets || []).find((item) => item?.name === 'SHA256SUMS.txt');
     if (!asset?.browser_download_url || !checksumAsset?.browser_download_url) {
-      throw new Error('Cette release ne contient pas encore le moteur de sous-titres et ses checksums.');
+      throw new Error(`Cette release ne contient pas encore le ${this.componentLabel} et ses checksums.`);
     }
     if (!isAllowedDownloadUrl(asset.browser_download_url) || !isAllowedDownloadUrl(checksumAsset.browser_download_url)) {
       throw new Error('Adresse de composant GitHub refusée.');
     }
     const checksums = parseChecksums(await (await this.request(checksumAsset.browser_download_url, 'text/plain')).text());
     const expectedSha256 = checksums.get(expectedName);
-    if (!expectedSha256) throw new Error('Checksum SHA-256 du moteur absent. Installation refusée.');
+    if (!expectedSha256) throw new Error(`Checksum SHA-256 du ${this.componentLabel} absent. Installation refusée.`);
     return { name: expectedName, url: asset.browser_download_url, size: Number(asset.size) || 0, expectedSha256 };
   }
 
@@ -97,7 +106,7 @@ class SubtitleComponentInstaller {
       await new Promise((resolve, reject) => file.end((error) => error ? reject(error) : resolve()));
       const actualSha256 = await hashFile(temporary);
       if (actualSha256 !== asset.expectedSha256) {
-        throw new Error('L’empreinte SHA-256 du moteur ne correspond pas. Installation annulée.');
+        throw new Error(`L’empreinte SHA-256 du ${this.componentLabel} ne correspond pas. Installation annulée.`);
       }
       fs.copyFileSync(temporary, this.destination);
       fs.unlinkSync(temporary);

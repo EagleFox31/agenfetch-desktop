@@ -83,7 +83,7 @@
           <div class="system-status" aria-label="État des outils">
             <span class="status-chip is-checking" id="yt-dlp-status">yt-dlp</span>
             <span class="status-chip is-checking" id="ffmpeg-status">FFmpeg</span>
-            <span class="status-chip is-checking" id="deno-status">Deno</span>
+            <span class="status-chip is-checking" id="js-runtime-status">Runtime JS</span>
             <button id="update-yt-dlp" class="secondary-button compact" type="button">Mettre à jour</button>
             <button id="check-system" class="icon-button" type="button" title="Revérifier les outils" aria-label="Revérifier les outils">↻</button>
           </div>
@@ -443,6 +443,19 @@
               <button class="primary-button" id="install-app-update" type="button" hidden>
                 <span>Lancer l’installateur</span>
               </button>
+            </article>
+
+            <article class="about-card">
+              <p class="eyebrow">Runtime YouTube</p>
+              <h3 id="js-runtime-title">QuickJS intégré</h3>
+              <p id="js-runtime-copy">Le runtime léger est utilisé par défaut. Deno, plus isolé mais plus lourd, reste optionnel.</p>
+              <div class="update-progress" id="deno-runtime-progress" hidden>
+                <div class="update-progress-track" aria-hidden="true">
+                  <div class="update-progress-bar" id="deno-runtime-progress-bar"></div>
+                </div>
+                <p><strong id="deno-runtime-progress-percent">0%</strong><span id="deno-runtime-progress-meta">en attente</span></p>
+              </div>
+              <button class="secondary-button provider-save" id="install-deno-runtime" type="button">Installer Deno optionnel</button>
             </article>
 
             <article class="about-card about-card-wide">

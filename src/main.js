@@ -25,6 +25,7 @@ let toolManager = null;
 let providerCredentials = null;
 let subtitleEngine = null;
 let subtitleInstaller = null;
+let denoInstaller = null;
 let pendingDeepLink = null;
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
@@ -172,6 +173,12 @@ function wireIpc() {
     if (downloader.isRunning) throw new Error('Attends la fin du téléchargement avant de mettre yt-dlp à jour.');
     return toolManager.updateYtDlp();
   });
+  ipcMain.handle('runtime:install-deno', async () => {
+    if (downloader.isRunning) throw new Error('Attends la fin du téléchargement avant de changer de runtime.');
+    const result = await denoInstaller.install();
+    return { ...result, system: await toolManager.checkAll() };
+  });
+  ipcMain.handle('runtime:cancel-deno', () => denoInstaller.cancel());
   ipcMain.handle('clipboard:read', () => clipboard.readText());
 
   ipcMain.handle('folder:choose', async () => {
@@ -342,6 +349,13 @@ app.whenReady().then(() => {
     currentVersion: app.getVersion(),
     destination: subtitleEngine.managedExecutable,
     onProgress: (value) => mainWindow?.webContents.send('subtitle-engine:install-progress', value)
+  });
+  denoInstaller = new SubtitleComponentInstaller({
+    currentVersion: app.getVersion(),
+    destination: toolManager.managedPath('deno'),
+    assetName: `AgenFetch-Deno-Runtime-${app.getVersion()}.exe`,
+    componentLabel: 'runtime Deno optionnel',
+    onProgress: (value) => mainWindow?.webContents.send('runtime:deno-install-progress', value)
   });
   appUpdater = new AppUpdater({
     currentVersion: app.getVersion(),

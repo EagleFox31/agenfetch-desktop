@@ -12,6 +12,8 @@ function subscribe(channel, callback) {
 contextBridge.exposeInMainWorld('agenFetch', {
   checkSystem: () => ipcRenderer.invoke('system:check'),
   updateYtDlp: () => ipcRenderer.invoke('tools:update-ytdlp'),
+  installDenoRuntime: () => ipcRenderer.invoke('runtime:install-deno'),
+  cancelDenoRuntimeInstall: () => ipcRenderer.invoke('runtime:cancel-deno'),
   readClipboard: () => ipcRenderer.invoke('clipboard:read'),
   getDefaultFolder: () => ipcRenderer.invoke('folder:default'),
   chooseFolder: () => ipcRenderer.invoke('folder:choose'),
@@ -52,6 +54,7 @@ contextBridge.exposeInMainWorld('agenFetch', {
   onFinished: (callback) => subscribe('download:finished', callback),
   onUpdateProgress: (callback) => subscribe('update:progress', callback),
   onSubtitleEngineInstallProgress: (callback) => subscribe('subtitle-engine:install-progress', callback),
+  onDenoRuntimeInstallProgress: (callback) => subscribe('runtime:deno-install-progress', callback),
   onOpenAbout: (callback) => subscribe('ui:open-about', callback),
   onCheckUpdates: (callback) => subscribe('ui:check-updates', callback),
   quitApp: () => ipcRenderer.invoke('app:quit')

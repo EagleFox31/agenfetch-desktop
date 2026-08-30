@@ -10,3 +10,4 @@ __pycache__/
 Thumbs.db
 vendor/bin/*
 !vendor/bin/.gitkeep
+vendor/optional/

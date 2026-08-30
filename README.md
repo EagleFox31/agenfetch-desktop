@@ -7,7 +7,8 @@ AgenFetch est une application Windows locale qui pilote yt-dlp depuis une interf
 ## Version 0.3 — sous-titres multilingues
 
 - Installateur Windows x64 autonome.
-- yt-dlp, FFmpeg partagé, ffprobe et Deno intégrés au paquet.
+- yt-dlp, FFmpeg partagé, ffprobe et QuickJS-NG intégrés au paquet.
+- Deno proposé comme runtime renforcé optionnel, téléchargé uniquement à la demande.
 - Copie modifiable de yt-dlp dans le profil Windows pour les mises à jour.
 - Vérification SHA-256 des outils pendant le build.
 - File d’attente jusqu’à 50 liens.
@@ -35,7 +36,7 @@ Configuration minimale : Windows 10 ou 11, processeur x64.
 3. Lance l’installateur.
 4. Ouvre AgenFetch depuis le bureau ou le menu Démarrer.
 
-L’utilisateur final n’a pas besoin d’installer Node.js, yt-dlp, FFmpeg ou Deno. Les fichiers `.blockmap`, `.yml` et le dossier `win-unpacked` ne sont pas nécessaires.
+L’utilisateur final n’a pas besoin d’installer Node.js, Python, yt-dlp, FFmpeg, QuickJS ou Deno. Les fichiers `.blockmap`, `.yml` et le dossier `win-unpacked` ne sont pas nécessaires.
 
 La bêta n’est pas encore signée numériquement. Windows SmartScreen peut donc afficher « Éditeur inconnu ». Vérifie l’empreinte publiée dans `SHA256SUMS.txt` avant l’installation.
 
@@ -123,7 +124,7 @@ Sous Windows :
 Le script :
 
 1. exécute les tests ;
-2. télécharge les releases officielles de yt-dlp et Deno, ainsi qu’un build FFmpeg LGPL partagé ;
+2. télécharge les releases officielles de yt-dlp, QuickJS-NG et Deno, ainsi qu’un build FFmpeg LGPL partagé ;
 3. vérifie leurs sommes SHA-256 publiées ;
 4. génère l’installateur NSIS ;
 5. crée l’archive de l’extension.
@@ -134,6 +135,7 @@ Résultats :
 release\AgenFetch-Setup-0.3.0.exe
 release\AgenFetch-Extension-0.3.0.zip
 release\AgenFetch-Subtitle-Engine-0.3.0.exe
+release\AgenFetch-Deno-Runtime-0.3.0.exe
 release\SIZE-REPORT.json
 ```
 

@@ -41,6 +41,7 @@ jobs:
           path: |
             release/AgenFetch-Setup-*.exe
             release/AgenFetch-Extension-*.zip
+            release/AgenFetch-Deno-Runtime-*.exe
             release/SIZE-REPORT.json
           if-no-files-found: error
 
@@ -89,7 +90,7 @@ jobs:
 
       - name: Generate SHA-256 checksums
         working-directory: release
-        run: sha256sum AgenFetch-Setup-*.exe AgenFetch-Extension-*.zip AgenFetch-Subtitle-Engine-*.exe > SHA256SUMS.txt
+        run: sha256sum AgenFetch-Setup-*.exe AgenFetch-Extension-*.zip AgenFetch-Subtitle-Engine-*.exe AgenFetch-Deno-Runtime-*.exe > SHA256SUMS.txt
 
       - name: Upload verified release bundle
         uses: actions/upload-artifact@v4
@@ -121,8 +122,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           shopt -s nullglob
-          assets=(release/AgenFetch-Setup-*.exe release/AgenFetch-Extension-*.zip release/AgenFetch-Subtitle-Engine-*.exe release/SHA256SUMS.txt release/SIZE-REPORT.json)
-          if [ ${#assets[@]} -lt 5 ]; then
+          assets=(release/AgenFetch-Setup-*.exe release/AgenFetch-Extension-*.zip release/AgenFetch-Subtitle-Engine-*.exe release/AgenFetch-Deno-Runtime-*.exe release/SHA256SUMS.txt release/SIZE-REPORT.json)
+          if [ ${#assets[@]} -lt 6 ]; then
             echo "Missing release assets" >&2
             ls -la release || true
             exit 1

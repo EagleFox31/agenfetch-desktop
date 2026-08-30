@@ -19,5 +19,6 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 & (Join-Path $PSScriptRoot "package-extension.ps1")
+& (Join-Path $PSScriptRoot "package-optional-runtimes.ps1")
 
-Write-Host "Installateur autonome et extension générés dans le dossier release." -ForegroundColor Green
+Write-Host "Installateur, extension et runtime optionnel générés dans le dossier release." -ForegroundColor Green

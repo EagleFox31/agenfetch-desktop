@@ -45,7 +45,8 @@ $Entries = @(
     (New-SizeEntry -Name "app-asar" -Path (Join-Path $Resources "app.asar")),
     (New-SizeEntry -Name "runtime-tools" -Path $BinRoot),
     (New-SizeEntry -Name "yt-dlp" -Path (Join-Path $BinRoot "yt-dlp.exe")),
-    (New-SizeEntry -Name "deno" -Path (Join-Path $BinRoot "deno.exe")),
+    (New-SizeEntry -Name "quickjs-runtime" -Path (Join-Path $BinRoot "qjs.exe")),
+    (New-SizeEntry -Name "deno-optional-component" -Path ((Get-ChildItem -LiteralPath $ReleaseRoot -Filter "AgenFetch-Deno-Runtime-*.exe" -File | Select-Object -First 1).FullName)),
     (New-SizeEntry -Name "ffmpeg" -Path (Join-Path $BinRoot "ffmpeg.exe")),
     (New-SizeEntry -Name "ffprobe" -Path (Join-Path $BinRoot "ffprobe.exe")),
     (New-PatternSizeEntry -Name "ffmpeg-shared-libraries" -Path $BinRoot -Filter "*.dll")
