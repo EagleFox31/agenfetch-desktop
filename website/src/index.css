@@ -450,7 +450,7 @@
   .download-layout { grid-template-columns: 1.15fr .85fr; align-items: stretch; }
 }
 .extension-panel { display: flex; flex-direction: column; }
-.extension-steps { margin: 0; padding-left: 1.15rem; color: #6e7079; font-size: 13px; line-height: 1.55; }
+.extension-steps { margin: 1.35rem 0 0; padding-left: 1.15rem; color: #6e7079; font-size: 13px; line-height: 1.55; }
 .extension-steps li + li { margin-top: .45rem; }
 .footer-link { color: #7b7f87; transition: color .2s ease; }
 .footer-link:hover { color: #f8f3e8; }
