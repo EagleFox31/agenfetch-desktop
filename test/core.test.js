@@ -115,7 +115,20 @@ test('assainit les valeurs inconnues', () => {
   assert.equal(safe.subtitles, 'none');
   assert.equal(safe.subtitleMode, 'none');
   assert.deepEqual(safe.subtitleLanguages, []);
+  assert.equal(safe.performanceProfile, 'normal');
   assert.equal(safe.outputFolder, 'C:\\Downloads');
+});
+
+test('applique les profils de vitesse aux fragments yt-dlp', () => {
+  const { args, options } = buildYtDlpArgs({
+    url: 'https://youtu.be/zw30rfxoV04',
+    mode: 'video',
+    quality: '1080',
+    performanceProfile: 'turbo',
+    outputFolder: 'C:\\Downloads'
+  });
+  assert.equal(options.performanceProfile, 'turbo');
+  assert.equal(args[args.indexOf('--concurrent-fragments') + 1], '8');
 });
 
 test('construit une vidéo MKV avec sous-titres français', () => {
@@ -154,11 +167,13 @@ test('construit un téléchargement multilingue de sous-titres uniquement', () =
 });
 
 test('analyse la sortie de progression dédiée', () => {
-  const value = parseProgressLine('agenfetch: 42.3%|2.14MiB/s|00:31|84.2MiB|199.0MiB');
+  const value = parseProgressLine('agenfetch: 42.3%|2.14MiB/s|00:31|84.2MiB|199.0MiB|avc1.640028|none|137');
   assert.equal(value.percent, 42.3);
   assert.equal(value.speed, '2.14MiB/s');
   assert.equal(value.eta, '00:31');
   assert.equal(value.total, '199.0MiB');
+  assert.equal(value.videoCodec, 'avc1.640028');
+  assert.equal(value.audioCodec, 'none');
 });
 
 test('ignore les lignes yt-dlp ordinaires', () => {
@@ -336,6 +351,46 @@ test('le service relaie la progression et termine proprement', { skip: process.p
     assert.equal(result.ok, true);
     assert.equal(result.destination, '/tmp/demo.mp4');
     assert.equal(service.isRunning, false);
+  } finally {
+    process.env.PATH = previousPath;
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('la progression globale ne recule pas entre vidéo, audio et fusion', { skip: process.platform === 'win32' }, async () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'agenfetch-phases-'));
+  const fakeBinary = path.join(tempRoot, 'yt-dlp');
+  const previousPath = process.env.PATH;
+  fs.writeFileSync(fakeBinary, [
+    '#!/bin/sh',
+    "echo 'agenfetch: 55.0%|3.0MiB/s|00:08|55.0MiB|100.0MiB|avc1|none|137'",
+    "echo 'agenfetch: 35.0%|1.0MiB/s|00:05|3.5MiB|10.0MiB|none|mp4a|140'",
+    "echo '[Merger] Merging formats into \"/tmp/demo.mp4\"'",
+    "echo '[download] Destination: /tmp/demo.mp4'",
+    'exit 0',
+    ''
+  ].join('\n'), 'utf8');
+  fs.chmodSync(fakeBinary, 0o755);
+  process.env.PATH = `${tempRoot}${path.delimiter}${previousPath}`;
+
+  try {
+    const service = new DownloaderService(tempRoot);
+    const progresses = [];
+    service.on('progress', (progress) => progresses.push(progress));
+    const finishedPromise = new Promise((resolve) => service.once('finished', resolve));
+    service.start({
+      url: 'https://youtu.be/zw30rfxoV04',
+      mode: 'video',
+      quality: '1080',
+      outputFolder: tempRoot
+    });
+
+    const result = await finishedPromise;
+    assert.equal(result.ok, true);
+    assert.deepEqual(progresses.map((progress) => progress.phase), ['video', 'audio', 'merge']);
+    assert.deepEqual(progresses.map((progress) => progress.rawPercent), [55, 35, 35]);
+    assert.ok(progresses.every((progress, index) => index === 0 || progress.percent >= progresses[index - 1].percent));
+    assert.equal(progresses.at(-1).percent, 95);
   } finally {
     process.env.PATH = previousPath;
     fs.rmSync(tempRoot, { recursive: true, force: true });

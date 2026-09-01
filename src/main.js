@@ -66,25 +66,25 @@ function isDevToolsShortcut(input) {
 }
 
 function createWindow() {
-  nativeTheme.themeSource = 'dark';
+  nativeTheme.themeSource = 'light';
   mainWindow = new BrowserWindow({
-    width: 1180,
-    height: 790,
+    width: 1280,
+    height: 820,
     minWidth: 940,
     minHeight: 680,
     show: false,
-    backgroundColor: '#08191f',
+    backgroundColor: '#f7f5ef',
     autoHideMenuBar: true,
     ...(process.platform === 'win32'
       ? {
           titleBarStyle: 'hidden',
           titleBarOverlay: {
-            color: '#08191f',
+            color: '#071f29',
             symbolColor: '#f3f3f3',
             height: 32
           }
         }
-      : { backgroundColor: '#08191f' }),
+      : { backgroundColor: '#f7f5ef' }),
     icon: path.join(__dirname, '..', 'assets', 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

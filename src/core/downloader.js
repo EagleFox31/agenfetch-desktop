@@ -7,6 +7,8 @@ const { normalizeYouTubeUrl, sanitizeDownloadOptions } = require('./validation')
 
 const execFileAsync = promisify(execFile);
 
+const PERFORMANCE_FRAGMENTS = Object.freeze({ eco: 2, normal: 4, turbo: 8 });
+
 function cleanMetric(value, fallback = '—') {
   const text = String(value || '').replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, '').trim();
   return !text || text === 'NA' ? fallback : text;
@@ -17,7 +19,16 @@ function parseProgressLine(line) {
   if (!clean.startsWith('agenfetch:')) return null;
 
   const payload = clean.slice('agenfetch:'.length).trim();
-  const [percent = '0%', speed = '—', eta = '—', downloaded = '—', total = '—'] = payload.split('|');
+  const [
+    percent = '0%',
+    speed = '—',
+    eta = '—',
+    downloaded = '—',
+    total = '—',
+    videoCodec = '—',
+    audioCodec = '—',
+    formatId = '—'
+  ] = payload.split('|');
   const numericPercent = Number.parseFloat(percent.replace('%', '').trim());
 
   return {
@@ -26,8 +37,39 @@ function parseProgressLine(line) {
     speed: cleanMetric(speed),
     eta: cleanMetric(eta),
     downloaded: cleanMetric(downloaded),
-    total: cleanMetric(total)
+    total: cleanMetric(total),
+    videoCodec: cleanMetric(videoCodec),
+    audioCodec: cleanMetric(audioCodec),
+    formatId: cleanMetric(formatId)
   };
+}
+
+function progressPhase(progress, options) {
+  if (options.subtitleMode === 'only') {
+    return { id: 'subtitles', label: 'Récupération des sous-titres' };
+  }
+  if (options.mode === 'audio') {
+    return { id: 'download', label: 'Téléchargement de l’audio' };
+  }
+
+  const hasCodecData = progress.videoCodec !== '—' || progress.audioCodec !== '—';
+  if (!hasCodecData) return { id: 'download', label: 'Téléchargement du fichier' };
+
+  const hasVideo = progress.videoCodec !== 'none' && progress.videoCodec !== '—';
+  const hasAudio = progress.audioCodec !== 'none' && progress.audioCodec !== '—';
+  if (hasVideo && !hasAudio) return { id: 'video', label: 'Téléchargement de la vidéo' };
+  if (hasAudio && !hasVideo) return { id: 'audio', label: 'Téléchargement de l’audio' };
+  return { id: 'download', label: 'Téléchargement du fichier' };
+}
+
+function overallProgress(progress, phase, previous = 0) {
+  const raw = Number(progress.percent || 0);
+  const mapped = phase.id === 'video'
+    ? raw * 0.78
+    : phase.id === 'audio'
+      ? 78 + (raw * 0.17)
+      : raw;
+  return Math.max(previous, Math.min(95, mapped));
 }
 
 function formatDuration(totalSeconds) {
@@ -125,7 +167,9 @@ function buildYtDlpArgs(options, defaultFolder) {
     '--progress-delta',
     '0.25',
     '--progress-template',
-    'download:agenfetch:%(progress._percent_str)s|%(progress._speed_str)s|%(progress._eta_str)s|%(progress._downloaded_bytes_str)s|%(progress._total_bytes_str)s',
+    'download:agenfetch:%(progress._percent_str)s|%(progress._speed_str)s|%(progress._eta_str)s|%(progress._downloaded_bytes_str)s|%(progress._total_bytes_str)s|%(info_dict.vcodec)s|%(info_dict.acodec)s|%(info_dict.format_id)s',
+    '--concurrent-fragments',
+    String(PERFORMANCE_FRAGMENTS[safe.performanceProfile]),
     '-P',
     safe.outputFolder,
     '-o',
@@ -262,6 +306,7 @@ class DownloaderService extends EventEmitter {
     this.active = { ...options, title, startedAt };
     this.lastDestination = null;
     this.cancelRequested = false;
+    let progressState = { percent: 0, phase: 'download', last: null };
 
     const child = this.spawnImpl(this.toolManager?.resolveCommand?.('ytDlp') || 'yt-dlp', commandArgs, {
       windowsHide: true,
@@ -285,12 +330,38 @@ class DownloaderService extends EventEmitter {
       if (!line) return;
       const progress = parseProgressLine(line);
       if (progress) {
-        this.emit('progress', progress);
+        const phase = progressPhase(progress, options);
+        const percent = overallProgress(progress, phase, progressState.percent);
+        const enriched = {
+          ...progress,
+          rawPercent: progress.percent,
+          percent,
+          percentLabel: `${percent.toFixed(1)}%`,
+          phase: phase.id,
+          phaseLabel: phase.label
+        };
+        progressState = { percent, phase: phase.id, last: enriched };
+        this.emit('progress', enriched);
         return;
       }
 
       const destinationMatch = line.match(/(?:Destination:|Merging formats into\s+")(.+?)(?:"$|$)/i);
       if (destinationMatch) this.lastDestination = destinationMatch[1].trim();
+
+      if (/Merging formats into\s+"/i.test(line) && progressState.phase !== 'merge') {
+        const percent = Math.max(progressState.percent, 95);
+        const mergeProgress = {
+          ...(progressState.last || {}),
+          percent,
+          percentLabel: `${percent.toFixed(1)}%`,
+          speed: '—',
+          eta: 'quelques secondes',
+          phase: 'merge',
+          phaseLabel: 'Fusion et finalisation'
+        };
+        progressState = { percent, phase: 'merge', last: mergeProgress };
+        this.emit('progress', mergeProgress);
+      }
 
       this.emit('log', { line });
     };
