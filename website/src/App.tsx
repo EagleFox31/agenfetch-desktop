@@ -32,6 +32,13 @@ const GITHUB_REPO = 'https://github.com/EagleFox31/agenfetch-desktop';
 const GITHUB_API_LATEST = 'https://api.github.com/repos/EagleFox31/agenfetch-desktop/releases/latest';
 const PRODUCT_VERSION = '0.3.1';
 const INSTALLER_SIZE = '181 Mo';
+const PREVIOUS_RELEASE = {
+  version: '0.3.0',
+  setupExe: `${GITHUB_REPO}/releases/download/v0.3.0/AgenFetch-Setup-0.3.0.exe`,
+  setupName: 'AgenFetch-Setup-0.3.0.exe',
+  releasePage: `${GITHUB_REPO}/releases/tag/v0.3.0`,
+  installerSize: '181 Mo',
+};
 const FALLBACK_LINKS = {
   setupExe: `${GITHUB_REPO}/releases/download/v${PRODUCT_VERSION}/AgenFetch-Setup-${PRODUCT_VERSION}.exe`,
   setupName: `AgenFetch-Setup-${PRODUCT_VERSION}.exe`,
@@ -490,6 +497,17 @@ function Home() {
                 <div className="download-actions mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                   <FileDownload className="button-dark" href={setupExe} filename={setupName} testId="link-download-release"><ArrowDownToLine size={17} /> Télécharger pour Windows</FileDownload>
                   <a className="button-ghost !border-[#b49345] !bg-[#f3ca72]" href={GITHUB_REPO} target="_blank" rel="noreferrer" data-testid="link-download-source"><Github size={16} /> Voir le code source</a>
+                </div>
+                <div className="previous-release-card" data-testid="card-previous-release">
+                  <div>
+                    <p className="previous-release-kicker">Version précédente</p>
+                    <p className="previous-release-title">AgenFetch Desktop {PREVIOUS_RELEASE.version}</p>
+                    <p className="previous-release-meta">Windows 10 / 11 x64 · {PREVIOUS_RELEASE.installerSize} · archive officielle</p>
+                  </div>
+                  <div className="previous-release-actions">
+                    <FileDownload className="previous-release-download" href={PREVIOUS_RELEASE.setupExe} filename={PREVIOUS_RELEASE.setupName} testId="link-download-previous-release"><ArrowDownToLine size={14} /> Télécharger la v{PREVIOUS_RELEASE.version}</FileDownload>
+                    <a className="previous-release-notes" href={PREVIOUS_RELEASE.releasePage} target="_blank" rel="noreferrer" data-testid="link-previous-release-notes">Notes de version <ExternalLink size={12} /></a>
+                  </div>
                 </div>
               </div>
             </div>
