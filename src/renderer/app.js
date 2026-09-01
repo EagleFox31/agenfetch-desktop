@@ -6,6 +6,8 @@ const refs = {
   navItems: [...document.querySelectorAll('[data-view-target]')],
   views: [...document.querySelectorAll('.view')],
   pageTitle: document.querySelector('#page-title'),
+  pageEyebrow: document.querySelector('#page-eyebrow'),
+  pageIntro: document.querySelector('#page-intro'),
   form: document.querySelector('#download-form'),
   url: document.querySelector('#video-url'),
   urlError: document.querySelector('#url-error'),
@@ -20,6 +22,7 @@ const refs = {
   qualityGroup: document.querySelector('#quality-group'),
   container: document.querySelector('#container'),
   containerGroup: document.querySelector('#container-group'),
+  performanceProfile: document.querySelector('#performance-profile'),
   subtitleMode: document.querySelector('#subtitle-mode'),
   subtitleFormat: document.querySelector('#subtitle-format'),
   includeAutoSubtitles: document.querySelector('#include-auto-subtitles'),
@@ -36,7 +39,9 @@ const refs = {
   toggleLog: document.querySelector('#toggle-log'),
   log: document.querySelector('#download-log'),
   progressTitle: document.querySelector('#progress-title'),
+  progressPhase: document.querySelector('#progress-phase'),
   progressRing: document.querySelector('#progress-ring'),
+  progressFill: document.querySelector('#progress-fill'),
   progressPercent: document.querySelector('#progress-percent'),
   progressSpeed: document.querySelector('#progress-speed'),
   progressEta: document.querySelector('#progress-eta'),
@@ -56,8 +61,21 @@ const refs = {
   consentOverlay: document.querySelector('#consent-overlay'),
   consentCheck: document.querySelector('#consent-accept-check'),
   consentAccept: document.querySelector('#consent-accept'),
-  pageEyebrow: document.querySelector('#page-eyebrow'),
   sidebarVersion: document.querySelector('#sidebar-version'),
+  overallHealthDot: document.querySelector('#overall-health-dot'),
+  overallHealthLabel: document.querySelector('#overall-health-label'),
+  homeAddLink: document.querySelector('#home-add-link'),
+  homeChooseFile: document.querySelector('#home-choose-file'),
+  homeViewQueue: document.querySelector('#home-view-queue'),
+  homeActivityEmpty: document.querySelector('#home-activity-empty'),
+  homeActivity: document.querySelector('#home-activity'),
+  homeProgressTitle: document.querySelector('#home-progress-title'),
+  homeProgressPhase: document.querySelector('#home-progress-phase'),
+  homeProgressBar: document.querySelector('#home-progress-bar'),
+  homeProgressPercent: document.querySelector('#home-progress-percent'),
+  homeProgressSpeed: document.querySelector('#home-progress-speed'),
+  homeProgressEta: document.querySelector('#home-progress-eta'),
+  homePhaseSteps: [...document.querySelectorAll('.phase-steps [data-phase]')],
   appVersion: document.querySelector('#app-version'),
   updateCheckedAt: document.querySelector('#update-checked-at'),
   checkAppUpdate: document.querySelector('#check-app-update'),
@@ -79,6 +97,7 @@ const refs = {
   extensionFolderPath: document.querySelector('#extension-folder-path'),
   openExtensionFolder: document.querySelector('#open-extension-folder'),
   subtitleEngineTitle: document.querySelector('#subtitle-engine-title'),
+  subtitleEngineBanner: document.querySelector('#subtitle-engine-banner'),
   subtitleEngineCopy: document.querySelector('#subtitle-engine-copy'),
   installSubtitleEngine: document.querySelector('#install-subtitle-engine'),
   subtitleEngineProgress: document.querySelector('#subtitle-engine-progress'),
@@ -128,7 +147,8 @@ const state = {
   subtitleEngineInstalled: false,
   subtitleResults: [],
   subtitleQuery: null,
-  system: null
+  system: null,
+  lastProgress: null
 };
 
 function showToast(message, type = 'info') {
@@ -143,20 +163,29 @@ function setView(viewId) {
   refs.views.forEach((view) => view.classList.toggle('is-visible', view.id === viewId));
   refs.navItems.forEach((item) => item.classList.toggle('is-active', item.dataset.viewTarget === viewId));
   refs.pageTitle.textContent = {
-    'history-view': 'Ce que tu as déjà récupéré.',
-    'subtitles-view': 'Trouve la piste qui colle vraiment.',
-    'about-view': 'Version et mises à jour.'
-  }[viewId] || 'Garde ce que tu as le droit de garder.';
-  if (refs.pageEyebrow) {
-    refs.pageEyebrow.textContent = {
-      'history-view': 'Historique local',
-      'subtitles-view': 'Films et séries',
-      'about-view': 'Application'
-    }[viewId] || 'Téléchargement local';
-  }
-  if (refs.systemStatus) refs.systemStatus.hidden = viewId === 'about-view';
+    'home-view': 'Que veux-tu préparer ?',
+    'download-view': 'Téléchargements',
+    'history-view': 'Bibliothèque',
+    'subtitles-view': 'Sous-titres',
+    'about-view': 'Réglages'
+  }[viewId] || 'AgenFetch';
+  refs.pageEyebrow.textContent = {
+    'home-view': 'Assistant média local',
+    'download-view': 'Vidéo · audio · playlists',
+    'history-view': 'Médias locaux',
+    'subtitles-view': 'Films · séries · multilingue',
+    'about-view': 'Application et composants'
+  }[viewId] || 'AgenFetch';
+  refs.pageIntro.textContent = {
+    'home-view': 'Télécharge, sous-titre et organise tes médias sans compte ni cloud AgenStudio.',
+    'download-view': 'Ajoute un lien, choisis le format et laisse AgenFetch gérer la file.',
+    'history-view': 'Retrouve ce qu’AgenFetch a préparé sur cet ordinateur.',
+    'subtitles-view': 'Choisis un fichier ; AgenFetch identifie le média et compare les pistes disponibles.',
+    'about-view': 'Configure les outils, les fournisseurs et les mises à jour.'
+  }[viewId] || '';
   if (viewId === 'history-view') renderHistory();
   if (viewId === 'subtitles-view') loadSubtitleWorkspace();
+  if (viewId === 'about-view') loadProviderStatus();
 }
 
 function setStatus(element, result) {
@@ -178,6 +207,10 @@ async function checkSystem({ quiet = false } = {}) {
     setStatus(refs.ffmpegStatus, result.ffmpeg);
     setStatus(refs.jsRuntimeStatus, result.jsRuntime);
     applyJsRuntimeStatus(result);
+    const ready = Boolean(result.ytDlp?.installed && result.ffmpeg?.installed && result.jsRuntime?.installed);
+    refs.overallHealthDot.classList.remove('is-checking', 'is-ok', 'is-error');
+    refs.overallHealthDot.classList.add(ready ? 'is-ok' : 'is-error');
+    refs.overallHealthLabel.textContent = ready ? 'Tout fonctionne' : 'Action requise';
     if (!result.portable) {
       showToast('Un outil intégré manque. Réinstalle AgenFetch ou relance le diagnostic.', 'error');
     } else if (!quiet) {
@@ -185,6 +218,9 @@ async function checkSystem({ quiet = false } = {}) {
     }
     return result;
   } catch (error) {
+    refs.overallHealthDot.classList.remove('is-checking', 'is-ok');
+    refs.overallHealthDot.classList.add('is-error');
+    refs.overallHealthLabel.textContent = 'Diagnostic indisponible';
     showToast(error.message || 'Impossible de vérifier les outils.', 'error');
     return null;
   }
@@ -243,19 +279,35 @@ function setRunning(value) {
 
 function updateProgress(progress) {
   const value = Number(progress.percent || 0);
-  refs.progressRing.style.setProperty('--progress', `${value * 3.6}deg`);
+  const bounded = Math.max(0, Math.min(100, value));
+  refs.progressFill.style.width = `${bounded}%`;
   refs.progressPercent.textContent = progress.percentLabel || `${value.toFixed(1)}%`;
+  refs.progressPhase.textContent = progress.phaseLabel || 'Téléchargement du fichier';
   refs.progressSpeed.textContent = progress.speed || '—';
   refs.progressEta.textContent = progress.eta || '—';
   refs.progressSize.textContent = progress.total === '—'
     ? progress.downloaded || '—'
     : `${progress.downloaded} / ${progress.total}`;
+  refs.homeProgressBar.style.width = `${bounded}%`;
+  refs.homeProgressPercent.textContent = progress.percentLabel || `${value.toFixed(1)}%`;
+  refs.homeProgressPhase.textContent = progress.phaseLabel || 'Téléchargement du fichier';
+  refs.homeProgressSpeed.textContent = progress.speed && progress.speed !== '—' ? progress.speed : 'Vitesse —';
+  refs.homeProgressEta.textContent = progress.eta && progress.eta !== '—' ? `${progress.eta} restantes` : 'Temps restant —';
+  const effectivePhase = progress.phase === 'audio' || progress.phase === 'merge' ? progress.phase : 'video';
+  const order = ['video', 'audio', 'merge'];
+  const activeIndex = order.indexOf(effectivePhase);
+  refs.homePhaseSteps.forEach((step, index) => {
+    step.classList.toggle('is-active', index === activeIndex);
+    step.classList.toggle('is-done', index < activeIndex);
+  });
+  state.lastProgress = progress;
 }
 
 function resetProgress() {
-  updateProgress({ percent: 0, percentLabel: '0%', speed: '—', eta: '—', downloaded: '—', total: '—' });
+  updateProgress({ percent: 0, percentLabel: '0%', speed: '—', eta: '—', downloaded: '—', total: '—', phase: 'video', phaseLabel: 'Préparation du fichier' });
   refs.log.textContent = '';
   refs.activityDot.classList.remove('is-error');
+  state.lastProgress = null;
 }
 
 function appendLog(line) {
@@ -443,6 +495,7 @@ function buildPayloads() {
     subtitleLanguages,
     subtitleFormat: refs.subtitleFormat.value,
     includeAutoSubtitles: refs.includeAutoSubtitles.checked,
+    performanceProfile: refs.performanceProfile.value,
     outputFolder: state.outputFolder,
     playlist: refs.playlist.checked,
     compatibilityMode: refs.compatibilityMode.checked
@@ -462,8 +515,16 @@ function queueItemMeta(item) {
 function renderQueue(snapshot) {
   state.queue = snapshot || { activeId: null, items: [] };
   const items = state.queue.items || [];
+  const activeItem = items.find((item) => item.id === state.queue.activeId);
   refs.queueCount.textContent = String(items.length);
   refs.queueList.replaceChildren();
+
+  refs.homeActivity.hidden = !activeItem;
+  refs.homeActivityEmpty.hidden = Boolean(activeItem);
+  if (activeItem) {
+    refs.homeProgressTitle.textContent = activeItem.title || activeItem.url || 'Téléchargement en cours';
+    if (!state.lastProgress) refs.homeProgressPhase.textContent = 'Préparation du fichier';
+  }
 
   if (!items.length) {
     const empty = document.createElement('div');
@@ -511,6 +572,7 @@ function renderQueue(snapshot) {
   if (nextActiveId && nextActiveId !== state.lastActiveId) {
     resetProgress();
     refs.progressTitle.textContent = 'Téléchargement en cours';
+    refs.progressPhase.textContent = 'Préparation du fichier';
   }
   state.lastActiveId = nextActiveId;
   setRunning(Boolean(nextActiveId));
@@ -695,6 +757,18 @@ function renderSubtitleResults(response) {
 }
 
 refs.navItems.forEach((item) => item.addEventListener('click', () => setView(item.dataset.viewTarget)));
+refs.homeAddLink.addEventListener('click', () => {
+  setView('download-view');
+  refs.url.focus();
+});
+refs.homeChooseFile.addEventListener('click', () => {
+  setView('subtitles-view');
+  refs.chooseSubtitleMedia.click();
+});
+refs.homeViewQueue.addEventListener('click', () => setView('download-view'));
+refs.performanceProfile.addEventListener('change', () => {
+  localStorage.setItem('agenfetch.performanceProfile', refs.performanceProfile.value);
+});
 document.querySelectorAll('input[name="mode"]').forEach((input) => input.addEventListener('change', syncModeUi));
 refs.includeAutoSubtitles.addEventListener('change', () => {
   refs.youtubeSubtitleTracks.querySelectorAll('[data-automatic-only="true"]').forEach((input) => {
@@ -1124,7 +1198,7 @@ api.onLog(({ line }) => appendLog(line));
 api.onFinished((result) => {
   refs.activityDot.classList.toggle('is-error', !result.ok && !result.cancelled);
   if (result.ok) {
-    updateProgress({ percent: 100, percentLabel: '100%', speed: '—', eta: '0s', downloaded: 'Terminé', total: '—' });
+    updateProgress({ percent: 100, percentLabel: '100%', speed: '—', eta: '0s', downloaded: 'Terminé', total: '—', phase: 'merge', phaseLabel: 'Terminé' });
     refs.progressTitle.textContent = 'Téléchargement terminé';
     showToast('Téléchargement terminé. Le suivant démarrera automatiquement.');
   } else if (result.cancelled) {
@@ -1141,6 +1215,10 @@ async function initialize() {
     state.outputFolder = await api.getDefaultFolder();
   }
   refs.outputFolder.value = state.outputFolder;
+  const savedPerformanceProfile = localStorage.getItem('agenfetch.performanceProfile');
+  if (['eco', 'normal', 'turbo'].includes(savedPerformanceProfile)) {
+    refs.performanceProfile.value = savedPerformanceProfile;
+  }
   renderYoutubeSubtitleTracks([]);
   syncModeUi();
   renderQueue(await api.getQueue());
