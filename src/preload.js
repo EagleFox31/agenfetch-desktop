@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('agenFetch', {
   chooseFolder: () => ipcRenderer.invoke('folder:choose'),
   chooseMedia: () => ipcRenderer.invoke('media:choose'),
   openFolder: (folderPath) => ipcRenderer.invoke('folder:open', folderPath),
+  getMediaStatus: (filePath) => ipcRenderer.invoke('media:status', filePath),
   openMedia: (filePath) => ipcRenderer.invoke('media:open-path', filePath),
   showMediaInFolder: (filePath) => ipcRenderer.invoke('media:show-in-folder', filePath),
   getExtensionInfo: () => ipcRenderer.invoke('extension:info'),

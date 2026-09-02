@@ -33,6 +33,10 @@
 - FFmpeg partagé et budget de taille automatisé.
 - QuickJS-NG léger par défaut, avec Deno renforcé disponible à la demande.
 - Site vitrine avec téléchargement et documentation. *(landing FR initiale dans `website/`)*
+- Mesure privée des visites du site avec Cloudflare Web Analytics, sans cookies.
+- Comptage des téléchargements réellement servis à partir du `download_count` des installateurs dans GitHub Releases.
+- Tableau de suivi privé pour les visites et les téléchargements par version.
+- Affichage public du total des téléchargements uniquement, via une fonction Cloudflare mise en cache.
 
 ## Version 0.4 — distribution étendue
 

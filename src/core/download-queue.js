@@ -25,6 +25,7 @@ class DownloadQueue extends EventEmitter {
         subtitleMode: item.payload.subtitleMode,
         subtitleFormat: item.payload.subtitleFormat,
         performanceProfile: item.payload.performanceProfile,
+        playlist: Boolean(item.payload.playlist),
         thumbnail: item.payload.thumbnail || '',
         title: item.payload.title || '',
         status: item.status,

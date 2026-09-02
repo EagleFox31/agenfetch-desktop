@@ -1,0 +1,2 @@
+# Keep the reusable subtitle backend reproducible across local and CI builds.
+subliminal==2.7.0

@@ -57,7 +57,22 @@
         </section>
 
         <section class="view" id="download-view">
-          <form class="surface download-composer" id="download-form" novalidate>
+          <div class="download-command-bar">
+            <nav class="download-filters" aria-label="Filtrer les téléchargements">
+              <button class="is-active" type="button" data-queue-filter="all">Tous</button>
+              <button type="button" data-queue-filter="video">Vidéos</button>
+              <button type="button" data-queue-filter="audio">Audios</button>
+              <button type="button" data-queue-filter="playlist">Playlists</button>
+            </nav>
+            <div class="download-page-actions">
+              <button class="primary-button compact" id="open-download-composer" type="button"><span aria-hidden="true">＋</span> Ajouter un lien</button>
+              <button class="icon-button" id="toolbar-open-folder" type="button" title="Ouvrir le dossier de téléchargement" aria-label="Ouvrir le dossier de téléchargement"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5h7l2 2h9v11H3z"/><path d="M3 8.5V5h7l2 2"/></svg></button>
+            </div>
+          </div>
+
+          <details class="surface download-composer-panel" id="download-composer-panel">
+            <summary><span><b>Nouveau téléchargement</b><small>Colle un lien puis choisis le format et la qualité.</small></span><span aria-hidden="true">⌄</span></summary>
+          <form class="download-composer" id="download-form" novalidate>
             <div class="field-group field-span"><label for="video-url">Lien YouTube</label><div class="url-control"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.15 1.15M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.15-1.15"/></svg><textarea id="video-url" name="url" spellcheck="false" rows="1" placeholder="Colle un ou plusieurs liens YouTube, un par ligne" required></textarea><button class="text-button" id="paste-url" type="button">Coller</button></div><p class="field-error" id="url-error" role="alert"></p><article class="metadata-preview" id="metadata-preview" hidden><div class="metadata-thumbnail"><img id="metadata-thumbnail" alt="Miniature de la vidéo" /><span id="metadata-duration">—</span></div><div class="metadata-copy"><span class="eyebrow" id="metadata-kind">VIDÉO</span><strong id="metadata-title">Titre de la vidéo</strong><small id="metadata-uploader">Chaîne YouTube</small></div></article></div>
             <fieldset class="field-group"><legend>Format</legend><div class="segmented-control"><label><input type="radio" name="mode" value="video" checked /><span><b>Vidéo</b><small>MP4 / MKV</small></span></label><label><input type="radio" name="mode" value="audio" /><span><b>Audio</b><small>MP3</small></span></label></div></fieldset>
             <div class="field-group" id="quality-group"><label for="quality">Qualité</label><select id="quality" name="quality"><option value="best">Meilleure disponible</option><option value="2160">4K — 2160p</option><option value="1440">2K — 1440p</option><option value="1080" selected>Full HD — 1080p</option><option value="720">HD — 720p</option><option value="480">SD — 480p</option><option value="360">Éco — 360p</option></select></div>
@@ -70,8 +85,9 @@
             </div></details>
             <button class="primary-button field-span submit-button" id="start-download" type="submit"><span id="download-cta-label">Télécharger</span><span aria-hidden="true">↓</span></button>
           </form>
+          </details>
 
-          <section class="surface queue-card" aria-live="polite"><div class="queue-heading"><div><p class="eyebrow">Téléchargements</p><h3><span id="queue-count">0</span> <span id="queue-count-label">téléchargement</span></h3></div><button class="secondary-button" id="clear-finished-queue" type="button">Nettoyer les terminés</button></div><div class="queue-list" id="queue-list"><div class="queue-empty">Aucun téléchargement pour le moment.</div></div></section>
+          <section class="surface queue-card" aria-live="polite"><div class="queue-list" id="queue-list"><div class="queue-empty">Aucun téléchargement pour le moment.</div></div><footer class="queue-footer"><span><span id="queue-count">0</span> <span id="queue-count-label">téléchargement</span></span><button class="text-button" id="clear-finished-queue" type="button">Nettoyer les terminés</button></footer></section>
           <details class="surface progress-card" id="progress-details"><summary class="progress-summary"><span><b>Détails techniques</b><small>Débit, volume transféré et journal</small></span><span aria-hidden="true">⌄</span></summary><div class="progress-panel"><div class="progress-main"><div><p class="eyebrow">Activité actuelle</p><h3 id="progress-title">Prêt à télécharger</h3><span class="phase-label" id="progress-phase">En attente d’un lien</span></div><strong class="progress-percent" id="progress-percent">0%</strong></div><div class="progress-track" id="progress-ring"><span id="progress-fill"></span></div><dl class="metrics"><div><dt>Débit</dt><dd id="progress-speed">—</dd></div><div><dt>Temps restant</dt><dd id="progress-eta">—</dd></div><div><dt>Transféré</dt><dd id="progress-size">—</dd></div><div><dt>Mode réseau</dt><dd id="progress-network">Normal · 4 flux</dd></div></dl><span class="activity-dot" id="activity-dot"></span><div class="progress-actions"><button class="secondary-button" id="pause-download" type="button" disabled>Pause</button><button class="danger-button" id="cancel-download" type="button" disabled>Annuler</button><button class="secondary-button" id="toggle-log" type="button">Journal</button></div><pre class="download-log" id="download-log" hidden aria-label="Journal du téléchargement"></pre></div></details>
         </section>
 

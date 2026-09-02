@@ -29,6 +29,14 @@ Le build Windows AgenFetch 0.3 télécharge ces composants, vérifie leurs somme
 - Licence : MIT
 - Binaire publié séparément : `AgenFetch-Deno-Runtime-<version>.exe`
 
+## Subliminal — composant sous-titres optionnel
+
+- Projet : https://github.com/Diaoul/subliminal
+- Version épinglée : 2.7.0
+- Licence : MIT
+- Distribution : intégré uniquement dans `AgenFetch-Subtitle-Engine-<version>.exe`
+- Dépendances Python : versions résolues depuis `subtitle-engine/requirements.txt` lors du build
+
 ## Electron
 
 - Projet : https://github.com/electron/electron
