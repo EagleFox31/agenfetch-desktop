@@ -35,6 +35,7 @@ const refs = {
   playlist: document.querySelector('#playlist'),
   compatibilityMode: document.querySelector('#compatibility-mode'),
   start: document.querySelector('#start-download'),
+  pause: document.querySelector('#pause-download'),
   cancel: document.querySelector('#cancel-download'),
   toggleLog: document.querySelector('#toggle-log'),
   log: document.querySelector('#download-log'),
@@ -46,6 +47,7 @@ const refs = {
   progressSpeed: document.querySelector('#progress-speed'),
   progressEta: document.querySelector('#progress-eta'),
   progressSize: document.querySelector('#progress-size'),
+  progressNetwork: document.querySelector('#progress-network'),
   activityDot: document.querySelector('#activity-dot'),
   ytDlpStatus: document.querySelector('#yt-dlp-status'),
   ffmpegStatus: document.querySelector('#ffmpeg-status'),
@@ -272,6 +274,7 @@ function syncModeUi() {
 
 function setRunning(value) {
   state.running = value;
+  refs.pause.disabled = !value;
   refs.cancel.disabled = !value;
   refs.updateYtDlp.disabled = value;
   refs.activityDot.classList.toggle('is-running', value);
@@ -322,10 +325,19 @@ function statusLabel(status) {
   return {
     waiting: 'En attente',
     running: 'En cours',
+    paused: 'En pause',
     completed: 'Terminé',
     failed: 'Échec',
     cancelled: 'Annulé'
   }[status] || status;
+}
+
+function performanceLabel(profile) {
+  return {
+    eco: 'Éco · 2 flux',
+    normal: 'Normal · 4 flux',
+    turbo: 'Turbo · 8 flux'
+  }[profile] || 'Normal · 4 flux';
 }
 
 function extractUrls() {
@@ -487,6 +499,7 @@ function buildPayloads() {
   return urls.map((url) => ({
     url,
     title: urls.length === 1 && state.metadataUrl === url ? state.metadata?.title || '' : '',
+    thumbnail: urls.length === 1 && state.metadataUrl === url ? state.metadata?.thumbnail || '' : '',
     mode: currentMode(),
     quality: refs.quality.value,
     container: refs.container.value,
@@ -524,6 +537,7 @@ function renderQueue(snapshot) {
   if (activeItem) {
     refs.homeProgressTitle.textContent = activeItem.title || activeItem.url || 'Téléchargement en cours';
     if (!state.lastProgress) refs.homeProgressPhase.textContent = 'Préparation du fichier';
+    refs.progressNetwork.textContent = performanceLabel(activeItem.performanceProfile);
   }
 
   if (!items.length) {
@@ -564,6 +578,15 @@ function renderQueue(snapshot) {
       remove.title = 'Retirer de la file';
       remove.addEventListener('click', () => api.removeQueueItem(item.id));
       row.append(remove);
+    } else if (item.status === 'paused') {
+      const resume = document.createElement('button');
+      resume.className = 'secondary-button compact queue-resume';
+      resume.type = 'button';
+      resume.textContent = 'Reprendre';
+      resume.addEventListener('click', async () => {
+        if (await api.resumeQueueItem(item.id)) showToast('Reprise du téléchargement…');
+      });
+      row.append(resume);
     }
     refs.queueList.append(row);
   });
@@ -576,6 +599,40 @@ function renderQueue(snapshot) {
   }
   state.lastActiveId = nextActiveId;
   setRunning(Boolean(nextActiveId));
+}
+
+function youtubeThumbnailFromUrl(value) {
+  try {
+    const parsed = new URL(String(value || ''));
+    const host = parsed.hostname.toLowerCase();
+    const id = host === 'youtu.be'
+      ? parsed.pathname.split('/').filter(Boolean)[0]
+      : parsed.searchParams.get('v') || (parsed.pathname.match(/^\/(?:shorts|live)\/([^/]+)/)?.[1]);
+    return id && /^[a-zA-Z0-9_-]{8,20}$/.test(id) ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : '';
+  } catch {
+    return '';
+  }
+}
+
+function historyArtwork(item) {
+  return item.thumbnail || youtubeThumbnailFromUrl(item.url);
+}
+
+async function openHistoryMedia(item) {
+  try {
+    const error = await api.openMedia(item.destination);
+    if (error) throw new Error(error);
+  } catch (error) {
+    showToast(error.message || 'Impossible d’ouvrir ce fichier.', 'error');
+  }
+}
+
+async function revealHistoryMedia(item) {
+  try {
+    await api.showMediaInFolder(item.destination);
+  } catch (error) {
+    showToast(error.message || 'Impossible d’ouvrir l’emplacement du fichier.', 'error');
+  }
 }
 
 async function renderHistory() {
@@ -593,14 +650,30 @@ async function renderHistory() {
     const row = document.createElement('article');
     row.className = 'history-item';
 
-    const icon = document.createElement('div');
-    icon.className = 'history-icon';
-    icon.textContent = item.mode === 'audio' ? '♪' : item.mode === 'subtitle' ? 'CC' : '▶';
+    const artwork = document.createElement('div');
+    artwork.className = `history-artwork ${item.mode || 'video'}`;
+    const thumbnail = historyArtwork(item);
+    if (thumbnail) {
+      const image = document.createElement('img');
+      image.src = thumbnail;
+      image.alt = '';
+      image.loading = 'lazy';
+      image.addEventListener('error', () => image.remove());
+      artwork.append(image);
+    }
+    const artworkFallback = document.createElement('span');
+    artworkFallback.className = 'history-artwork-fallback';
+    artworkFallback.textContent = item.mode === 'audio' ? '♪' : item.mode === 'subtitle' ? 'CC' : '▶';
+    artwork.append(artworkFallback);
+    const mediaKind = document.createElement('small');
+    mediaKind.textContent = item.mode === 'audio' ? 'AUDIO' : item.mode === 'subtitle' ? 'SOUS-TITRE' : 'VIDÉO';
+    artwork.append(mediaKind);
 
     const body = document.createElement('div');
     body.className = 'history-body';
     const title = document.createElement('strong');
-    title.textContent = item.title || item.destination || item.url || 'Téléchargement';
+    const destinationName = String(item.destination || '').split(/[\\/]/).filter(Boolean).pop();
+    title.textContent = item.title || destinationName || item.url || 'Téléchargement';
     const meta = document.createElement('span');
     const date = item.finishedAt ? new Date(item.finishedAt).toLocaleString('fr-FR') : 'Date inconnue';
     const format = item.mode === 'audio'
@@ -614,7 +687,26 @@ async function renderHistory() {
     const status = document.createElement('span');
     status.className = `history-status ${item.status}`;
     status.textContent = statusLabel(item.status);
-    row.append(icon, body, status);
+    body.append(status);
+
+    if (item.destination && item.status === 'completed') {
+      const actions = document.createElement('div');
+      actions.className = 'history-actions';
+      const open = document.createElement('button');
+      open.className = 'primary-button compact';
+      open.type = 'button';
+      open.textContent = item.mode === 'subtitle' ? 'Ouvrir' : 'Lire';
+      open.addEventListener('click', () => openHistoryMedia(item));
+      const reveal = document.createElement('button');
+      reveal.className = 'secondary-button compact';
+      reveal.type = 'button';
+      reveal.textContent = 'Emplacement';
+      reveal.addEventListener('click', () => revealHistoryMedia(item));
+      actions.append(open, reveal);
+      body.append(actions);
+    }
+
+    row.append(artwork, body);
     refs.historyList.append(row);
   });
 }
@@ -768,6 +860,7 @@ refs.homeChooseFile.addEventListener('click', () => {
 refs.homeViewQueue.addEventListener('click', () => setView('download-view'));
 refs.performanceProfile.addEventListener('change', () => {
   localStorage.setItem('agenfetch.performanceProfile', refs.performanceProfile.value);
+  if (!state.running) refs.progressNetwork.textContent = performanceLabel(refs.performanceProfile.value);
 });
 document.querySelectorAll('input[name="mode"]').forEach((input) => input.addEventListener('change', syncModeUi));
 refs.includeAutoSubtitles.addEventListener('change', () => {
@@ -954,6 +1047,15 @@ refs.form.addEventListener('submit', async (event) => {
 refs.cancel.addEventListener('click', async () => {
   if (await api.cancelDownload()) {
     refs.progressTitle.textContent = 'Annulation en cours…';
+  }
+});
+
+refs.pause.addEventListener('click', async () => {
+  if (await api.pauseDownload()) {
+    refs.pause.disabled = true;
+    refs.cancel.disabled = true;
+    refs.progressTitle.textContent = 'Mise en pause…';
+    refs.progressPhase.textContent = 'Les données déjà reçues sont conservées';
   }
 });
 
@@ -1196,8 +1298,12 @@ api.onQueueChanged(renderQueue);
 api.onProgress(updateProgress);
 api.onLog(({ line }) => appendLog(line));
 api.onFinished((result) => {
-  refs.activityDot.classList.toggle('is-error', !result.ok && !result.cancelled);
-  if (result.ok) {
+  refs.activityDot.classList.toggle('is-error', !result.ok && !result.cancelled && !result.paused);
+  if (result.paused) {
+    refs.progressTitle.textContent = 'Téléchargement en pause';
+    refs.progressPhase.textContent = 'Reprends-le depuis la file quand tu veux';
+    showToast('Téléchargement en pause. Les données partielles sont conservées.');
+  } else if (result.ok) {
     updateProgress({ percent: 100, percentLabel: '100%', speed: '—', eta: '0s', downloaded: 'Terminé', total: '—', phase: 'merge', phaseLabel: 'Terminé' });
     refs.progressTitle.textContent = 'Téléchargement terminé';
     showToast('Téléchargement terminé. Le suivant démarrera automatiquement.');
@@ -1219,6 +1325,7 @@ async function initialize() {
   if (['eco', 'normal', 'turbo'].includes(savedPerformanceProfile)) {
     refs.performanceProfile.value = savedPerformanceProfile;
   }
+  refs.progressNetwork.textContent = performanceLabel(refs.performanceProfile.value);
   renderYoutubeSubtitleTracks([]);
   syncModeUi();
   renderQueue(await api.getQueue());

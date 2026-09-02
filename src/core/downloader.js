@@ -168,6 +168,8 @@ function buildYtDlpArgs(options, defaultFolder) {
     '0.25',
     '--progress-template',
     'download:agenfetch:%(progress._percent_str)s|%(progress._speed_str)s|%(progress._eta_str)s|%(progress._downloaded_bytes_str)s|%(progress._total_bytes_str)s|%(info_dict.vcodec)s|%(info_dict.acodec)s|%(info_dict.format_id)s',
+    '--continue',
+    '--part',
     '--concurrent-fragments',
     String(PERFORMANCE_FRAGMENTS[safe.performanceProfile]),
     '-P',
@@ -287,6 +289,7 @@ class DownloaderService extends EventEmitter {
     this.active = null;
     this.lastDestination = null;
     this.cancelRequested = false;
+    this.pauseRequested = false;
   }
 
   get isRunning() {
@@ -303,9 +306,11 @@ class DownloaderService extends EventEmitter {
     const commandArgs = [...args.slice(0, -1), ...runtimeArgs, args.at(-1)];
     const startedAt = new Date().toISOString();
     const title = typeof input?.title === 'string' ? input.title.trim().slice(0, 200) : '';
-    this.active = { ...options, title, startedAt };
+    const thumbnail = safeThumbnailUrl(input?.thumbnail);
+    this.active = { ...options, title, thumbnail, startedAt };
     this.lastDestination = null;
     this.cancelRequested = false;
+    this.pauseRequested = false;
     let progressState = { percent: 0, phase: 'download', last: null };
 
     const child = this.spawnImpl(this.toolManager?.resolveCommand?.('ytDlp') || 'yt-dlp', commandArgs, {
@@ -323,6 +328,7 @@ class DownloaderService extends EventEmitter {
       this.child = null;
       this.active = null;
       this.cancelRequested = false;
+      this.pauseRequested = false;
       this.emit('finished', result);
     };
 
@@ -386,17 +392,19 @@ class DownloaderService extends EventEmitter {
     child.on('close', (code, signal) => {
       stdout('', true);
       stderr('', true);
-      const wasCancelled = this.cancelRequested || signal === 'SIGTERM' || signal === 'SIGKILL' || code === null;
+      const wasPaused = this.pauseRequested;
+      const wasCancelled = !wasPaused && (this.cancelRequested || signal === 'SIGTERM' || signal === 'SIGKILL' || code === null);
       const result = {
         ok: code === 0,
         cancelled: wasCancelled,
+        paused: wasPaused,
         code,
         destination: this.lastDestination,
         options: this.active,
         finishedAt: new Date().toISOString()
       };
 
-      if (code !== 0 && !wasCancelled) {
+      if (code !== 0 && !wasCancelled && !wasPaused) {
         result.error = 'Le téléchargement a échoué. Consulte le journal ou active le mode dépannage 403.';
       }
 
@@ -445,6 +453,19 @@ class DownloaderService extends EventEmitter {
     if (!this.child) return false;
     const child = this.child;
     this.cancelRequested = true;
+
+    if (process.platform === 'win32' && child.pid) {
+      execFile('taskkill', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true }, () => {});
+    } else {
+      child.kill('SIGTERM');
+    }
+    return true;
+  }
+
+  pause() {
+    if (!this.child) return false;
+    const child = this.child;
+    this.pauseRequested = true;
 
     if (process.platform === 'win32' && child.pid) {
       execFile('taskkill', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true }, () => {});

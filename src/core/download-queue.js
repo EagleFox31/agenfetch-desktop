@@ -22,6 +22,10 @@ class DownloadQueue extends EventEmitter {
         quality: item.payload.quality,
         container: item.payload.container,
         subtitles: item.payload.subtitles,
+        subtitleMode: item.payload.subtitleMode,
+        subtitleFormat: item.payload.subtitleFormat,
+        performanceProfile: item.payload.performanceProfile,
+        thumbnail: item.payload.thumbnail || '',
         title: item.payload.title || '',
         status: item.status,
         createdAt: item.createdAt,
@@ -38,7 +42,7 @@ class DownloadQueue extends EventEmitter {
     const list = Array.isArray(payloads) ? payloads : [payloads];
     if (!list.length) throw new Error('Ajoute au moins un lien à la file.');
 
-    const waitingCount = this.items.filter((item) => ['waiting', 'running'].includes(item.status)).length;
+    const waitingCount = this.items.filter((item) => ['waiting', 'running', 'paused'].includes(item.status)).length;
     if (waitingCount + list.length > 50) {
       throw new Error('La file est limitée à 50 téléchargements simultanément planifiés.');
     }
@@ -78,7 +82,7 @@ class DownloadQueue extends EventEmitter {
   handleFinished(result) {
     const active = this.items.find((item) => item.id === this.activeId);
     if (active) {
-      active.status = result.cancelled ? 'cancelled' : result.ok ? 'completed' : 'failed';
+      active.status = result.paused ? 'paused' : result.cancelled ? 'cancelled' : result.ok ? 'completed' : 'failed';
       active.error = result.error || '';
     }
     this.activeId = null;
@@ -90,6 +94,20 @@ class DownloadQueue extends EventEmitter {
     return this.downloader.cancel();
   }
 
+  pauseActive() {
+    return this.downloader.pause();
+  }
+
+  resume(itemId) {
+    const item = this.items.find((candidate) => candidate.id === itemId && candidate.status === 'paused');
+    if (!item) return false;
+    item.status = 'waiting';
+    item.error = '';
+    this.notify();
+    this.runNext();
+    return true;
+  }
+
   remove(itemId) {
     const index = this.items.findIndex((item) => item.id === itemId && item.status === 'waiting');
     if (index === -1) return false;
@@ -99,7 +117,7 @@ class DownloadQueue extends EventEmitter {
   }
 
   clearFinished() {
-    this.items = this.items.filter((item) => ['waiting', 'running'].includes(item.status));
+    this.items = this.items.filter((item) => ['waiting', 'running', 'paused'].includes(item.status));
     this.notify();
     return this.snapshot();
   }
