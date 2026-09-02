@@ -8,6 +8,10 @@ const refs = {
   pageTitle: document.querySelector('#page-title'),
   pageEyebrow: document.querySelector('#page-eyebrow'),
   pageIntro: document.querySelector('#page-intro'),
+  downloadComposerPanel: document.querySelector('#download-composer-panel'),
+  openDownloadComposer: document.querySelector('#open-download-composer'),
+  toolbarOpenFolder: document.querySelector('#toolbar-open-folder'),
+  queueFilters: [...document.querySelectorAll('[data-queue-filter]')],
   form: document.querySelector('#download-form'),
   url: document.querySelector('#video-url'),
   urlError: document.querySelector('#url-error'),
@@ -155,7 +159,8 @@ const state = {
   subtitleQuery: null,
   system: null,
   lastProgress: null,
-  progressById: {}
+  progressById: {},
+  queueFilter: 'all'
 };
 
 function showToast(message, type = 'info') {
@@ -167,6 +172,7 @@ function showToast(message, type = 'info') {
 }
 
 function setView(viewId) {
+  document.body.dataset.activeView = viewId;
   refs.views.forEach((view) => view.classList.toggle('is-visible', view.id === viewId));
   refs.navItems.forEach((item) => item.classList.toggle('is-active', item.dataset.viewTarget === viewId));
   refs.pageTitle.textContent = {
@@ -556,6 +562,11 @@ function queueItemMeta(item) {
 function renderQueue(snapshot) {
   state.queue = snapshot || { activeId: null, items: [] };
   const items = state.queue.items || [];
+  const visibleItems = items.filter((item) => {
+    if (state.queueFilter === 'all') return true;
+    if (state.queueFilter === 'playlist') return Boolean(item.playlist);
+    return item.mode === state.queueFilter && !item.playlist;
+  });
   const nextActiveId = state.queue.activeId || null;
   if (nextActiveId && nextActiveId !== state.lastActiveId) {
     const savedProgress = state.progressById[nextActiveId];
@@ -590,14 +601,16 @@ function renderQueue(snapshot) {
     refs.homeMediaPreview.classList.remove('has-image');
   }
 
-  if (!items.length) {
+  if (!visibleItems.length) {
     const empty = document.createElement('div');
     empty.className = 'queue-empty';
-    empty.innerHTML = '<strong>Aucun téléchargement pour le moment.</strong><span>Colle un lien au-dessus puis clique sur Télécharger.</span>';
+    empty.innerHTML = items.length
+      ? '<strong>Aucun résultat dans ce filtre.</strong><span>Choisis une autre catégorie.</span>'
+      : '<strong>Aucun téléchargement pour le moment.</strong><span>Utilise « Ajouter un lien » pour commencer.</span>';
     refs.queueList.append(empty);
   }
 
-  items.forEach((item, index) => {
+  visibleItems.forEach((item, index) => {
     const row = document.createElement('article');
     row.className = `queue-item ${item.status}${item.id === state.queue.activeId ? ' is-active' : ''}`;
 
@@ -627,16 +640,19 @@ function renderQueue(snapshot) {
     const title = document.createElement('strong');
     title.textContent = item.title || item.url;
     title.title = item.url;
-    const status = document.createElement('span');
-    status.className = `queue-status ${item.status}`;
-    status.textContent = statusLabel(item.status);
-    status.title = item.error || '';
-    heading.append(title, status);
+    heading.append(title);
     const meta = document.createElement('small');
     meta.textContent = queueItemMeta(item);
-    copy.append(heading, meta);
+    const stateCopy = document.createElement('span');
+    stateCopy.className = `queue-state-copy ${item.status}`;
+    stateCopy.textContent = item.status === 'running'
+      ? state.progressById[item.id]?.phaseLabel || 'Téléchargement en cours'
+      : item.status === 'waiting' ? 'En attente de démarrage'
+        : item.status === 'paused' ? 'Téléchargement en pause'
+          : statusLabel(item.status);
+    copy.append(heading, stateCopy, meta);
 
-    if (['running', 'paused', 'completed'].includes(item.status)) {
+    if (['waiting', 'running', 'paused', 'completed'].includes(item.status)) {
       const progress = state.progressById[item.id] || {};
       const percent = item.status === 'completed' ? 100 : Math.max(0, Math.min(100, Number(progress.percent || 0)));
       const progressBlock = document.createElement('div');
@@ -665,14 +681,9 @@ function renderQueue(snapshot) {
       size.textContent = progress.total && progress.total !== '—'
         ? `${progress.downloaded || '—'} / ${progress.total}`
         : progress.downloaded || 'Volume —';
-      progressMeta.append(percentLabel, speed, eta, size);
-      progressBlock.append(track, progressMeta);
+      progressMeta.append(speed, eta, size);
+      progressBlock.append(track, percentLabel, progressMeta);
       copy.append(progressBlock);
-    } else if (item.status === 'waiting') {
-      const waiting = document.createElement('span');
-      waiting.className = 'queue-waiting-copy';
-      waiting.textContent = 'Démarrera automatiquement dès que le téléchargement précédent sera terminé.';
-      copy.append(waiting);
     } else if (item.error) {
       const error = document.createElement('span');
       error.className = 'queue-error-copy';
@@ -680,41 +691,45 @@ function renderQueue(snapshot) {
       copy.append(error);
     }
 
+    const phases = document.createElement('div');
+    phases.className = 'queue-phases';
+    const activePhase = state.progressById[item.id]?.phase || (item.status === 'completed' ? 'merge' : 'video');
+    const phaseNames = item.mode === 'audio' ? [['audio', 'Audio']] : [['video', 'Vidéo'], ['audio', 'Audio'], ['merge', 'Fusion']];
+    phaseNames.forEach(([phase, label], phaseIndex) => {
+      const phaseNode = document.createElement('span');
+      phaseNode.classList.toggle('is-active', phase === activePhase && item.status === 'running');
+      phaseNode.classList.toggle('is-done', item.status === 'completed' || phaseNames.findIndex(([name]) => name === activePhase) > phaseIndex);
+      phaseNode.textContent = `${phaseIndex + 1} ${label}`;
+      phases.append(phaseNode);
+    });
+    copy.append(phases);
+
     const actions = document.createElement('div');
     actions.className = 'queue-actions';
     if (item.status === 'running' && item.id === state.queue.activeId) {
       const pause = document.createElement('button');
       pause.className = 'secondary-button compact';
       pause.type = 'button';
-      pause.textContent = 'Pause';
+      pause.textContent = 'Ⅱ';
+      pause.title = 'Mettre en pause';
+      pause.setAttribute('aria-label', 'Mettre en pause');
       pause.addEventListener('click', pauseCurrentDownload);
-      const cancel = document.createElement('button');
-      cancel.className = 'danger-button compact';
-      cancel.type = 'button';
-      cancel.textContent = 'Annuler';
-      cancel.addEventListener('click', cancelCurrentDownload);
+      actions.append(pause);
+    } else if (item.status === 'waiting') {
       const details = document.createElement('button');
       details.className = 'text-button';
       details.type = 'button';
-      details.textContent = 'Détails';
-      details.addEventListener('click', () => {
-        refs.progressDetails.open = true;
-        refs.progressDetails.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      });
-      actions.append(pause, cancel, details);
-    } else if (item.status === 'waiting') {
-      const remove = document.createElement('button');
-      remove.className = 'secondary-button compact queue-remove';
-      remove.type = 'button';
-      remove.textContent = 'Retirer';
-      remove.title = 'Retirer ce téléchargement';
-      remove.addEventListener('click', () => api.removeQueueItem(item.id));
-      actions.append(remove);
+      details.textContent = 'Retirer';
+      details.title = 'Retirer ce téléchargement';
+      details.addEventListener('click', () => api.removeQueueItem(item.id));
+      actions.append(details);
     } else if (item.status === 'paused') {
       const resume = document.createElement('button');
       resume.className = 'secondary-button compact queue-resume';
       resume.type = 'button';
-      resume.textContent = 'Reprendre';
+      resume.textContent = '▶';
+      resume.title = 'Reprendre';
+      resume.setAttribute('aria-label', 'Reprendre');
       resume.addEventListener('click', async () => {
         if (await api.resumeQueueItem(item.id)) showToast('Reprise du téléchargement…');
       });
@@ -748,18 +763,25 @@ function historyArtwork(item) {
 
 async function openHistoryMedia(item) {
   try {
-    const error = await api.openMedia(item.destination);
-    if (error) throw new Error(error);
+    const result = await api.openMedia(item.destination);
+    if (!result?.ok) {
+      showToast(result?.error || 'Impossible d’ouvrir ce fichier.', 'error');
+      if (result?.missing) await renderHistory();
+    }
   } catch (error) {
-    showToast(error.message || 'Impossible d’ouvrir ce fichier.', 'error');
+    showToast('Impossible d’ouvrir ce fichier pour le moment.', 'error');
   }
 }
 
 async function revealHistoryMedia(item) {
   try {
-    await api.showMediaInFolder(item.destination);
+    const result = await api.showMediaInFolder(item.destination);
+    if (!result?.ok) {
+      showToast(result?.error || 'Impossible d’ouvrir l’emplacement.', 'error');
+      if (result?.missing) await renderHistory();
+    }
   } catch (error) {
-    showToast(error.message || 'Impossible d’ouvrir l’emplacement du fichier.', 'error');
+    showToast('Impossible d’ouvrir l’emplacement pour le moment.', 'error');
   }
 }
 
@@ -774,7 +796,16 @@ async function renderHistory() {
     return;
   }
 
-  items.forEach((item) => {
+  const availability = await Promise.all(items.map(async (item) => {
+    if (!item.destination || item.status !== 'completed') return false;
+    try {
+      return Boolean((await api.getMediaStatus(item.destination))?.exists);
+    } catch {
+      return false;
+    }
+  }));
+
+  items.forEach((item, itemIndex) => {
     const row = document.createElement('article');
     row.className = 'history-item';
 
@@ -814,10 +845,12 @@ async function renderHistory() {
 
     const status = document.createElement('span');
     status.className = `history-status ${item.status}`;
-    status.textContent = statusLabel(item.status);
+    const fileExists = availability[itemIndex];
+    status.textContent = item.status === 'completed' && !fileExists ? 'Fichier absent' : statusLabel(item.status);
+    status.classList.toggle('missing', item.status === 'completed' && !fileExists);
     body.append(status);
 
-    if (item.destination && item.status === 'completed') {
+    if (item.destination && item.status === 'completed' && fileExists) {
       const actions = document.createElement('div');
       actions.className = 'history-actions';
       const open = document.createElement('button');
@@ -979,6 +1012,7 @@ function renderSubtitleResults(response) {
 refs.navItems.forEach((item) => item.addEventListener('click', () => setView(item.dataset.viewTarget)));
 refs.homeAddLink.addEventListener('click', () => {
   setView('download-view');
+  refs.downloadComposerPanel.open = true;
   refs.url.focus();
 });
 refs.homeChooseFile.addEventListener('click', () => {
@@ -986,6 +1020,17 @@ refs.homeChooseFile.addEventListener('click', () => {
   refs.chooseSubtitleMedia.click();
 });
 refs.homeViewQueue.addEventListener('click', () => setView('download-view'));
+refs.openDownloadComposer.addEventListener('click', () => {
+  refs.downloadComposerPanel.open = true;
+  refs.downloadComposerPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  refs.url.focus();
+});
+refs.toolbarOpenFolder.addEventListener('click', () => refs.openFolder.click());
+refs.queueFilters.forEach((button) => button.addEventListener('click', () => {
+  state.queueFilter = button.dataset.queueFilter;
+  refs.queueFilters.forEach((candidate) => candidate.classList.toggle('is-active', candidate === button));
+  renderQueue(state.queue);
+}));
 refs.performanceProfile.addEventListener('change', () => {
   localStorage.setItem('agenfetch.performanceProfile', refs.performanceProfile.value);
   if (!state.running) refs.progressNetwork.textContent = performanceLabel(refs.performanceProfile.value);
@@ -1166,6 +1211,7 @@ refs.form.addEventListener('submit', async (event) => {
     refs.url.value = '';
     clearMetadata();
     syncDownloadCta();
+    refs.downloadComposerPanel.open = false;
     showToast(payloads.length > 1
       ? `${payloads.length} téléchargements lancés et organisés automatiquement.`
       : wasBusy ? 'Téléchargement ajouté à la suite.' : 'Téléchargement lancé.');
@@ -1427,6 +1473,7 @@ api.onDeepLink((payload) => {
   syncDownloadCta();
   syncModeUi();
   setView('download-view');
+  refs.downloadComposerPanel.open = true;
   refs.url.focus();
   inspectMetadata();
   showToast('Lien reçu depuis YouTube. Vérifie les options puis clique sur Télécharger.');
