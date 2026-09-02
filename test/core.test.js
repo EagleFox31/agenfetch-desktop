@@ -20,6 +20,7 @@ const {
   summarizeMetadata
 } = require('../src/core/downloader');
 const { DownloadQueue } = require('../src/core/download-queue');
+const { mediaPathStatus } = require('../src/core/media-path');
 const { ToolManager } = require('../src/core/tool-manager');
 const { ConsentStore, TERMS_VERSION } = require('../src/core/consent-store');
 const { ProviderCredentialsStore } = require('../src/core/provider-credentials-store');
@@ -284,6 +285,18 @@ test('prépare et résout les outils Windows embarqués', async () => {
   }
 });
 
+test('détecte un média local déplacé sans exposer une erreur système', () => {
+  const present = mediaPathStatus('/media/video.mp4', {
+    statSync: () => ({ isFile: () => true })
+  });
+  const missing = mediaPathStatus('/media/supprime.mp4', {
+    statSync: () => { throw new Error('ENOENT'); }
+  });
+  assert.equal(present.exists, true);
+  assert.equal(missing.exists, false);
+  assert.equal(mediaPathStatus('chemin/relatif.mp4').exists, false);
+});
+
 test('traite la file dans l’ordre et permet de retirer un élément en attente', async () => {
   class FakeDownloader extends EventEmitter {
     constructor() {
@@ -319,11 +332,13 @@ test('traite la file dans l’ordre et permet de retirer un élément en attente
   let counter = 0;
   const queue = new DownloadQueue(fake, { idFactory: () => `job-${++counter}` });
   const snapshot = queue.add([
-    { url: 'https://youtu.be/first', mode: 'video', quality: '720' },
+    { url: 'https://youtu.be/first', mode: 'video', quality: '720', playlist: true },
     { url: 'https://youtu.be/second', mode: 'audio', quality: 'best' },
     { url: 'https://youtu.be/third', mode: 'video', quality: '1080' }
   ]);
   assert.equal(snapshot.activeId, 'job-1');
+  assert.equal(snapshot.items[0].playlist, true);
+  assert.equal(snapshot.items[1].playlist, false);
   assert.equal(snapshot.items[1].status, 'waiting');
   assert.equal(queue.remove('job-3'), true);
   fake.finish();
