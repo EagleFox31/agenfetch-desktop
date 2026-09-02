@@ -994,6 +994,7 @@ function renderSubtitleResults(response) {
           mediaPath: refs.subtitleMediaPath.value,
           destination: state.outputFolder,
           title: state.subtitleQuery?.title || refs.subtitleTitle.value,
+          query: state.subtitleQuery || externalSubtitlePayload(),
           format: refs.externalSubtitleFormat.value
         });
         button.textContent = 'Téléchargé';

@@ -697,5 +697,24 @@ test('assainit une recherche locale et les références fournisseur', () => {
     fileName: 'episode.srt',
     downloadRef: { path: '/subtitle/123.zip' }
   });
+  assert.deepEqual(sanitizeProviderResult({
+    provider: 'subliminal',
+    language: 'FR',
+    fileName: '../episode.srt',
+    downloadRef: {
+      providerName: 'PODNAPISI',
+      subtitleId: 'provider-result-123',
+      url: 'https://evil.example/file.srt'
+    }
+  }), {
+    provider: 'subliminal',
+    language: 'fr',
+    fileName: 'episode.srt',
+    downloadRef: { providerName: 'podnapisi', subtitleId: 'provider-result-123' }
+  });
+  assert.throws(() => sanitizeProviderResult({
+    provider: 'subliminal',
+    downloadRef: { providerName: 'unknown', subtitleId: '123' }
+  }));
   assert.throws(() => sanitizeProviderResult({ provider: 'evil', downloadRef: {} }));
 });

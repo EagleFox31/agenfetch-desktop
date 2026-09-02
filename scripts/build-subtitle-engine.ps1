@@ -16,6 +16,12 @@ try {
         --clean `
         --onefile `
         --console `
+        --collect-all "subliminal" `
+        --collect-all "babelfish" `
+        --collect-all "guessit" `
+        --collect-all "knowit" `
+        --collect-all "trakit" `
+        --copy-metadata "subliminal" `
         --name "AgenFetch-Subtitle-Engine-$Version" `
         --distpath $DistRoot `
         --workpath (Join-Path $WorkRoot "work") `

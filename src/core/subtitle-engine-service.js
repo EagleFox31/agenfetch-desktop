@@ -6,7 +6,8 @@ const { spawn } = require('node:child_process');
 
 const MAX_ENGINE_OUTPUT = 2 * 1024 * 1024;
 const ALLOWED_MEDIA_EXTENSIONS = new Set(['.mkv', '.mp4', '.avi', '.mov', '.webm', '.m4v', '.wmv']);
-const ALLOWED_PROVIDERS = new Set(['podnapisi', 'subdl', 'opensubtitles']);
+const ALLOWED_PROVIDERS = new Set(['subliminal', 'subdl']);
+const ALLOWED_SUBLIMINAL_PROVIDERS = new Set(['podnapisi', 'gestdown', 'subtis', 'opensubtitlescom']);
 
 function sanitizeMediaPath(value) {
   const mediaPath = String(value || '').trim();
@@ -43,20 +44,24 @@ function sanitizeProviderResult(input) {
   const provider = String(source.provider || '').trim().toLowerCase();
   if (!ALLOWED_PROVIDERS.has(provider)) throw new Error('Résultat fournisseur invalide.');
   const downloadRef = source.downloadRef && typeof source.downloadRef === 'object' ? source.downloadRef : {};
-  if (provider === 'subdl' && !String(downloadRef.path || '').startsWith('/subtitle/')) {
-    throw new Error('Référence SubDL invalide.');
-  }
-  if (provider === 'opensubtitles' && !Number.isInteger(downloadRef.fileId)) {
-    throw new Error('Référence OpenSubtitles invalide.');
-  }
-  if (provider === 'podnapisi' && !/^[a-zA-Z0-9_-]+$/.test(String(downloadRef.subtitleId || ''))) {
-    throw new Error('Référence Podnapisi invalide.');
+  let safeDownloadRef;
+  if (provider === 'subliminal') {
+    const providerName = String(downloadRef.providerName || '').trim().toLowerCase();
+    const subtitleId = String(downloadRef.subtitleId || '').trim().slice(0, 500);
+    if (!ALLOWED_SUBLIMINAL_PROVIDERS.has(providerName) || !subtitleId || /[\u0000-\u001f]/.test(subtitleId)) {
+      throw new Error('Référence Subliminal invalide.');
+    }
+    safeDownloadRef = { providerName, subtitleId };
+  } else if (provider === 'subdl') {
+    const providerPath = String(downloadRef.path || '').trim().slice(0, 600);
+    if (!providerPath.startsWith('/subtitle/')) throw new Error('Référence SubDL invalide.');
+    safeDownloadRef = { path: providerPath };
   }
   return {
     provider,
     language: String(source.language || '').trim().toLowerCase().slice(0, 16),
     fileName: path.basename(String(source.fileName || '')).slice(0, 220),
-    downloadRef
+    downloadRef: safeDownloadRef
   };
 }
 
@@ -148,7 +153,13 @@ class SubtitleEngineService {
     if (!resolved) return { installed: false, version: '', source: 'absent' };
     try {
       const info = await this.invoke('version', {}, 12000);
-      return { installed: true, version: info.version, providers: info.providers, source: resolved.source };
+      return {
+        installed: true,
+        version: info.version,
+        backend: info.backend,
+        providers: info.providers,
+        source: resolved.source
+      };
     } catch (error) {
       return { installed: false, version: '', source: resolved.source, error: error.message };
     }
@@ -167,14 +178,21 @@ class SubtitleEngineService {
 
   download(input, defaultDestination) {
     const source = input && typeof input === 'object' ? input : {};
-    const mediaPath = sanitizeMediaPath(source.mediaPath);
+    const querySource = source.query && typeof source.query === 'object' ? source.query : {};
+    const mediaPath = sanitizeMediaPath(source.mediaPath || querySource.mediaPath);
     const destination = String(source.destination || defaultDestination || '').trim();
     if (!path.isAbsolute(destination)) throw new Error('Dossier de destination invalide.');
+    const query = sanitizeSearchPayload({
+      ...querySource,
+      mediaPath,
+      title: source.title || querySource.title
+    });
     return this.invoke('download', {
       result: sanitizeProviderResult(source.result),
       mediaPath,
       destination,
-      title: String(source.title || '').trim().slice(0, 180),
+      title: query.title,
+      query,
       format: source.format === 'vtt' ? 'vtt' : 'srt',
       overwrite: Boolean(source.overwrite),
       credentials: this.credentialsStore.getAll()
@@ -184,6 +202,7 @@ class SubtitleEngineService {
 
 module.exports = {
   ALLOWED_MEDIA_EXTENSIONS,
+  ALLOWED_SUBLIMINAL_PROVIDERS,
   SubtitleEngineService,
   sanitizeMediaPath,
   sanitizeProviderResult,

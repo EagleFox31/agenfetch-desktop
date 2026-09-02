@@ -2,8 +2,8 @@
 """AgenFetch subtitle sidecar.
 
 The process accepts one JSON request on stdin and writes one JSON response on
-stdout. It intentionally uses only Python's standard library so the packaged
-binary stays small and provider failures remain isolated from Electron.
+stdout. Provider discovery and matching are delegated to the reusable
+Subliminal engine while network failures remain isolated from Electron.
 """
 
 from __future__ import annotations
@@ -17,12 +17,20 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
+from subliminal_adapter import (
+    BASE_PROVIDERS,
+    OPTIONAL_PROVIDERS,
+    SubliminalAdapterError,
+    backend_version,
+    download_subtitle as download_subliminal_subtitle,
+    search_subtitles as search_subliminal_subtitles,
+)
 
-VERSION = "0.3.0"
+
+VERSION = "0.3.1"
 USER_AGENT = f"AgenFetch/{VERSION}"
 MAX_RESPONSE_BYTES = 25 * 1024 * 1024
 SUBTITLE_EXTENSIONS = {".srt", ".vtt", ".ass", ".ssa", ".sub"}
@@ -79,7 +87,7 @@ def parse_media_name(value: str) -> dict[str, Any]:
         if TECHNICAL_TOKEN.fullmatch(token):
             break
         title_tokens.append(token)
-    title = " ".join(title_tokens).strip(" -._") or normalized or "Média local"
+    title = " ".join(title_tokens).strip(" -._()[]") or normalized or "Média local"
 
     return {
         "title": title[:180],
@@ -184,107 +192,6 @@ def search_subdl(query: dict[str, Any], api_key: str) -> list[dict[str, Any]]:
     return results
 
 
-def search_opensubtitles(query: dict[str, Any], api_key: str) -> list[dict[str, Any]]:
-    params: dict[str, Any] = {
-        "query": query["title"],
-        "languages": ",".join(query["languages"]),
-        "type": "episode" if query["type"] == "tv" else "movie",
-        "order_by": "download_count",
-        "order_direction": "desc",
-    }
-    if query.get("year"):
-        params["year"] = query["year"]
-    if query.get("season") is not None:
-        params["season_number"] = query["season"]
-    if query.get("episode") is not None:
-        params["episode_number"] = query["episode"]
-    url = "https://api.opensubtitles.com/api/v1/subtitles?" + urllib.parse.urlencode(params)
-    payload = http_json(url, headers={"Api-Key": api_key})
-
-    results = []
-    for item in payload.get("data") or []:
-        attributes = item.get("attributes") or {}
-        language = clean_text(attributes.get("language"), 16).lower()
-        files = attributes.get("files") or []
-        if not language or not files:
-            continue
-        release = clean_text(attributes.get("release"), 220)
-        downloads = int(attributes.get("download_count") or 0)
-        hearing_impaired = bool(attributes.get("hearing_impaired"))
-        for file_item in files[:3]:
-            file_id = file_item.get("file_id")
-            if not isinstance(file_id, int):
-                continue
-            results.append({
-                "id": f"opensubtitles:{file_id}",
-                "provider": "opensubtitles",
-                "providerLabel": "OpenSubtitles",
-                "language": language,
-                "release": release or query["title"],
-                "fileName": clean_text(file_item.get("file_name"), 220),
-                "format": Path(clean_text(file_item.get("file_name"))).suffix.lstrip(".").lower() or "srt",
-                "fps": clean_text(attributes.get("fps"), 16),
-                "hearingImpaired": hearing_impaired,
-                "downloads": downloads,
-                "score": provider_score(language, query["languages"], hearing_impaired=hearing_impaired, downloads=downloads, exact_release=bool(query.get("fileName") and release)),
-                "downloadRef": {"fileId": file_id},
-            })
-    return results
-
-
-def search_podnapisi(query: dict[str, Any], _api_key: str = "") -> list[dict[str, Any]]:
-    results = []
-    seen = set()
-    for language in query["languages"]:
-        params: list[tuple[str, Any]] = [
-            ("keywords", query["title"]),
-            ("language", language),
-        ]
-        if query["type"] == "tv":
-            params.extend([
-                ("seasons", query["season"]),
-                ("episodes", query["episode"]),
-                ("movie_type", "tv-series"),
-                ("movie_type", "mini-series"),
-            ])
-        else:
-            params.append(("movie_type", "movie"))
-        if query.get("year"):
-            params.append(("year", query["year"]))
-        url = "https://www.podnapisi.net/subtitles/search/advanced?" + urllib.parse.urlencode(params)
-        payload = http_json(url)
-        for item in (payload.get("data") or [])[:30]:
-            subtitle_id = clean_text(item.get("id"), 80)
-            if not subtitle_id or subtitle_id in seen:
-                continue
-            seen.add(subtitle_id)
-            movie = item.get("movie") if isinstance(item.get("movie"), dict) else {}
-            releases = [clean_text(value, 220) for value in [
-                *(item.get("releases") or []), *(item.get("custom_releases") or [])
-            ] if clean_text(value, 220)]
-            flags = item.get("flags") or []
-            result_language = clean_text(item.get("language"), 16).lower() or language
-            results.append({
-                "id": f"podnapisi:{subtitle_id}",
-                "provider": "podnapisi",
-                "providerLabel": "Podnapisi",
-                "language": result_language,
-                "release": releases[0] if releases else clean_text(movie.get("title"), 220) or query["title"],
-                "fileName": f"{query['title']}.{result_language}.zip",
-                "format": "zip",
-                "fps": "",
-                "hearingImpaired": "hearing_impaired" in flags,
-                "downloads": 0,
-                "score": provider_score(
-                    result_language, query["languages"],
-                    hearing_impaired="hearing_impaired" in flags,
-                    exact_release=bool(releases and query.get("fileName")),
-                ),
-                "downloadRef": {"subtitleId": subtitle_id},
-            })
-    return results
-
-
 def normalize_query(payload: dict[str, Any]) -> dict[str, Any]:
     media_path = clean_text(payload.get("mediaPath"), 1024)
     detected = parse_media_name(media_path or clean_text(payload.get("title"), 240))
@@ -320,24 +227,18 @@ def normalize_query(payload: dict[str, Any]) -> dict[str, Any]:
 def search(payload: dict[str, Any]) -> dict[str, Any]:
     query = normalize_query(payload)
     credentials = payload.get("credentials") if isinstance(payload.get("credentials"), dict) else {}
-    provider_calls = [("podnapisi", search_podnapisi, "")]
-    if clean_text(credentials.get("subdl"), 300):
-        provider_calls.append(("subdl", search_subdl, clean_text(credentials["subdl"], 300)))
-    if clean_text(credentials.get("opensubtitles"), 300):
-        provider_calls.append(("opensubtitles", search_opensubtitles, clean_text(credentials["opensubtitles"], 300)))
-    if not provider_calls:
-        raise EngineError("Configure au moins une clé SubDL ou OpenSubtitles.")
-
-    results: list[dict[str, Any]] = []
-    errors: list[dict[str, str]] = []
-    with ThreadPoolExecutor(max_workers=len(provider_calls)) as executor:
-        futures = {executor.submit(call, query, key): name for name, call, key in provider_calls}
-        for future in as_completed(futures):
-            provider = futures[future]
-            try:
-                results.extend(future.result())
-            except Exception as error:  # provider isolation is intentional
-                errors.append({"provider": provider, "message": clean_text(error, 320)})
+    try:
+        backend = search_subliminal_subtitles(query, credentials)
+    except SubliminalAdapterError as error:
+        raise EngineError(str(error)) from error
+    results = list(backend.get("results") or [])
+    errors = list(backend.get("errors") or [])
+    subdl_key = clean_text(credentials.get("subdl"), 300)
+    if subdl_key:
+        try:
+            results.extend(search_subdl(query, subdl_key))
+        except Exception as error:  # provider isolation is intentional
+            errors.append({"provider": "subdl", "message": clean_text(error, 320)})
     results.sort(key=lambda item: (-int(item.get("score") or 0), -int(item.get("downloads") or 0)))
     return {"query": query, "results": results[:80], "errors": errors}
 
@@ -352,10 +253,6 @@ def allowed_download_url(value: str, provider: str) -> bool:
     host = (parsed.hostname or "").lower()
     if provider == "subdl":
         return host == "dl.subdl.com"
-    if provider == "opensubtitles":
-        return host.endswith(".opensubtitles.com") or host == "opensubtitles.com"
-    if provider == "podnapisi":
-        return host == "www.podnapisi.net" or host == "podnapisi.net"
     return False
 
 
@@ -426,37 +323,38 @@ def download(payload: dict[str, Any]) -> dict[str, Any]:
     credentials = payload.get("credentials") if isinstance(payload.get("credentials"), dict) else {}
     reference = result.get("downloadRef") if isinstance(result.get("downloadRef"), dict) else {}
     api_key = clean_text(credentials.get(provider), 300)
-    if provider != "podnapisi" and not api_key:
-        raise EngineError(f"Clé {provider} absente.")
 
-    if provider == "subdl":
+    if provider == "subliminal":
+        query_payload = payload.get("query") if isinstance(payload.get("query"), dict) else payload
+        query = normalize_query(query_payload)
+        try:
+            downloaded = download_subliminal_subtitle(
+                query,
+                result,
+                credentials,
+                clean_text(payload.get("format"), 8).lower() or "srt",
+            )
+        except SubliminalAdapterError as error:
+            raise EngineError(str(error)) from error
+        subtitle_data = downloaded["data"]
+        extension = downloaded["extension"]
+        language = clean_text(downloaded.get("language"), 16).lower() or "und"
+    elif provider == "subdl":
+        if not api_key:
+            raise EngineError("Clé subdl absente.")
         relative_path = clean_text(reference.get("path"), 600)
         if not relative_path.startswith("/subtitle/"):
             raise EngineError("Référence SubDL invalide.")
         data = download_bytes("https://dl.subdl.com" + relative_path, provider)
-    elif provider == "opensubtitles":
-        file_id = reference.get("fileId")
-        if not isinstance(file_id, int):
-            raise EngineError("Référence OpenSubtitles invalide.")
-        ticket = http_json(
-            "https://api.opensubtitles.com/api/v1/download",
-            headers={"Api-Key": api_key}, method="POST", body={"file_id": file_id},
-        )
-        link = clean_text(ticket.get("link"), 1000)
-        data = download_bytes(link, provider)
-    elif provider == "podnapisi":
-        subtitle_id = clean_text(reference.get("subtitleId"), 80)
-        if not re.fullmatch(r"[a-zA-Z0-9_-]+", subtitle_id):
-            raise EngineError("Référence Podnapisi invalide.")
-        url = f"https://www.podnapisi.net/subtitles/{subtitle_id}/download?container=zip"
-        data = download_bytes(url, provider)
     else:
         raise EngineError("Fournisseur inconnu.")
 
-    subtitle_data, source_extension = extract_subtitle(data, clean_text(result.get("fileName"), 220))
-    subtitle_data, extension = convert_subtitle(
-        subtitle_data, source_extension, clean_text(payload.get("format"), 8).lower() or "srt"
-    )
+    if provider != "subliminal":
+        subtitle_data, source_extension = extract_subtitle(data, clean_text(result.get("fileName"), 220))
+        subtitle_data, extension = convert_subtitle(
+            subtitle_data, source_extension, clean_text(payload.get("format"), 8).lower() or "srt"
+        )
+        language = clean_text(result.get("language"), 16).lower() or "und"
     media_path = clean_text(payload.get("mediaPath"), 1024)
     destination_dir = clean_text(payload.get("destination"), 1024)
     if not destination_dir and media_path:
@@ -465,7 +363,6 @@ def download(payload: dict[str, Any]) -> dict[str, Any]:
         raise EngineError("Dossier de destination absent.")
     Path(destination_dir).mkdir(parents=True, exist_ok=True)
     base_name = Path(media_path).stem if media_path else clean_text(payload.get("title"), 180)
-    language = clean_text(result.get("language"), 16).lower() or "und"
     output_path = Path(destination_dir) / f"{safe_output_stem(base_name)}.{language}{extension}"
     if output_path.exists() and not bool(payload.get("overwrite")):
         counter = 2
@@ -480,7 +377,11 @@ def dispatch(request: dict[str, Any]) -> dict[str, Any]:
     command = clean_text(request.get("command"), 32)
     payload = request.get("payload") if isinstance(request.get("payload"), dict) else {}
     if command == "version":
-        return {"version": VERSION, "providers": ["podnapisi", "subdl", "opensubtitles"]}
+        return {
+            "version": VERSION,
+            "backend": {"name": "Subliminal", "version": backend_version()},
+            "providers": [*BASE_PROVIDERS, *OPTIONAL_PROVIDERS, "subdl"],
+        }
     if command == "parse":
         return parse_media_name(clean_text(payload.get("value"), 1024))
     if command == "search":
@@ -501,7 +402,7 @@ def main() -> int:
         response = {"ok": True, "result": dispatch(request)}
     except Exception as error:
         response = {"ok": False, "error": clean_text(error, 500) or error.__class__.__name__}
-    sys.stdout.write(json.dumps(response, ensure_ascii=False))
+    sys.stdout.buffer.write(json.dumps(response, ensure_ascii=False).encode("utf-8"))
     return 0 if response["ok"] else 1
 
 
