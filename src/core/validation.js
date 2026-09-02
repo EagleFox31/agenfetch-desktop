@@ -14,6 +14,7 @@ const ALLOWED_CONTAINERS = new Set(['mp4', 'mkv']);
 const ALLOWED_SUBTITLE_LANGUAGES = new Set(['none', 'fr', 'en', 'all']);
 const ALLOWED_SUBTITLE_MODES = new Set(['none', 'separate', 'embed', 'only']);
 const ALLOWED_SUBTITLE_FORMATS = new Set(['srt', 'vtt', 'best']);
+const ALLOWED_PERFORMANCE_PROFILES = new Set(['eco', 'normal', 'turbo']);
 const SUBTITLE_LANGUAGE_PATTERN = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/i;
 
 function sanitizeSubtitleLanguages(input) {
@@ -70,6 +71,9 @@ function sanitizeDownloadOptions(input, defaultFolder) {
     : (subtitles === 'none' ? 'none' : 'embed');
   const subtitleMode = subtitleLanguages.length ? requestedSubtitleMode : 'none';
   const subtitleFormat = ALLOWED_SUBTITLE_FORMATS.has(source.subtitleFormat) ? source.subtitleFormat : 'srt';
+  const performanceProfile = ALLOWED_PERFORMANCE_PROFILES.has(source.performanceProfile)
+    ? source.performanceProfile
+    : 'normal';
   const outputFolder = typeof source.outputFolder === 'string' && source.outputFolder.trim()
     ? source.outputFolder.trim()
     : defaultFolder;
@@ -88,6 +92,7 @@ function sanitizeDownloadOptions(input, defaultFolder) {
     subtitleLanguages,
     subtitleFormat,
     includeAutoSubtitles: source.includeAutoSubtitles !== false,
+    performanceProfile,
     outputFolder,
     playlist: Boolean(source.playlist),
     compatibilityMode: Boolean(source.compatibilityMode)

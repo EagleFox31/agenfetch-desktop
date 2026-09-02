@@ -3,10 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https://*.ytimg.com; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
-    />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https://*.ytimg.com; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'" />
     <title>AgenFetch</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
@@ -15,487 +12,98 @@
       <img class="chrome-bar-icon" src="../../assets/agenfetch-mark.svg" alt="" width="16" height="16" />
       <span class="chrome-bar-title">AgenFetch</span>
       <div class="chrome-bar-actions">
-        <button
-          type="button"
-          class="chrome-menu-button"
-          id="app-menu-button"
-          aria-label="Plus d’options"
-          aria-haspopup="true"
-          aria-expanded="false"
-          aria-controls="app-menu"
-        >
-          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-            <circle cx="3.5" cy="8" r="1.35" fill="currentColor" />
-            <circle cx="8" cy="8" r="1.35" fill="currentColor" />
-            <circle cx="12.5" cy="8" r="1.35" fill="currentColor" />
-          </svg>
+        <button type="button" class="chrome-menu-button" id="app-menu-button" aria-label="Plus d’options" aria-haspopup="true" aria-expanded="false" aria-controls="app-menu">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="3.5" cy="8" r="1.35" fill="currentColor"/><circle cx="8" cy="8" r="1.35" fill="currentColor"/><circle cx="12.5" cy="8" r="1.35" fill="currentColor"/></svg>
         </button>
         <div class="chrome-menu" id="app-menu" hidden role="menu">
-          <button type="button" role="menuitem" data-menu-action="about">À propos d’AgenFetch</button>
+          <button type="button" role="menuitem" data-menu-action="about">Réglages et à propos</button>
           <button type="button" role="menuitem" data-menu-action="updates">Vérifier les mises à jour</button>
           <div class="chrome-menu-sep" role="separator"></div>
           <button type="button" role="menuitem" data-menu-action="quit">Quitter</button>
         </div>
       </div>
     </div>
+
     <div class="app-shell">
-      <aside class="sidebar" aria-label="Navigation">
+      <aside class="sidebar" aria-label="Navigation principale">
         <div class="brand">
           <img src="../../assets/agenfetch-mark.svg" alt="" class="brand-mark" />
-          <div>
-            <strong>AgenFetch</strong>
-            <span>by AgenStudio</span>
-          </div>
+          <div><strong>AgenFetch</strong><span>by AgenStudio</span></div>
         </div>
-
         <nav class="nav-list">
-          <button class="nav-item is-active" type="button" data-view-target="download-view">
-            <span class="nav-icon" aria-hidden="true">↓</span>
-            Télécharger
-          </button>
-          <button class="nav-item" type="button" data-view-target="history-view">
-            <span class="nav-icon" aria-hidden="true">↺</span>
-            Historique
-          </button>
-          <button class="nav-item" type="button" data-view-target="subtitles-view">
-            <span class="nav-icon" aria-hidden="true">CC</span>
-            Sous-titres
-          </button>
-          <button class="nav-item" type="button" data-view-target="about-view">
-            <span class="nav-icon" aria-hidden="true">i</span>
-            À propos
-          </button>
+          <button class="nav-item is-active" type="button" data-view-target="home-view"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5v8a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Accueil</span></button>
+          <button class="nav-item" type="button" data-view-target="download-view"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M4 20h16"/></svg><span>Téléchargements</span></button>
+          <button class="nav-item" type="button" data-view-target="subtitles-view"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M9.5 10a2.5 2.5 0 1 0 0 4M18 10a2.5 2.5 0 1 0 0 4"/></svg><span>Sous-titres</span></button>
+          <button class="nav-item" type="button" data-view-target="history-view"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5h7l2 2h9v11H3z"/><path d="M3 8.5V5h7l2 2"/></svg><span>Bibliothèque</span></button>
+          <button class="nav-item" type="button" data-view-target="about-view"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.6-1H3v-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6V3h4v.09A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.6 1h.09v4H21a1.7 1.7 0 0 0-1.6 1z"/></svg><span>Réglages</span></button>
         </nav>
-
-        <div class="sidebar-note">
-          <span class="eyebrow">100 % local</span>
-          <p>Les fichiers autorisés restent sur ton ordinateur. Rien n’est envoyé à AgenStudio.</p>
-        </div>
+        <div class="sidebar-health"><span class="health-dot is-checking" id="overall-health-dot"></span><span id="overall-health-label">Vérification…</span></div>
         <span class="version" id="sidebar-version">BÊTA</span>
       </aside>
 
       <main class="main-content">
-        <header class="topbar">
-          <div>
-            <p class="eyebrow" id="page-eyebrow">Téléchargement local</p>
-            <h1 id="page-title">Garde ce que tu as le droit de garder.</h1>
+        <header class="topbar"><div><p class="eyebrow" id="page-eyebrow">Assistant média local</p><h1 id="page-title">Que veux-tu préparer ?</h1><p class="page-intro" id="page-intro">Télécharge, sous-titre et organise tes médias sans compte ni cloud AgenStudio.</p></div></header>
+
+        <section class="view is-visible" id="home-view">
+          <div class="home-actions">
+            <article class="home-action-card"><span class="action-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M4 20h16"/></svg></span><h2>Télécharger une vidéo</h2><p>Colle un lien, choisis la qualité et récupère ton fichier.</p><small>Vidéo · Audio · Playlists</small><button class="primary-button" id="home-add-link" type="button">Commencer</button></article>
+            <article class="home-action-card"><span class="action-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M9.5 10a2.5 2.5 0 1 0 0 4M18 10a2.5 2.5 0 1 0 0 4"/></svg></span><h2>Trouver des sous-titres</h2><p>Sélectionne ton film ou ta série et trouve la bonne piste.</p><small>SRT · VTT · Multilingue</small><button class="secondary-button strong" id="home-choose-file" type="button">Choisir un fichier</button></article>
           </div>
-          <div class="system-status" aria-label="État des outils">
-            <span class="status-chip is-checking" id="yt-dlp-status">yt-dlp</span>
-            <span class="status-chip is-checking" id="ffmpeg-status">FFmpeg</span>
-            <span class="status-chip is-checking" id="js-runtime-status">Runtime JS</span>
-            <button id="update-yt-dlp" class="secondary-button compact" type="button">Mettre à jour</button>
-            <button id="check-system" class="icon-button" type="button" title="Revérifier les outils" aria-label="Revérifier les outils">↻</button>
-          </div>
-        </header>
-
-        <section class="view is-visible" id="download-view">
-          <div class="hero-card">
-            <div class="hero-copy">
-              <span class="hero-badge">VIDÉO • AUDIO • PLAYLIST</span>
-              <h2>Une URL autorisée. Le bon format. Terminé.</h2>
-              <p>Colle un lien vers tes contenus, une œuvre libre de droits, ou une vidéo pour laquelle tu as une autorisation.</p>
-            </div>
-            <div class="orb" aria-hidden="true"><span>↓</span></div>
-          </div>
-
-          <div class="workspace-grid">
-            <form class="download-card" id="download-form" novalidate>
-              <div class="field-group field-span">
-                <label for="video-url">Lien YouTube</label>
-                <div class="url-control">
-                  <span class="url-icon" aria-hidden="true">↗</span>
-                  <textarea
-                    id="video-url"
-                    name="url"
-                    spellcheck="false"
-                    rows="2"
-                    placeholder="Colle un ou plusieurs liens YouTube, un par ligne"
-                    required
-                  ></textarea>
-                  <div class="url-actions">
-                    <button class="text-button" id="paste-url" type="button">Coller</button>
-                  </div>
-                </div>
-                <p class="field-error" id="url-error" role="alert"></p>
-                <article class="metadata-preview" id="metadata-preview" hidden>
-                  <div class="metadata-thumbnail">
-                    <img id="metadata-thumbnail" alt="Miniature de la vidéo" />
-                    <span id="metadata-duration">—</span>
-                  </div>
-                  <div class="metadata-copy">
-                    <span class="eyebrow" id="metadata-kind">VIDÉO</span>
-                    <strong id="metadata-title">Titre de la vidéo</strong>
-                    <small id="metadata-uploader">Chaîne YouTube</small>
-                  </div>
-                </article>
-              </div>
-
-              <fieldset class="field-group">
-                <legend>Format</legend>
-                <div class="segmented-control">
-                  <label>
-                    <input type="radio" name="mode" value="video" checked />
-                    <span><b>Vidéo</b><small>MP4</small></span>
-                  </label>
-                  <label>
-                    <input type="radio" name="mode" value="audio" />
-                    <span><b>Audio</b><small>MP3</small></span>
-                  </label>
-                </div>
-              </fieldset>
-
-              <div class="field-group" id="quality-group">
-                <label for="quality">Qualité</label>
-                <select id="quality" name="quality">
-                  <option value="best">Meilleure disponible</option>
-                  <option value="2160">4K — 2160p</option>
-                  <option value="1440">2K — 1440p</option>
-                  <option value="1080" selected>Full HD — 1080p</option>
-                  <option value="720">HD — 720p</option>
-                  <option value="480">SD — 480p</option>
-                  <option value="360">Éco — 360p</option>
-                </select>
-              </div>
-
-              <div class="field-group" id="container-group">
-                <label for="container">Conteneur vidéo</label>
-                <select id="container" name="container">
-                  <option value="mp4" selected>MP4 — compatible partout</option>
-                  <option value="mkv">MKV — plus flexible</option>
-                </select>
-              </div>
-
-              <div class="field-group field-span subtitle-youtube-options" id="subtitles-group">
-                <div class="subtitle-options-heading">
-                  <div>
-                    <label for="subtitle-mode">Sous-titres YouTube</label>
-                    <small id="subtitle-track-summary">Analyse le lien pour afficher les langues disponibles.</small>
-                  </div>
-                  <label class="inline-check" for="include-auto-subtitles">
-                    <input id="include-auto-subtitles" type="checkbox" checked />
-                    Inclure les pistes automatiques
-                  </label>
-                </div>
-                <div class="subtitle-option-grid">
-                  <select id="subtitle-mode" name="subtitleMode">
-                    <option value="none" selected>Aucun sous-titre</option>
-                    <option value="embed">Intégrer à la vidéo</option>
-                    <option value="separate">Conserver séparément</option>
-                    <option value="only">Télécharger uniquement les sous-titres</option>
-                  </select>
-                  <select id="subtitle-format" name="subtitleFormat">
-                    <option value="srt" selected>SRT — compatible partout</option>
-                    <option value="vtt">VTT — web et lecteurs modernes</option>
-                    <option value="best">Format original</option>
-                  </select>
-                </div>
-                <div class="language-track-list" id="youtube-subtitle-tracks" aria-live="polite">
-                  <span class="language-empty">Aucune piste analysée.</span>
-                </div>
-              </div>
-
-              <div class="field-group field-span">
-                <label for="output-folder">Dossier de destination</label>
-                <div class="folder-control">
-                  <input id="output-folder" name="outputFolder" type="text" readonly placeholder="Dossier Téléchargements par défaut" />
-                  <button class="secondary-button" id="choose-folder" type="button">Choisir</button>
-                  <button class="icon-button soft" id="open-folder" type="button" title="Ouvrir le dossier" aria-label="Ouvrir le dossier">↗</button>
-                </div>
-              </div>
-
-              <div class="toggle-row field-span">
-                <label class="toggle-option">
-                  <input id="playlist" name="playlist" type="checkbox" />
-                  <span class="switch" aria-hidden="true"></span>
-                  <span><b>Télécharger la playlist</b><small>Sinon, seule la vidéo ouverte sera prise.</small></span>
-                </label>
-                <label class="toggle-option">
-                  <input id="compatibility-mode" name="compatibilityMode" type="checkbox" />
-                  <span class="switch" aria-hidden="true"></span>
-                  <span><b>Mode dépannage 403</b><small>Si un téléchargement autorisé échoue. Client alternatif, 1080p max.</small></span>
-                </label>
-              </div>
-
-              <button class="primary-button field-span" id="start-download" type="submit">
-                <span>Ajouter à la file</span>
-                <span aria-hidden="true">↓</span>
-              </button>
-            </form>
-
-            <aside class="progress-card" aria-live="polite">
-              <div class="card-heading">
-                <div>
-                  <p class="eyebrow">Activité</p>
-                  <h3 id="progress-title">Prêt à télécharger</h3>
-                </div>
-                <span class="activity-dot" id="activity-dot"></span>
-              </div>
-
-              <div class="progress-visual">
-                <div class="progress-ring" id="progress-ring">
-                  <strong id="progress-percent">0%</strong>
-                  <span>progression</span>
-                </div>
-              </div>
-
-              <dl class="metrics">
-                <div><dt>Vitesse</dt><dd id="progress-speed">—</dd></div>
-                <div><dt>Temps restant</dt><dd id="progress-eta">—</dd></div>
-                <div><dt>Transféré</dt><dd id="progress-size">—</dd></div>
-              </dl>
-
-              <div class="progress-actions">
-                <button class="danger-button" id="cancel-download" type="button" disabled>Annuler</button>
-                <button class="secondary-button" id="toggle-log" type="button">Journal</button>
-              </div>
-              <pre class="download-log" id="download-log" hidden aria-label="Journal du téléchargement"></pre>
-            </aside>
-          </div>
-
-          <section class="queue-card" aria-live="polite">
-            <div class="queue-heading">
-              <div>
-                <p class="eyebrow">File d’attente</p>
-                <h3><span id="queue-count">0</span> élément</h3>
-              </div>
-              <button class="secondary-button" id="clear-finished-queue" type="button">Nettoyer les terminés</button>
-            </div>
-            <div class="queue-list" id="queue-list">
-              <div class="queue-empty">Ajoute plusieurs liens : AgenFetch les traitera dans l’ordre.</div>
-            </div>
+          <section class="home-activity-card" aria-live="polite">
+            <div class="card-heading compact-heading"><h2>Activité en cours</h2><button class="text-button" id="home-view-queue" type="button">Voir les téléchargements →</button></div>
+            <div class="home-activity-empty" id="home-activity-empty"><span class="empty-icon">✓</span><div><strong>Rien ne travaille pour le moment.</strong><p>Colle un lien ou cherche un sous-titre pour commencer.</p></div></div>
+            <div class="home-activity" id="home-activity" hidden><div class="media-placeholder" id="home-media-preview">AF</div><div class="home-activity-copy"><strong id="home-progress-title">Téléchargement en cours</strong><span id="home-progress-phase">Préparation du fichier</span><div class="linear-progress"><span id="home-progress-bar"></span></div><div class="activity-metrics"><span id="home-progress-speed">—</span><span id="home-progress-eta">—</span><b id="home-progress-percent">0%</b></div></div><div class="phase-steps" aria-label="Étapes du téléchargement"><span data-phase="video"><b>1</b>Vidéo</span><span data-phase="audio"><b>2</b>Audio</span><span data-phase="merge"><b>3</b>Fusion</span></div></div>
           </section>
+        </section>
+
+        <section class="view" id="download-view">
+          <form class="surface download-composer" id="download-form" novalidate>
+            <div class="field-group field-span"><label for="video-url">Lien YouTube</label><div class="url-control"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.15 1.15M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.15-1.15"/></svg><textarea id="video-url" name="url" spellcheck="false" rows="1" placeholder="Colle un ou plusieurs liens YouTube, un par ligne" required></textarea><button class="text-button" id="paste-url" type="button">Coller</button></div><p class="field-error" id="url-error" role="alert"></p><article class="metadata-preview" id="metadata-preview" hidden><div class="metadata-thumbnail"><img id="metadata-thumbnail" alt="Miniature de la vidéo" /><span id="metadata-duration">—</span></div><div class="metadata-copy"><span class="eyebrow" id="metadata-kind">VIDÉO</span><strong id="metadata-title">Titre de la vidéo</strong><small id="metadata-uploader">Chaîne YouTube</small></div></article></div>
+            <fieldset class="field-group"><legend>Format</legend><div class="segmented-control"><label><input type="radio" name="mode" value="video" checked /><span><b>Vidéo</b><small>MP4 / MKV</small></span></label><label><input type="radio" name="mode" value="audio" /><span><b>Audio</b><small>MP3</small></span></label></div></fieldset>
+            <div class="field-group" id="quality-group"><label for="quality">Qualité</label><select id="quality" name="quality"><option value="best">Meilleure disponible</option><option value="2160">4K — 2160p</option><option value="1440">2K — 1440p</option><option value="1080" selected>Full HD — 1080p</option><option value="720">HD — 720p</option><option value="480">SD — 480p</option><option value="360">Éco — 360p</option></select></div>
+            <div class="field-group" id="container-group"><label for="container">Conteneur</label><select id="container" name="container"><option value="mp4" selected>MP4 — compatible</option><option value="mkv">MKV — flexible</option></select></div>
+            <div class="field-group"><label for="performance-profile">Vitesse</label><select id="performance-profile" name="performanceProfile"><option value="eco">Économie · 2 fragments</option><option value="normal" selected>Normal · 4 fragments</option><option value="turbo">Turbo · 8 fragments</option></select></div>
+            <details class="advanced-options field-span"><summary>Sous-titres YouTube et options avancées <span>⌄</span></summary><div class="advanced-content">
+              <div class="field-group field-span subtitle-youtube-options" id="subtitles-group"><div class="subtitle-options-heading"><div><label for="subtitle-mode">Sous-titres YouTube</label><small id="subtitle-track-summary">Analyse le lien pour afficher les langues disponibles.</small></div><label class="inline-check" for="include-auto-subtitles"><input id="include-auto-subtitles" type="checkbox" checked /> Inclure les pistes automatiques</label></div><div class="subtitle-option-grid"><select id="subtitle-mode" name="subtitleMode"><option value="none" selected>Aucun sous-titre</option><option value="embed">Intégrer à la vidéo</option><option value="separate">Conserver séparément</option><option value="only">Télécharger uniquement les sous-titres</option></select><select id="subtitle-format" name="subtitleFormat"><option value="srt" selected>SRT — compatible partout</option><option value="vtt">VTT — web</option><option value="best">Format original</option></select></div><div class="language-track-list" id="youtube-subtitle-tracks" aria-live="polite"><span class="language-empty">Aucune piste analysée.</span></div></div>
+              <div class="field-group field-span"><label for="output-folder">Dossier de destination</label><div class="folder-control"><input id="output-folder" name="outputFolder" type="text" readonly placeholder="Dossier Téléchargements par défaut" /><button class="secondary-button" id="choose-folder" type="button">Modifier</button><button class="icon-button" id="open-folder" type="button" title="Ouvrir le dossier" aria-label="Ouvrir le dossier">↗</button></div></div>
+              <div class="toggle-row field-span"><label class="toggle-option"><input id="playlist" name="playlist" type="checkbox" /><span class="switch" aria-hidden="true"></span><span><b>Télécharger la playlist</b><small>Sinon seule la vidéo ouverte sera prise.</small></span></label><label class="toggle-option"><input id="compatibility-mode" name="compatibilityMode" type="checkbox" /><span class="switch" aria-hidden="true"></span><span><b>Mode dépannage 403</b><small>Client alternatif, 1080p maximum.</small></span></label></div>
+            </div></details>
+            <button class="primary-button field-span submit-button" id="start-download" type="submit"><span id="download-cta-label">Télécharger</span><span aria-hidden="true">↓</span></button>
+          </form>
+
+          <section class="surface queue-card" aria-live="polite"><div class="queue-heading"><div><p class="eyebrow">Téléchargements</p><h3><span id="queue-count">0</span> <span id="queue-count-label">téléchargement</span></h3></div><button class="secondary-button" id="clear-finished-queue" type="button">Nettoyer les terminés</button></div><div class="queue-list" id="queue-list"><div class="queue-empty">Aucun téléchargement pour le moment.</div></div></section>
+          <details class="surface progress-card" id="progress-details"><summary class="progress-summary"><span><b>Détails techniques</b><small>Débit, volume transféré et journal</small></span><span aria-hidden="true">⌄</span></summary><div class="progress-panel"><div class="progress-main"><div><p class="eyebrow">Activité actuelle</p><h3 id="progress-title">Prêt à télécharger</h3><span class="phase-label" id="progress-phase">En attente d’un lien</span></div><strong class="progress-percent" id="progress-percent">0%</strong></div><div class="progress-track" id="progress-ring"><span id="progress-fill"></span></div><dl class="metrics"><div><dt>Débit</dt><dd id="progress-speed">—</dd></div><div><dt>Temps restant</dt><dd id="progress-eta">—</dd></div><div><dt>Transféré</dt><dd id="progress-size">—</dd></div><div><dt>Mode réseau</dt><dd id="progress-network">Normal · 4 flux</dd></div></dl><span class="activity-dot" id="activity-dot"></span><div class="progress-actions"><button class="secondary-button" id="pause-download" type="button" disabled>Pause</button><button class="danger-button" id="cancel-download" type="button" disabled>Annuler</button><button class="secondary-button" id="toggle-log" type="button">Journal</button></div><pre class="download-log" id="download-log" hidden aria-label="Journal du téléchargement"></pre></div></details>
         </section>
 
         <section class="view" id="subtitles-view">
-          <div class="hero-card subtitle-hero">
-            <div class="hero-copy">
-              <span class="hero-badge">FILMS • SÉRIES • MULTILINGUE</span>
-              <h2>Le bon épisode. La bonne langue. Le bon fichier.</h2>
-              <p>AgenFetch compare les fournisseurs configurés et classe les pistes les plus compatibles avec ton média local.</p>
-            </div>
-            <div class="orb" aria-hidden="true"><span>CC</span></div>
-          </div>
+          <section class="engine-banner" id="subtitle-engine-banner"><span class="engine-status-icon">✓</span><div><strong id="subtitle-engine-title">Vérification du moteur…</strong><span id="subtitle-engine-copy">Le moteur Python reste séparé pour garder AgenFetch léger.</span></div><button class="primary-button engine-install-button" id="install-subtitle-engine" type="button" hidden><span>Installer le moteur</span></button><div class="engine-progress" id="subtitle-engine-progress" hidden><div><span id="subtitle-engine-progress-bar"></span></div><small id="subtitle-engine-progress-label">0%</small></div></section>
+          <form class="surface subtitle-search-card" id="subtitle-search-form">
+            <div class="subtitle-file-pick field-span"><span class="file-pick-icon">CC</span><div><strong>Sélectionne un fichier vidéo</strong><p>AgenFetch identifiera automatiquement le titre, l’année et l’épisode.</p></div><button class="secondary-button strong" id="choose-subtitle-media" type="button">Choisir un fichier</button><input id="subtitle-media-path" type="text" readonly placeholder="Aucun fichier sélectionné" /></div>
+            <details class="detected-media field-span"><summary>Identification du média <span>Vérifier ou corriger</span></summary><div class="subtitle-fields"><div class="field-group title-field"><label for="subtitle-title">Titre</label><input class="standalone-input" id="subtitle-title" type="text" maxlength="180" placeholder="Ex. The Last of Us" /></div><div class="field-group"><label for="subtitle-year">Année</label><input class="standalone-input" id="subtitle-year" type="number" min="1900" max="2100" placeholder="2025" /></div><div class="field-group"><label for="subtitle-season">Saison</label><input class="standalone-input" id="subtitle-season" type="number" min="0" max="99" placeholder="2" /></div><div class="field-group"><label for="subtitle-episode">Épisode</label><input class="standalone-input" id="subtitle-episode" type="number" min="0" max="999" placeholder="3" /></div></div></details>
+            <fieldset class="field-group field-span"><legend>Langues recherchées</legend><div class="language-picker" id="external-language-picker"><label><input type="checkbox" value="fr" checked /><span>FR</span> Français</label><label><input type="checkbox" value="en" checked /><span>EN</span> English</label><label><input type="checkbox" value="es" /><span>ES</span> Español</label><label><input type="checkbox" value="de" /><span>DE</span> Deutsch</label><label><input type="checkbox" value="pt" /><span>PT</span> Português</label><label><input type="checkbox" value="ar" /><span>AR</span> العربية</label><label><input type="checkbox" value="it" /><span>IT</span> Italiano</label></div></fieldset>
+            <div class="subtitle-search-footer"><div class="field-group"><label for="external-subtitle-format">Format</label><select id="external-subtitle-format"><option value="srt" selected>SRT</option><option value="vtt">VTT</option></select></div><span class="provider-count" id="provider-count">0 fournisseur</span><button class="primary-button subtitle-search-button" id="search-external-subtitles" type="submit"><span>Rechercher des sous-titres</span><span aria-hidden="true">→</span></button></div><p class="privacy-copy field-span">Les critères sont envoyés directement aux fournisseurs activés, jamais à AgenStudio.</p>
+          </form>
+          <section class="surface subtitle-results-card"><div class="queue-heading"><div><p class="eyebrow">Résultats</p><h3 id="subtitle-results-title">Lance une recherche pour comparer les pistes.</h3></div><span class="provider-count" id="subtitle-result-count">0 résultat</span></div><div class="subtitle-results" id="subtitle-results"><div class="queue-empty">Aucun résultat pour le moment.</div></div></section>
+        </section>
 
-          <section class="engine-banner" id="subtitle-engine-banner">
-            <div>
-              <p class="eyebrow">Composant optionnel</p>
-              <strong id="subtitle-engine-title">Vérification du moteur…</strong>
-              <span id="subtitle-engine-copy">Le moteur Python reste séparé pour garder AgenFetch léger.</span>
-            </div>
-            <button class="primary-button engine-install-button" id="install-subtitle-engine" type="button" hidden>
-              <span>Installer le moteur</span>
-            </button>
-            <div class="engine-progress" id="subtitle-engine-progress" hidden>
-              <div><span id="subtitle-engine-progress-bar"></span></div>
-              <small id="subtitle-engine-progress-label">0%</small>
-            </div>
+        <section class="view" id="history-view"><div class="section-heading"><div><p class="eyebrow">Stocké sur cet ordinateur</p><h2>Tes médias récents</h2></div><button id="clear-history" class="secondary-button" type="button">Effacer l’historique</button></div><div class="history-list" id="history-list"></div></section>
+
+        <section class="view" id="about-view"><div class="settings-stack">
+          <section class="settings-section"><div class="settings-heading"><div><p class="eyebrow">Outils locaux</p><h2>État du système</h2></div><button id="check-system" class="secondary-button" type="button">Revérifier</button></div><div class="system-status" aria-label="État des outils"><span class="status-chip is-checking" id="yt-dlp-status">yt-dlp</span><span class="status-chip is-checking" id="ffmpeg-status">FFmpeg</span><span class="status-chip is-checking" id="js-runtime-status">Runtime JS</span><button id="update-yt-dlp" class="secondary-button compact" type="button">Mettre yt-dlp à jour</button></div></section>
+          <section class="settings-section provider-card"><div class="settings-heading"><div><p class="eyebrow">Sous-titres</p><h2>Fournisseurs</h2><p>Les clés sont chiffrées par Windows et restent sur cet ordinateur.</p></div><span class="built-in-provider">Podnapisi · actif sans clé</span></div><div class="provider-fields"><label for="subdl-api-key">SubDL API key<div class="provider-key-control"><input id="subdl-api-key" type="password" autocomplete="off" placeholder="Non configurée" /><span id="subdl-configured">—</span></div></label><label for="opensubtitles-api-key">OpenSubtitles API key<div class="provider-key-control"><input id="opensubtitles-api-key" type="password" autocomplete="off" placeholder="Non configurée" /><span id="opensubtitles-configured">—</span></div></label><button class="secondary-button provider-save" id="save-subtitle-providers" type="button">Enregistrer les clés</button></div></section>
+          <section class="settings-grid">
+            <article class="settings-section about-card"><p class="eyebrow">Application installée</p><h2>AgenFetch Desktop</h2><p>Version actuelle sur cet ordinateur.</p><dl class="about-meta"><div><dt>Version installée</dt><dd id="app-version">—</dd></div><div><dt>Dernière vérification</dt><dd id="update-checked-at">Pas encore</dd></div></dl><button class="primary-button" id="check-app-update" type="button"><span>Vérifier les mises à jour</span></button></article>
+            <article class="settings-section about-card" id="update-result-card"><p class="eyebrow" id="update-status-label">État</p><h3 id="update-status-title">Aucune vérification pour le moment</h3><p id="update-status-copy">Compare la version installée avec la dernière publication GitHub.</p><div class="update-actions" id="update-actions" hidden><button class="primary-button" id="download-app-update" type="button"><span>Télécharger la mise à jour</span></button><button class="secondary-button" id="open-update-website" type="button">Ouvrir le site</button></div><div class="update-progress" id="update-progress" hidden><div class="update-progress-track"><div class="update-progress-bar" id="update-progress-bar"></div></div><p><strong id="update-progress-percent">0%</strong><span id="update-progress-meta">en attente</span></p><button class="danger-button" id="cancel-app-update" type="button">Annuler</button></div><button class="primary-button" id="install-app-update" type="button" hidden><span>Lancer l’installateur</span></button></article>
+            <article class="settings-section about-card"><p class="eyebrow">Runtime YouTube</p><h3 id="js-runtime-title">QuickJS intégré</h3><p id="js-runtime-copy">Le runtime léger est utilisé par défaut. Deno reste optionnel.</p><div class="update-progress" id="deno-runtime-progress" hidden><div class="update-progress-track"><div class="update-progress-bar" id="deno-runtime-progress-bar"></div></div><p><strong id="deno-runtime-progress-percent">0%</strong><span id="deno-runtime-progress-meta">en attente</span></p></div><button class="secondary-button provider-save" id="install-deno-runtime" type="button">Installer Deno optionnel</button></article>
+            <article class="settings-section about-card"><p class="eyebrow">Extension Chrome / Edge</p><h3>Depuis YouTube, en un clic</h3><p>L’application fonctionne aussi sans extension, en collant simplement un lien.</p><p class="about-path" id="extension-folder-path">—</p><button class="secondary-button" id="open-extension-folder" type="button">Ouvrir le dossier de l’extension</button></article>
           </section>
-
-          <div class="subtitle-workspace">
-            <form class="subtitle-search-card" id="subtitle-search-form">
-              <div class="card-heading">
-                <div>
-                  <p class="eyebrow">Recherche locale</p>
-                  <h3>Identifier le média</h3>
-                </div>
-                <span class="provider-count" id="provider-count">0 fournisseur</span>
-              </div>
-
-              <div class="field-group field-span">
-                <label for="subtitle-media-path">Fichier vidéo</label>
-                <div class="folder-control">
-                  <input id="subtitle-media-path" type="text" readonly placeholder="Choisir un film ou un épisode" />
-                  <button class="secondary-button" id="choose-subtitle-media" type="button">Choisir</button>
-                </div>
-              </div>
-
-              <div class="subtitle-fields">
-                <div class="field-group title-field">
-                  <label for="subtitle-title">Titre</label>
-                  <input class="standalone-input" id="subtitle-title" type="text" maxlength="180" placeholder="Ex. The Last of Us" />
-                </div>
-                <div class="field-group">
-                  <label for="subtitle-year">Année</label>
-                  <input class="standalone-input" id="subtitle-year" type="number" min="1900" max="2100" placeholder="2025" />
-                </div>
-                <div class="field-group">
-                  <label for="subtitle-season">Saison</label>
-                  <input class="standalone-input" id="subtitle-season" type="number" min="0" max="99" placeholder="2" />
-                </div>
-                <div class="field-group">
-                  <label for="subtitle-episode">Épisode</label>
-                  <input class="standalone-input" id="subtitle-episode" type="number" min="0" max="999" placeholder="3" />
-                </div>
-              </div>
-
-              <fieldset class="field-group field-span">
-                <legend>Langues</legend>
-                <div class="language-picker" id="external-language-picker">
-                  <label><input type="checkbox" value="fr" checked /><span>FR</span> Français</label>
-                  <label><input type="checkbox" value="en" checked /><span>EN</span> English</label>
-                  <label><input type="checkbox" value="es" /><span>ES</span> Español</label>
-                  <label><input type="checkbox" value="de" /><span>DE</span> Deutsch</label>
-                  <label><input type="checkbox" value="pt" /><span>PT</span> Português</label>
-                  <label><input type="checkbox" value="ar" /><span>AR</span> العربية</label>
-                  <label><input type="checkbox" value="it" /><span>IT</span> Italiano</label>
-                </div>
-              </fieldset>
-
-              <div class="field-group">
-                <label for="external-subtitle-format">Format téléchargé</label>
-                <select id="external-subtitle-format">
-                  <option value="srt" selected>SRT</option>
-                  <option value="vtt">VTT</option>
-                </select>
-              </div>
-              <button class="primary-button subtitle-search-button" id="search-external-subtitles" type="submit">
-                <span>Rechercher partout</span><span aria-hidden="true">→</span>
-              </button>
-              <p class="privacy-copy field-span">Le nom du fichier et les critères de recherche sont envoyés directement aux fournisseurs activés, jamais à AgenStudio.</p>
-            </form>
-
-            <aside class="provider-card">
-              <p class="eyebrow">Fournisseurs</p>
-              <h3>Connecter les catalogues</h3>
-              <p>Utilise tes propres clés gratuites. Elles sont chiffrées par Windows et restent sur cet ordinateur.</p>
-              <div class="built-in-provider"><span>Podnapisi</span><b>Actif sans clé</b></div>
-              <label for="subdl-api-key">SubDL API key</label>
-              <div class="provider-key-control">
-                <input id="subdl-api-key" type="password" autocomplete="off" placeholder="Non configurée" />
-                <span id="subdl-configured">—</span>
-              </div>
-              <label for="opensubtitles-api-key">OpenSubtitles API key</label>
-              <div class="provider-key-control">
-                <input id="opensubtitles-api-key" type="password" autocomplete="off" placeholder="Non configurée" />
-                <span id="opensubtitles-configured">—</span>
-              </div>
-              <button class="secondary-button provider-save" id="save-subtitle-providers" type="button">Enregistrer les clés</button>
-            </aside>
-          </div>
-
-          <section class="subtitle-results-card">
-            <div class="queue-heading">
-              <div>
-                <p class="eyebrow">Résultats agrégés</p>
-                <h3 id="subtitle-results-title">Lance une recherche pour comparer les pistes.</h3>
-              </div>
-              <span class="provider-count" id="subtitle-result-count">0 résultat</span>
-            </div>
-            <div class="subtitle-results" id="subtitle-results">
-              <div class="queue-empty">Aucun résultat pour le moment.</div>
-            </div>
-          </section>
-        </section>
-
-        <section class="view" id="history-view">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Historique local</p>
-              <h2>Tes derniers téléchargements</h2>
-            </div>
-            <button id="clear-history" class="secondary-button" type="button">Effacer l’historique</button>
-          </div>
-          <div class="history-list" id="history-list"></div>
-        </section>
-
-        <section class="view" id="about-view">
-          <div class="about-grid">
-            <article class="about-card">
-              <p class="eyebrow">Application installée</p>
-              <h2>AgenFetch Desktop</h2>
-              <p>Version actuelle sur cet ordinateur. La vérification interroge GitHub Releases, sans compte.</p>
-              <dl class="about-meta">
-                <div>
-                  <dt>Version installée</dt>
-                  <dd id="app-version">—</dd>
-                </div>
-                <div>
-                  <dt>Dernière vérification</dt>
-                  <dd id="update-checked-at">Pas encore</dd>
-                </div>
-              </dl>
-              <button class="primary-button" id="check-app-update" type="button">
-                <span>Vérifier les mises à jour</span>
-              </button>
-            </article>
-
-            <article class="about-card" id="update-result-card">
-              <p class="eyebrow" id="update-status-label">État</p>
-              <h3 id="update-status-title">Aucune vérification pour le moment</h3>
-              <p id="update-status-copy">Clique sur Vérifier les mises à jour pour comparer avec la dernière release GitHub.</p>
-              <div class="update-actions" id="update-actions" hidden>
-                <button class="primary-button" id="download-app-update" type="button">
-                  <span>Télécharger la mise à jour</span>
-                </button>
-                <button class="secondary-button" id="open-update-website" type="button">Ouvrir le site</button>
-              </div>
-              <div class="update-progress" id="update-progress" hidden>
-                <div class="update-progress-track" aria-hidden="true">
-                  <div class="update-progress-bar" id="update-progress-bar"></div>
-                </div>
-                <p>
-                  <strong id="update-progress-percent">0%</strong>
-                  <span id="update-progress-meta">en attente</span>
-                </p>
-                <button class="danger-button" id="cancel-app-update" type="button">Annuler</button>
-              </div>
-              <button class="primary-button" id="install-app-update" type="button" hidden>
-                <span>Lancer l’installateur</span>
-              </button>
-            </article>
-
-            <article class="about-card">
-              <p class="eyebrow">Runtime YouTube</p>
-              <h3 id="js-runtime-title">QuickJS intégré</h3>
-              <p id="js-runtime-copy">Le runtime léger est utilisé par défaut. Deno, plus isolé mais plus lourd, reste optionnel.</p>
-              <div class="update-progress" id="deno-runtime-progress" hidden>
-                <div class="update-progress-track" aria-hidden="true">
-                  <div class="update-progress-bar" id="deno-runtime-progress-bar"></div>
-                </div>
-                <p><strong id="deno-runtime-progress-percent">0%</strong><span id="deno-runtime-progress-meta">en attente</span></p>
-              </div>
-              <button class="secondary-button provider-save" id="install-deno-runtime" type="button">Installer Deno optionnel</button>
-            </article>
-
-            <article class="about-card about-card-wide">
-              <p class="eyebrow">Extension Chrome / Edge</p>
-              <h2>Depuis YouTube, en un clic</h2>
-              <p>Optionnel. L’app fonctionne aussi en collant un lien. Chrome et Edge n’installent pas d’extension hors store : tu charges le dossier livré avec AgenFetch.</p>
-              <ol class="about-steps">
-                <li>Ouvre <code>chrome://extensions</code> ou <code>edge://extensions</code>.</li>
-                <li>Active <strong>Mode développeur</strong>.</li>
-                <li>Clique sur <strong>Charger l’extension non empaquetée</strong>, puis choisis le dossier ci-dessous.</li>
-              </ol>
-              <p class="about-path" id="extension-folder-path">—</p>
-              <button class="secondary-button" id="open-extension-folder" type="button">Ouvrir le dossier de l’extension</button>
-            </article>
-          </div>
-        </section>
+        </div></section>
 
         <div class="toast" id="toast" role="status" aria-live="polite"></div>
       </main>
     </div>
-    <div class="consent-overlay" id="consent-overlay" hidden>
-      <div class="consent-card" role="dialog" aria-modal="true" aria-labelledby="consent-title">
-        <p class="eyebrow">Avant de commencer</p>
-        <h2 id="consent-title">Usage autorisé uniquement</h2>
-        <p>AgenFetch enregistre localement des fichiers YouTube. Utilise-le seulement pour tes contenus, les œuvres libres de droits, ou ceux pour lesquels tu disposes d’une autorisation.</p>
-        <ul>
-          <li>YouTube n’autorise pas le téléchargement hors de ses fonctions officielles.</li>
-          <li>Aucun cookie, compte ou mot de passe n’est demandé.</li>
-          <li>Pour les films et séries, les critères choisis sont envoyés directement aux fournisseurs que tu configures.</li>
-          <li>Le mode dépannage 403 ne sert qu’en cas d’échec d’un téléchargement déjà autorisé.</li>
-        </ul>
-        <label class="consent-check" for="consent-accept-check">
-          <input id="consent-accept-check" type="checkbox" />
-          <span>Je confirme n’utiliser AgenFetch que pour des contenus autorisés, et je comprends que le téléchargement du catalogue YouTube n’est pas permis par la plateforme.</span>
-        </label>
-        <button class="primary-button" id="consent-accept" type="button" disabled>
-          <span>Continuer</span>
-        </button>
-      </div>
-    </div>
+
+    <div class="consent-overlay" id="consent-overlay" hidden><div class="consent-card" role="dialog" aria-modal="true" aria-labelledby="consent-title"><p class="eyebrow">Avant de commencer</p><h2 id="consent-title">Usage autorisé uniquement</h2><p>AgenFetch enregistre localement des fichiers YouTube. Utilise-le seulement pour tes contenus, les œuvres libres de droits, ou ceux pour lesquels tu disposes d’une autorisation.</p><ul><li>YouTube n’autorise pas le téléchargement hors de ses fonctions officielles.</li><li>Aucun cookie, compte ou mot de passe n’est demandé.</li><li>Les recherches de sous-titres vont directement vers les fournisseurs configurés.</li></ul><label class="consent-check" for="consent-accept-check"><input id="consent-accept-check" type="checkbox" /><span>Je confirme n’utiliser AgenFetch que pour des contenus autorisés.</span></label><button class="primary-button" id="consent-accept" type="button" disabled><span>Continuer</span></button></div></div>
     <script src="app.js"></script>
   </body>
 </html>

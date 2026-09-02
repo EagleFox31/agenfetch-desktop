@@ -1,8 +1,9 @@
 'use strict';
 
+const fs = require('node:fs');
 const path = require('node:path');
 const { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, Notification, safeStorage, shell } = require('electron');
-const { DownloaderService } = require('./core/downloader');
+const { DownloaderService, safeThumbnailUrl } = require('./core/downloader');
 const { DownloadQueue } = require('./core/download-queue');
 const { HistoryStore } = require('./core/history-store');
 const { ConsentStore } = require('./core/consent-store');
@@ -66,25 +67,25 @@ function isDevToolsShortcut(input) {
 }
 
 function createWindow() {
-  nativeTheme.themeSource = 'dark';
+  nativeTheme.themeSource = 'light';
   mainWindow = new BrowserWindow({
-    width: 1180,
-    height: 790,
+    width: 1280,
+    height: 820,
     minWidth: 940,
     minHeight: 680,
     show: false,
-    backgroundColor: '#08191f',
+    backgroundColor: '#f7f5ef',
     autoHideMenuBar: true,
     ...(process.platform === 'win32'
       ? {
           titleBarStyle: 'hidden',
           titleBarOverlay: {
-            color: '#08191f',
+            color: '#071f29',
             symbolColor: '#f3f3f3',
             height: 32
           }
         }
-      : { backgroundColor: '#08191f' }),
+      : { backgroundColor: '#f7f5ef' }),
     icon: path.join(__dirname, '..', 'assets', 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -128,7 +129,7 @@ function createAppMenu() {
 }
 
 function showDownloadNotification(result) {
-  if (!Notification.isSupported() || result.cancelled) return;
+  if (!Notification.isSupported() || result.cancelled || result.paused) return;
   const notification = new Notification({
     title: result.ok ? 'Téléchargement terminé' : 'Téléchargement échoué',
     body: result.ok
@@ -151,8 +152,16 @@ function sanitizeQueuePayloads(payloads) {
   const list = Array.isArray(payloads) ? payloads : [payloads];
   return list.map((payload) => ({
     ...sanitizeDownloadOptions(payload, downloader.defaultFolder),
-    title: typeof payload?.title === 'string' ? payload.title.trim().slice(0, 200) : ''
+    title: typeof payload?.title === 'string' ? payload.title.trim().slice(0, 200) : '',
+    thumbnail: safeThumbnailUrl(payload?.thumbnail)
   }));
+}
+
+function validateMediaPath(value) {
+  if (typeof value !== 'string' || !value.trim()) throw new Error('Fichier introuvable.');
+  const filePath = path.normalize(value.trim());
+  if (!path.isAbsolute(filePath) || !fs.existsSync(filePath)) throw new Error('Ce fichier n’existe plus à cet emplacement.');
+  return filePath;
 }
 
 function wireIpc() {
@@ -196,6 +205,11 @@ function wireIpc() {
     if (typeof folderPath !== 'string' || !folderPath.trim()) return 'Dossier invalide';
     return shell.openPath(folderPath);
   });
+  ipcMain.handle('media:open-path', (_event, filePath) => shell.openPath(validateMediaPath(filePath)));
+  ipcMain.handle('media:show-in-folder', (_event, filePath) => {
+    shell.showItemInFolder(validateMediaPath(filePath));
+    return true;
+  });
 
   ipcMain.handle('extension:info', () => extensionStatus({
     isPackaged: app.isPackaged,
@@ -227,7 +241,9 @@ function wireIpc() {
     return downloadQueue.add(sanitizeQueuePayloads(payloads));
   });
   ipcMain.handle('download:cancel', () => downloadQueue.cancelActive());
+  ipcMain.handle('download:pause', () => downloadQueue.pauseActive());
   ipcMain.handle('queue:list', () => downloadQueue.snapshot());
+  ipcMain.handle('queue:resume', (_event, itemId) => downloadQueue.resume(itemId));
   ipcMain.handle('queue:remove', (_event, itemId) => downloadQueue.remove(itemId));
   ipcMain.handle('queue:clear-finished', () => downloadQueue.clearFinished());
   ipcMain.handle('history:list', () => history.list());
@@ -277,9 +293,14 @@ function wireIpc() {
   downloader.on('log', (value) => mainWindow?.webContents.send('download:log', value));
   downloadQueue.on('changed', (value) => mainWindow?.webContents.send('queue:changed', value));
   downloader.on('finished', (value) => {
+    if (value.paused) {
+      mainWindow?.webContents.send('download:finished', value);
+      return;
+    }
     const historyEntry = history.add({
       url: value.options?.url || '',
       title: value.options?.title || '',
+      thumbnail: value.options?.thumbnail || '',
       mode: value.options?.mode || 'video',
       quality: value.options?.quality || '—',
       container: value.options?.container || 'mp4',
