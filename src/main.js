@@ -1,12 +1,12 @@
 'use strict';
 
-const fs = require('node:fs');
 const path = require('node:path');
 const { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, Notification, safeStorage, shell } = require('electron');
 const { DownloaderService, safeThumbnailUrl } = require('./core/downloader');
 const { DownloadQueue } = require('./core/download-queue');
 const { HistoryStore } = require('./core/history-store');
 const { ConsentStore } = require('./core/consent-store');
+const { mediaPathStatus } = require('./core/media-path');
 const { AppUpdater } = require('./core/app-updater');
 const { extensionStatus } = require('./core/extension-path');
 const { ToolManager } = require('./core/tool-manager');
@@ -157,13 +157,6 @@ function sanitizeQueuePayloads(payloads) {
   }));
 }
 
-function validateMediaPath(value) {
-  if (typeof value !== 'string' || !value.trim()) throw new Error('Fichier introuvable.');
-  const filePath = path.normalize(value.trim());
-  if (!path.isAbsolute(filePath) || !fs.existsSync(filePath)) throw new Error('Ce fichier n’existe plus à cet emplacement.');
-  return filePath;
-}
-
 function wireIpc() {
   ipcMain.handle('system:check', () => toolManager.checkAll());
   ipcMain.handle('tools:update-ytdlp', () => {
@@ -205,10 +198,18 @@ function wireIpc() {
     if (typeof folderPath !== 'string' || !folderPath.trim()) return 'Dossier invalide';
     return shell.openPath(folderPath);
   });
-  ipcMain.handle('media:open-path', (_event, filePath) => shell.openPath(validateMediaPath(filePath)));
+  ipcMain.handle('media:status', (_event, filePath) => ({ exists: mediaPathStatus(filePath).exists }));
+  ipcMain.handle('media:open-path', async (_event, filePath) => {
+    const media = mediaPathStatus(filePath);
+    if (!media.exists) return { ok: false, missing: true, error: 'Ce fichier a été déplacé ou supprimé.' };
+    const error = await shell.openPath(media.filePath);
+    return error ? { ok: false, error } : { ok: true };
+  });
   ipcMain.handle('media:show-in-folder', (_event, filePath) => {
-    shell.showItemInFolder(validateMediaPath(filePath));
-    return true;
+    const media = mediaPathStatus(filePath);
+    if (!media.exists) return { ok: false, missing: true, error: 'Ce fichier a été déplacé ou supprimé.' };
+    shell.showItemInFolder(media.filePath);
+    return { ok: true };
   });
 
   ipcMain.handle('extension:info', () => extensionStatus({
