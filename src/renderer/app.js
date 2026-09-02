@@ -35,6 +35,7 @@ const refs = {
   playlist: document.querySelector('#playlist'),
   compatibilityMode: document.querySelector('#compatibility-mode'),
   start: document.querySelector('#start-download'),
+  downloadCtaLabel: document.querySelector('#download-cta-label'),
   pause: document.querySelector('#pause-download'),
   cancel: document.querySelector('#cancel-download'),
   toggleLog: document.querySelector('#toggle-log'),
@@ -56,6 +57,7 @@ const refs = {
   updateYtDlp: document.querySelector('#update-yt-dlp'),
   queueList: document.querySelector('#queue-list'),
   queueCount: document.querySelector('#queue-count'),
+  queueCountLabel: document.querySelector('#queue-count-label'),
   clearFinishedQueue: document.querySelector('#clear-finished-queue'),
   historyList: document.querySelector('#history-list'),
   clearHistory: document.querySelector('#clear-history'),
@@ -71,6 +73,7 @@ const refs = {
   homeViewQueue: document.querySelector('#home-view-queue'),
   homeActivityEmpty: document.querySelector('#home-activity-empty'),
   homeActivity: document.querySelector('#home-activity'),
+  homeMediaPreview: document.querySelector('#home-media-preview'),
   homeProgressTitle: document.querySelector('#home-progress-title'),
   homeProgressPhase: document.querySelector('#home-progress-phase'),
   homeProgressBar: document.querySelector('#home-progress-bar'),
@@ -78,6 +81,7 @@ const refs = {
   homeProgressSpeed: document.querySelector('#home-progress-speed'),
   homeProgressEta: document.querySelector('#home-progress-eta'),
   homePhaseSteps: [...document.querySelectorAll('.phase-steps [data-phase]')],
+  progressDetails: document.querySelector('#progress-details'),
   appVersion: document.querySelector('#app-version'),
   updateCheckedAt: document.querySelector('#update-checked-at'),
   checkAppUpdate: document.querySelector('#check-app-update'),
@@ -150,7 +154,8 @@ const state = {
   subtitleResults: [],
   subtitleQuery: null,
   system: null,
-  lastProgress: null
+  lastProgress: null,
+  progressById: {}
 };
 
 function showToast(message, type = 'info') {
@@ -180,7 +185,7 @@ function setView(viewId) {
   }[viewId] || 'AgenFetch';
   refs.pageIntro.textContent = {
     'home-view': 'Télécharge, sous-titre et organise tes médias sans compte ni cloud AgenStudio.',
-    'download-view': 'Ajoute un lien, choisis le format et laisse AgenFetch gérer la file.',
+    'download-view': 'Colle un lien, choisis le format et télécharge. Les suivants s’organisent automatiquement.',
     'history-view': 'Retrouve ce qu’AgenFetch a préparé sur cet ordinateur.',
     'subtitles-view': 'Choisis un fichier ; AgenFetch identifie le média et compare les pistes disponibles.',
     'about-view': 'Configure les outils, les fournisseurs et les mises à jour.'
@@ -296,6 +301,24 @@ function updateProgress(progress) {
   refs.homeProgressPhase.textContent = progress.phaseLabel || 'Téléchargement du fichier';
   refs.homeProgressSpeed.textContent = progress.speed && progress.speed !== '—' ? progress.speed : 'Vitesse —';
   refs.homeProgressEta.textContent = progress.eta && progress.eta !== '—' ? `${progress.eta} restantes` : 'Temps restant —';
+  if (state.queue.activeId) state.progressById[state.queue.activeId] = { ...progress };
+  const queueRow = refs.queueList.querySelector('.queue-item.is-active');
+  if (queueRow) {
+    const queueFill = queueRow.querySelector('.queue-progress-fill');
+    const queuePercent = queueRow.querySelector('.queue-progress-percent');
+    const queueSpeed = queueRow.querySelector('.queue-progress-speed');
+    const queueEta = queueRow.querySelector('.queue-progress-eta');
+    const queueSize = queueRow.querySelector('.queue-progress-size');
+    if (queueFill) queueFill.style.width = `${bounded}%`;
+    if (queuePercent) queuePercent.textContent = progress.percentLabel || `${value.toFixed(1)}%`;
+    if (queueSpeed) queueSpeed.textContent = progress.speed && progress.speed !== '—' ? progress.speed : 'Débit —';
+    if (queueEta) queueEta.textContent = progress.eta && progress.eta !== '—' ? `${progress.eta} restantes` : 'Temps restant —';
+    if (queueSize) {
+      queueSize.textContent = progress.total === '—'
+        ? progress.downloaded || 'Volume —'
+        : `${progress.downloaded} / ${progress.total}`;
+    }
+  }
   const effectivePhase = progress.phase === 'audio' || progress.phase === 'merge' ? progress.phase : 'video';
   const order = ['video', 'audio', 'merge'];
   const activeIndex = order.indexOf(effectivePhase);
@@ -338,6 +361,11 @@ function performanceLabel(profile) {
     normal: 'Normal · 4 flux',
     turbo: 'Turbo · 8 flux'
   }[profile] || 'Normal · 4 flux';
+}
+
+function syncDownloadCta() {
+  const count = extractUrls().length;
+  refs.downloadCtaLabel.textContent = count > 1 ? `Télécharger ${count} éléments` : 'Télécharger';
 }
 
 function extractUrls() {
@@ -528,8 +556,22 @@ function queueItemMeta(item) {
 function renderQueue(snapshot) {
   state.queue = snapshot || { activeId: null, items: [] };
   const items = state.queue.items || [];
+  const nextActiveId = state.queue.activeId || null;
+  if (nextActiveId && nextActiveId !== state.lastActiveId) {
+    const savedProgress = state.progressById[nextActiveId];
+    if (savedProgress) {
+      updateProgress(savedProgress);
+    } else {
+      resetProgress();
+    }
+    refs.progressTitle.textContent = 'Téléchargement en cours';
+    refs.progressPhase.textContent = savedProgress?.phaseLabel || 'Préparation du fichier';
+  }
+  state.lastActiveId = nextActiveId;
+
   const activeItem = items.find((item) => item.id === state.queue.activeId);
   refs.queueCount.textContent = String(items.length);
+  refs.queueCountLabel.textContent = items.length > 1 ? 'téléchargements' : 'téléchargement';
   refs.queueList.replaceChildren();
 
   refs.homeActivity.hidden = !activeItem;
@@ -538,46 +580,136 @@ function renderQueue(snapshot) {
     refs.homeProgressTitle.textContent = activeItem.title || activeItem.url || 'Téléchargement en cours';
     if (!state.lastProgress) refs.homeProgressPhase.textContent = 'Préparation du fichier';
     refs.progressNetwork.textContent = performanceLabel(activeItem.performanceProfile);
+    const activeThumbnail = activeItem.thumbnail || youtubeThumbnailFromUrl(activeItem.url);
+    refs.homeMediaPreview.style.backgroundImage = activeThumbnail ? `url("${activeThumbnail}")` : '';
+    refs.homeMediaPreview.textContent = activeThumbnail ? '' : activeItem.mode === 'audio' ? '♪' : 'AF';
+    refs.homeMediaPreview.classList.toggle('has-image', Boolean(activeThumbnail));
+  } else {
+    refs.homeMediaPreview.style.backgroundImage = '';
+    refs.homeMediaPreview.textContent = 'AF';
+    refs.homeMediaPreview.classList.remove('has-image');
   }
 
   if (!items.length) {
     const empty = document.createElement('div');
     empty.className = 'queue-empty';
-    empty.textContent = 'Ajoute plusieurs liens : AgenFetch les traitera dans l’ordre.';
+    empty.innerHTML = '<strong>Aucun téléchargement pour le moment.</strong><span>Colle un lien au-dessus puis clique sur Télécharger.</span>';
     refs.queueList.append(empty);
   }
 
   items.forEach((item, index) => {
     const row = document.createElement('article');
-    row.className = 'queue-item';
+    row.className = `queue-item ${item.status}${item.id === state.queue.activeId ? ' is-active' : ''}`;
 
-    const order = document.createElement('span');
-    order.className = 'queue-index';
+    const artwork = document.createElement('div');
+    artwork.className = `queue-artwork ${item.mode || 'video'}`;
+    const thumbnail = item.thumbnail || youtubeThumbnailFromUrl(item.url);
+    if (thumbnail) {
+      const image = document.createElement('img');
+      image.src = thumbnail;
+      image.alt = '';
+      image.loading = 'lazy';
+      image.addEventListener('error', () => image.remove());
+      artwork.append(image);
+    }
+    const fallback = document.createElement('span');
+    fallback.textContent = item.mode === 'audio' ? '♪' : '▶';
+    artwork.append(fallback);
+    const order = document.createElement('small');
+    order.className = 'queue-order';
     order.textContent = String(index + 1).padStart(2, '0');
+    artwork.append(order);
 
     const copy = document.createElement('div');
     copy.className = 'queue-copy';
+    const heading = document.createElement('div');
+    heading.className = 'queue-item-heading';
     const title = document.createElement('strong');
     title.textContent = item.title || item.url;
     title.title = item.url;
-    const meta = document.createElement('small');
-    meta.textContent = queueItemMeta(item);
-    copy.append(title, meta);
-
     const status = document.createElement('span');
     status.className = `queue-status ${item.status}`;
     status.textContent = statusLabel(item.status);
     status.title = item.error || '';
+    heading.append(title, status);
+    const meta = document.createElement('small');
+    meta.textContent = queueItemMeta(item);
+    copy.append(heading, meta);
 
-    row.append(order, copy, status);
-    if (item.status === 'waiting') {
+    if (['running', 'paused', 'completed'].includes(item.status)) {
+      const progress = state.progressById[item.id] || {};
+      const percent = item.status === 'completed' ? 100 : Math.max(0, Math.min(100, Number(progress.percent || 0)));
+      const progressBlock = document.createElement('div');
+      progressBlock.className = 'queue-progress';
+      const track = document.createElement('div');
+      track.className = 'queue-progress-track';
+      const fill = document.createElement('span');
+      fill.className = 'queue-progress-fill';
+      fill.style.width = `${percent}%`;
+      track.append(fill);
+      const progressMeta = document.createElement('div');
+      progressMeta.className = 'queue-progress-meta';
+      const percentLabel = document.createElement('b');
+      percentLabel.className = 'queue-progress-percent';
+      percentLabel.textContent = item.status === 'completed' ? '100%' : progress.percentLabel || `${percent.toFixed(1)}%`;
+      const speed = document.createElement('span');
+      speed.className = 'queue-progress-speed';
+      speed.textContent = progress.speed && progress.speed !== '—' ? progress.speed : 'Débit —';
+      const eta = document.createElement('span');
+      eta.className = 'queue-progress-eta';
+      eta.textContent = progress.eta && progress.eta !== '—'
+        ? `${progress.eta} restantes`
+        : item.status === 'completed' ? 'Terminé' : 'Temps restant —';
+      const size = document.createElement('span');
+      size.className = 'queue-progress-size';
+      size.textContent = progress.total && progress.total !== '—'
+        ? `${progress.downloaded || '—'} / ${progress.total}`
+        : progress.downloaded || 'Volume —';
+      progressMeta.append(percentLabel, speed, eta, size);
+      progressBlock.append(track, progressMeta);
+      copy.append(progressBlock);
+    } else if (item.status === 'waiting') {
+      const waiting = document.createElement('span');
+      waiting.className = 'queue-waiting-copy';
+      waiting.textContent = 'Démarrera automatiquement dès que le téléchargement précédent sera terminé.';
+      copy.append(waiting);
+    } else if (item.error) {
+      const error = document.createElement('span');
+      error.className = 'queue-error-copy';
+      error.textContent = item.error;
+      copy.append(error);
+    }
+
+    const actions = document.createElement('div');
+    actions.className = 'queue-actions';
+    if (item.status === 'running' && item.id === state.queue.activeId) {
+      const pause = document.createElement('button');
+      pause.className = 'secondary-button compact';
+      pause.type = 'button';
+      pause.textContent = 'Pause';
+      pause.addEventListener('click', pauseCurrentDownload);
+      const cancel = document.createElement('button');
+      cancel.className = 'danger-button compact';
+      cancel.type = 'button';
+      cancel.textContent = 'Annuler';
+      cancel.addEventListener('click', cancelCurrentDownload);
+      const details = document.createElement('button');
+      details.className = 'text-button';
+      details.type = 'button';
+      details.textContent = 'Détails';
+      details.addEventListener('click', () => {
+        refs.progressDetails.open = true;
+        refs.progressDetails.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+      actions.append(pause, cancel, details);
+    } else if (item.status === 'waiting') {
       const remove = document.createElement('button');
-      remove.className = 'icon-button queue-remove';
+      remove.className = 'secondary-button compact queue-remove';
       remove.type = 'button';
-      remove.textContent = '×';
-      remove.title = 'Retirer de la file';
+      remove.textContent = 'Retirer';
+      remove.title = 'Retirer ce téléchargement';
       remove.addEventListener('click', () => api.removeQueueItem(item.id));
-      row.append(remove);
+      actions.append(remove);
     } else if (item.status === 'paused') {
       const resume = document.createElement('button');
       resume.className = 'secondary-button compact queue-resume';
@@ -586,18 +718,14 @@ function renderQueue(snapshot) {
       resume.addEventListener('click', async () => {
         if (await api.resumeQueueItem(item.id)) showToast('Reprise du téléchargement…');
       });
-      row.append(resume);
+      actions.append(resume);
     }
+
+    row.append(artwork, copy);
+    if (actions.childElementCount) row.append(actions);
     refs.queueList.append(row);
   });
 
-  const nextActiveId = state.queue.activeId || null;
-  if (nextActiveId && nextActiveId !== state.lastActiveId) {
-    resetProgress();
-    refs.progressTitle.textContent = 'Téléchargement en cours';
-    refs.progressPhase.textContent = 'Préparation du fichier';
-  }
-  state.lastActiveId = nextActiveId;
   setRunning(Boolean(nextActiveId));
 }
 
@@ -977,6 +1105,7 @@ refs.subtitleSearchForm.addEventListener('submit', async (event) => {
 refs.url.addEventListener('input', () => {
   refs.urlError.textContent = '';
   if (state.metadataUrl && state.metadataUrl !== extractUrls()[0]) clearMetadata();
+  syncDownloadCta();
   scheduleAutoPreview();
 });
 
@@ -990,6 +1119,7 @@ refs.paste.addEventListener('click', async () => {
     refs.url.focus();
     refs.urlError.textContent = '';
     clearMetadata();
+    syncDownloadCta();
     scheduleAutoPreview();
   } catch {
     showToast('Le presse-papiers est indisponible. Utilise Ctrl + V.', 'error');
@@ -1029,14 +1159,18 @@ refs.form.addEventListener('submit', async (event) => {
 
   try {
     const payloads = buildPayloads();
+    const wasBusy = Boolean(state.queue.activeId);
     state.submitting = true;
     refs.start.disabled = true;
     await api.enqueueDownloads(payloads);
     refs.url.value = '';
     clearMetadata();
-    showToast(`${payloads.length} téléchargement${payloads.length > 1 ? 's' : ''} ajouté${payloads.length > 1 ? 's' : ''} à la file.`);
+    syncDownloadCta();
+    showToast(payloads.length > 1
+      ? `${payloads.length} téléchargements lancés et organisés automatiquement.`
+      : wasBusy ? 'Téléchargement ajouté à la suite.' : 'Téléchargement lancé.');
   } catch (error) {
-    refs.urlError.textContent = error.message || 'Impossible d’ajouter le téléchargement.';
+    refs.urlError.textContent = error.message || 'Impossible de lancer le téléchargement.';
     showToast(refs.urlError.textContent, 'error');
   } finally {
     state.submitting = false;
@@ -1044,20 +1178,23 @@ refs.form.addEventListener('submit', async (event) => {
   }
 });
 
-refs.cancel.addEventListener('click', async () => {
+async function cancelCurrentDownload() {
   if (await api.cancelDownload()) {
     refs.progressTitle.textContent = 'Annulation en cours…';
   }
-});
+}
 
-refs.pause.addEventListener('click', async () => {
+async function pauseCurrentDownload() {
   if (await api.pauseDownload()) {
     refs.pause.disabled = true;
     refs.cancel.disabled = true;
     refs.progressTitle.textContent = 'Mise en pause…';
     refs.progressPhase.textContent = 'Les données déjà reçues sont conservées';
   }
-});
+}
+
+refs.cancel.addEventListener('click', cancelCurrentDownload);
+refs.pause.addEventListener('click', pauseCurrentDownload);
 
 refs.toggleLog.addEventListener('click', () => {
   refs.log.hidden = !refs.log.hidden;
@@ -1287,11 +1424,12 @@ api.onDeepLink((payload) => {
   const modeInput = document.querySelector(`input[name="mode"][value="${payload.mode}"]`);
   if (modeInput) modeInput.checked = true;
   clearMetadata();
+  syncDownloadCta();
   syncModeUi();
   setView('download-view');
   refs.url.focus();
   inspectMetadata();
-  showToast('Lien reçu depuis YouTube. Vérifie les options puis ajoute-le à la file.');
+  showToast('Lien reçu depuis YouTube. Vérifie les options puis clique sur Télécharger.');
 });
 
 api.onQueueChanged(renderQueue);
@@ -1301,7 +1439,7 @@ api.onFinished((result) => {
   refs.activityDot.classList.toggle('is-error', !result.ok && !result.cancelled && !result.paused);
   if (result.paused) {
     refs.progressTitle.textContent = 'Téléchargement en pause';
-    refs.progressPhase.textContent = 'Reprends-le depuis la file quand tu veux';
+    refs.progressPhase.textContent = 'Reprends-le depuis la liste des téléchargements quand tu veux';
     showToast('Téléchargement en pause. Les données partielles sont conservées.');
   } else if (result.ok) {
     updateProgress({ percent: 100, percentLabel: '100%', speed: '—', eta: '0s', downloaded: 'Terminé', total: '—', phase: 'merge', phaseLabel: 'Terminé' });
@@ -1326,6 +1464,7 @@ async function initialize() {
     refs.performanceProfile.value = savedPerformanceProfile;
   }
   refs.progressNetwork.textContent = performanceLabel(refs.performanceProfile.value);
+  syncDownloadCta();
   renderYoutubeSubtitleTracks([]);
   syncModeUi();
   renderQueue(await api.getQueue());
