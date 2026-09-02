@@ -129,6 +129,8 @@ test('applique les profils de vitesse aux fragments yt-dlp', () => {
   });
   assert.equal(options.performanceProfile, 'turbo');
   assert.equal(args[args.indexOf('--concurrent-fragments') + 1], '8');
+  assert.ok(args.includes('--continue'));
+  assert.ok(args.includes('--part'));
 });
 
 test('construit une vidéo MKV avec sous-titres français', () => {
@@ -307,6 +309,10 @@ test('traite la file dans l’ordre et permet de retirer un élément en attente
     cancel() {
       return this.running;
     }
+
+    pause() {
+      return this.running;
+    }
   }
 
   const fake = new FakeDownloader();
@@ -324,6 +330,85 @@ test('traite la file dans l’ordre et permet de retirer un élément en attente
   await new Promise((resolve) => setImmediate(resolve));
   assert.deepEqual(fake.starts, ['https://youtu.be/first', 'https://youtu.be/second']);
   assert.equal(queue.snapshot().activeId, 'job-2');
+});
+
+test('met un téléchargement en pause puis le reprend avec la même charge', async () => {
+  class FakeDownloader extends EventEmitter {
+    constructor() {
+      super();
+      this.running = false;
+      this.starts = [];
+    }
+
+    get isRunning() {
+      return this.running;
+    }
+
+    start(payload) {
+      this.running = true;
+      this.starts.push(payload);
+    }
+
+    pause() {
+      return this.running;
+    }
+
+    finish(result) {
+      this.running = false;
+      this.emit('finished', result);
+    }
+  }
+
+  const fake = new FakeDownloader();
+  const payload = {
+    url: 'https://youtu.be/resumable',
+    mode: 'video',
+    quality: '1080',
+    performanceProfile: 'turbo',
+    thumbnail: 'https://i.ytimg.com/vi/resumable/hqdefault.jpg'
+  };
+  const queue = new DownloadQueue(fake, { idFactory: () => 'job-resume' });
+  queue.add(payload);
+  assert.equal(queue.pauseActive(), true);
+  fake.finish({ ok: false, cancelled: false, paused: true });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(queue.snapshot().items[0].status, 'paused');
+  assert.equal(queue.snapshot().activeId, null);
+
+  assert.equal(queue.resume('job-resume'), true);
+  assert.equal(queue.snapshot().items[0].status, 'running');
+  assert.equal(queue.snapshot().activeId, 'job-resume');
+  assert.equal(fake.starts.length, 2);
+  assert.deepEqual(fake.starts[1], payload);
+});
+
+test('le service classe une interruption demandée comme une pause reprenable', async () => {
+  const child = new EventEmitter();
+  child.stdout = new EventEmitter();
+  child.stderr = new EventEmitter();
+  child.pid = 0;
+  child.kill = (signal) => {
+    setImmediate(() => child.emit('close', null, signal));
+    return true;
+  };
+  const service = new DownloaderService('C:\\Downloads', {
+    spawnImpl: () => child
+  });
+  const finished = new Promise((resolve) => service.once('finished', resolve));
+  service.start({
+    url: 'https://youtu.be/zw30rfxoV04',
+    mode: 'video',
+    quality: '1080',
+    thumbnail: 'https://i.ytimg.com/vi/zw30rfxoV04/hqdefault.jpg'
+  });
+
+  assert.equal(service.pause(), true);
+  const result = await finished;
+  assert.equal(result.paused, true);
+  assert.equal(result.cancelled, false);
+  assert.equal(result.error, undefined);
+  assert.equal(result.options.thumbnail, 'https://i.ytimg.com/vi/zw30rfxoV04/hqdefault.jpg');
+  assert.equal(service.isRunning, false);
 });
 
 test('le service relaie la progression et termine proprement', { skip: process.platform === 'win32' }, async () => {
