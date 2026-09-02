@@ -115,7 +115,22 @@ test('assainit les valeurs inconnues', () => {
   assert.equal(safe.subtitles, 'none');
   assert.equal(safe.subtitleMode, 'none');
   assert.deepEqual(safe.subtitleLanguages, []);
+  assert.equal(safe.performanceProfile, 'normal');
   assert.equal(safe.outputFolder, 'C:\\Downloads');
+});
+
+test('applique les profils de vitesse aux fragments yt-dlp', () => {
+  const { args, options } = buildYtDlpArgs({
+    url: 'https://youtu.be/zw30rfxoV04',
+    mode: 'video',
+    quality: '1080',
+    performanceProfile: 'turbo',
+    outputFolder: 'C:\\Downloads'
+  });
+  assert.equal(options.performanceProfile, 'turbo');
+  assert.equal(args[args.indexOf('--concurrent-fragments') + 1], '8');
+  assert.ok(args.includes('--continue'));
+  assert.ok(args.includes('--part'));
 });
 
 test('construit une vidéo MKV avec sous-titres français', () => {
@@ -154,11 +169,13 @@ test('construit un téléchargement multilingue de sous-titres uniquement', () =
 });
 
 test('analyse la sortie de progression dédiée', () => {
-  const value = parseProgressLine('agenfetch: 42.3%|2.14MiB/s|00:31|84.2MiB|199.0MiB');
+  const value = parseProgressLine('agenfetch: 42.3%|2.14MiB/s|00:31|84.2MiB|199.0MiB|avc1.640028|none|137');
   assert.equal(value.percent, 42.3);
   assert.equal(value.speed, '2.14MiB/s');
   assert.equal(value.eta, '00:31');
   assert.equal(value.total, '199.0MiB');
+  assert.equal(value.videoCodec, 'avc1.640028');
+  assert.equal(value.audioCodec, 'none');
 });
 
 test('ignore les lignes yt-dlp ordinaires', () => {
@@ -292,6 +309,10 @@ test('traite la file dans l’ordre et permet de retirer un élément en attente
     cancel() {
       return this.running;
     }
+
+    pause() {
+      return this.running;
+    }
   }
 
   const fake = new FakeDownloader();
@@ -309,6 +330,85 @@ test('traite la file dans l’ordre et permet de retirer un élément en attente
   await new Promise((resolve) => setImmediate(resolve));
   assert.deepEqual(fake.starts, ['https://youtu.be/first', 'https://youtu.be/second']);
   assert.equal(queue.snapshot().activeId, 'job-2');
+});
+
+test('met un téléchargement en pause puis le reprend avec la même charge', async () => {
+  class FakeDownloader extends EventEmitter {
+    constructor() {
+      super();
+      this.running = false;
+      this.starts = [];
+    }
+
+    get isRunning() {
+      return this.running;
+    }
+
+    start(payload) {
+      this.running = true;
+      this.starts.push(payload);
+    }
+
+    pause() {
+      return this.running;
+    }
+
+    finish(result) {
+      this.running = false;
+      this.emit('finished', result);
+    }
+  }
+
+  const fake = new FakeDownloader();
+  const payload = {
+    url: 'https://youtu.be/resumable',
+    mode: 'video',
+    quality: '1080',
+    performanceProfile: 'turbo',
+    thumbnail: 'https://i.ytimg.com/vi/resumable/hqdefault.jpg'
+  };
+  const queue = new DownloadQueue(fake, { idFactory: () => 'job-resume' });
+  queue.add(payload);
+  assert.equal(queue.pauseActive(), true);
+  fake.finish({ ok: false, cancelled: false, paused: true });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(queue.snapshot().items[0].status, 'paused');
+  assert.equal(queue.snapshot().activeId, null);
+
+  assert.equal(queue.resume('job-resume'), true);
+  assert.equal(queue.snapshot().items[0].status, 'running');
+  assert.equal(queue.snapshot().activeId, 'job-resume');
+  assert.equal(fake.starts.length, 2);
+  assert.deepEqual(fake.starts[1], payload);
+});
+
+test('le service classe une interruption demandée comme une pause reprenable', async () => {
+  const child = new EventEmitter();
+  child.stdout = new EventEmitter();
+  child.stderr = new EventEmitter();
+  child.pid = 0;
+  child.kill = (signal) => {
+    setImmediate(() => child.emit('close', null, signal));
+    return true;
+  };
+  const service = new DownloaderService('C:\\Downloads', {
+    spawnImpl: () => child
+  });
+  const finished = new Promise((resolve) => service.once('finished', resolve));
+  service.start({
+    url: 'https://youtu.be/zw30rfxoV04',
+    mode: 'video',
+    quality: '1080',
+    thumbnail: 'https://i.ytimg.com/vi/zw30rfxoV04/hqdefault.jpg'
+  });
+
+  assert.equal(service.pause(), true);
+  const result = await finished;
+  assert.equal(result.paused, true);
+  assert.equal(result.cancelled, false);
+  assert.equal(result.error, undefined);
+  assert.equal(result.options.thumbnail, 'https://i.ytimg.com/vi/zw30rfxoV04/hqdefault.jpg');
+  assert.equal(service.isRunning, false);
 });
 
 test('le service relaie la progression et termine proprement', { skip: process.platform === 'win32' }, async () => {
@@ -336,6 +436,46 @@ test('le service relaie la progression et termine proprement', { skip: process.p
     assert.equal(result.ok, true);
     assert.equal(result.destination, '/tmp/demo.mp4');
     assert.equal(service.isRunning, false);
+  } finally {
+    process.env.PATH = previousPath;
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('la progression globale ne recule pas entre vidéo, audio et fusion', { skip: process.platform === 'win32' }, async () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'agenfetch-phases-'));
+  const fakeBinary = path.join(tempRoot, 'yt-dlp');
+  const previousPath = process.env.PATH;
+  fs.writeFileSync(fakeBinary, [
+    '#!/bin/sh',
+    "echo 'agenfetch: 55.0%|3.0MiB/s|00:08|55.0MiB|100.0MiB|avc1|none|137'",
+    "echo 'agenfetch: 35.0%|1.0MiB/s|00:05|3.5MiB|10.0MiB|none|mp4a|140'",
+    "echo '[Merger] Merging formats into \"/tmp/demo.mp4\"'",
+    "echo '[download] Destination: /tmp/demo.mp4'",
+    'exit 0',
+    ''
+  ].join('\n'), 'utf8');
+  fs.chmodSync(fakeBinary, 0o755);
+  process.env.PATH = `${tempRoot}${path.delimiter}${previousPath}`;
+
+  try {
+    const service = new DownloaderService(tempRoot);
+    const progresses = [];
+    service.on('progress', (progress) => progresses.push(progress));
+    const finishedPromise = new Promise((resolve) => service.once('finished', resolve));
+    service.start({
+      url: 'https://youtu.be/zw30rfxoV04',
+      mode: 'video',
+      quality: '1080',
+      outputFolder: tempRoot
+    });
+
+    const result = await finishedPromise;
+    assert.equal(result.ok, true);
+    assert.deepEqual(progresses.map((progress) => progress.phase), ['video', 'audio', 'merge']);
+    assert.deepEqual(progresses.map((progress) => progress.rawPercent), [55, 35, 35]);
+    assert.ok(progresses.every((progress, index) => index === 0 || progress.percent >= progresses[index - 1].percent));
+    assert.equal(progresses.at(-1).percent, 95);
   } finally {
     process.env.PATH = previousPath;
     fs.rmSync(tempRoot, { recursive: true, force: true });

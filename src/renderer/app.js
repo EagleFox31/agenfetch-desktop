@@ -6,6 +6,8 @@ const refs = {
   navItems: [...document.querySelectorAll('[data-view-target]')],
   views: [...document.querySelectorAll('.view')],
   pageTitle: document.querySelector('#page-title'),
+  pageEyebrow: document.querySelector('#page-eyebrow'),
+  pageIntro: document.querySelector('#page-intro'),
   form: document.querySelector('#download-form'),
   url: document.querySelector('#video-url'),
   urlError: document.querySelector('#url-error'),
@@ -20,6 +22,7 @@ const refs = {
   qualityGroup: document.querySelector('#quality-group'),
   container: document.querySelector('#container'),
   containerGroup: document.querySelector('#container-group'),
+  performanceProfile: document.querySelector('#performance-profile'),
   subtitleMode: document.querySelector('#subtitle-mode'),
   subtitleFormat: document.querySelector('#subtitle-format'),
   includeAutoSubtitles: document.querySelector('#include-auto-subtitles'),
@@ -32,15 +35,20 @@ const refs = {
   playlist: document.querySelector('#playlist'),
   compatibilityMode: document.querySelector('#compatibility-mode'),
   start: document.querySelector('#start-download'),
+  downloadCtaLabel: document.querySelector('#download-cta-label'),
+  pause: document.querySelector('#pause-download'),
   cancel: document.querySelector('#cancel-download'),
   toggleLog: document.querySelector('#toggle-log'),
   log: document.querySelector('#download-log'),
   progressTitle: document.querySelector('#progress-title'),
+  progressPhase: document.querySelector('#progress-phase'),
   progressRing: document.querySelector('#progress-ring'),
+  progressFill: document.querySelector('#progress-fill'),
   progressPercent: document.querySelector('#progress-percent'),
   progressSpeed: document.querySelector('#progress-speed'),
   progressEta: document.querySelector('#progress-eta'),
   progressSize: document.querySelector('#progress-size'),
+  progressNetwork: document.querySelector('#progress-network'),
   activityDot: document.querySelector('#activity-dot'),
   ytDlpStatus: document.querySelector('#yt-dlp-status'),
   ffmpegStatus: document.querySelector('#ffmpeg-status'),
@@ -49,6 +57,7 @@ const refs = {
   updateYtDlp: document.querySelector('#update-yt-dlp'),
   queueList: document.querySelector('#queue-list'),
   queueCount: document.querySelector('#queue-count'),
+  queueCountLabel: document.querySelector('#queue-count-label'),
   clearFinishedQueue: document.querySelector('#clear-finished-queue'),
   historyList: document.querySelector('#history-list'),
   clearHistory: document.querySelector('#clear-history'),
@@ -56,8 +65,23 @@ const refs = {
   consentOverlay: document.querySelector('#consent-overlay'),
   consentCheck: document.querySelector('#consent-accept-check'),
   consentAccept: document.querySelector('#consent-accept'),
-  pageEyebrow: document.querySelector('#page-eyebrow'),
   sidebarVersion: document.querySelector('#sidebar-version'),
+  overallHealthDot: document.querySelector('#overall-health-dot'),
+  overallHealthLabel: document.querySelector('#overall-health-label'),
+  homeAddLink: document.querySelector('#home-add-link'),
+  homeChooseFile: document.querySelector('#home-choose-file'),
+  homeViewQueue: document.querySelector('#home-view-queue'),
+  homeActivityEmpty: document.querySelector('#home-activity-empty'),
+  homeActivity: document.querySelector('#home-activity'),
+  homeMediaPreview: document.querySelector('#home-media-preview'),
+  homeProgressTitle: document.querySelector('#home-progress-title'),
+  homeProgressPhase: document.querySelector('#home-progress-phase'),
+  homeProgressBar: document.querySelector('#home-progress-bar'),
+  homeProgressPercent: document.querySelector('#home-progress-percent'),
+  homeProgressSpeed: document.querySelector('#home-progress-speed'),
+  homeProgressEta: document.querySelector('#home-progress-eta'),
+  homePhaseSteps: [...document.querySelectorAll('.phase-steps [data-phase]')],
+  progressDetails: document.querySelector('#progress-details'),
   appVersion: document.querySelector('#app-version'),
   updateCheckedAt: document.querySelector('#update-checked-at'),
   checkAppUpdate: document.querySelector('#check-app-update'),
@@ -79,6 +103,7 @@ const refs = {
   extensionFolderPath: document.querySelector('#extension-folder-path'),
   openExtensionFolder: document.querySelector('#open-extension-folder'),
   subtitleEngineTitle: document.querySelector('#subtitle-engine-title'),
+  subtitleEngineBanner: document.querySelector('#subtitle-engine-banner'),
   subtitleEngineCopy: document.querySelector('#subtitle-engine-copy'),
   installSubtitleEngine: document.querySelector('#install-subtitle-engine'),
   subtitleEngineProgress: document.querySelector('#subtitle-engine-progress'),
@@ -128,7 +153,9 @@ const state = {
   subtitleEngineInstalled: false,
   subtitleResults: [],
   subtitleQuery: null,
-  system: null
+  system: null,
+  lastProgress: null,
+  progressById: {}
 };
 
 function showToast(message, type = 'info') {
@@ -143,20 +170,29 @@ function setView(viewId) {
   refs.views.forEach((view) => view.classList.toggle('is-visible', view.id === viewId));
   refs.navItems.forEach((item) => item.classList.toggle('is-active', item.dataset.viewTarget === viewId));
   refs.pageTitle.textContent = {
-    'history-view': 'Ce que tu as déjà récupéré.',
-    'subtitles-view': 'Trouve la piste qui colle vraiment.',
-    'about-view': 'Version et mises à jour.'
-  }[viewId] || 'Garde ce que tu as le droit de garder.';
-  if (refs.pageEyebrow) {
-    refs.pageEyebrow.textContent = {
-      'history-view': 'Historique local',
-      'subtitles-view': 'Films et séries',
-      'about-view': 'Application'
-    }[viewId] || 'Téléchargement local';
-  }
-  if (refs.systemStatus) refs.systemStatus.hidden = viewId === 'about-view';
+    'home-view': 'Que veux-tu préparer ?',
+    'download-view': 'Téléchargements',
+    'history-view': 'Bibliothèque',
+    'subtitles-view': 'Sous-titres',
+    'about-view': 'Réglages'
+  }[viewId] || 'AgenFetch';
+  refs.pageEyebrow.textContent = {
+    'home-view': 'Assistant média local',
+    'download-view': 'Vidéo · audio · playlists',
+    'history-view': 'Médias locaux',
+    'subtitles-view': 'Films · séries · multilingue',
+    'about-view': 'Application et composants'
+  }[viewId] || 'AgenFetch';
+  refs.pageIntro.textContent = {
+    'home-view': 'Télécharge, sous-titre et organise tes médias sans compte ni cloud AgenStudio.',
+    'download-view': 'Colle un lien, choisis le format et télécharge. Les suivants s’organisent automatiquement.',
+    'history-view': 'Retrouve ce qu’AgenFetch a préparé sur cet ordinateur.',
+    'subtitles-view': 'Choisis un fichier ; AgenFetch identifie le média et compare les pistes disponibles.',
+    'about-view': 'Configure les outils, les fournisseurs et les mises à jour.'
+  }[viewId] || '';
   if (viewId === 'history-view') renderHistory();
   if (viewId === 'subtitles-view') loadSubtitleWorkspace();
+  if (viewId === 'about-view') loadProviderStatus();
 }
 
 function setStatus(element, result) {
@@ -178,6 +214,10 @@ async function checkSystem({ quiet = false } = {}) {
     setStatus(refs.ffmpegStatus, result.ffmpeg);
     setStatus(refs.jsRuntimeStatus, result.jsRuntime);
     applyJsRuntimeStatus(result);
+    const ready = Boolean(result.ytDlp?.installed && result.ffmpeg?.installed && result.jsRuntime?.installed);
+    refs.overallHealthDot.classList.remove('is-checking', 'is-ok', 'is-error');
+    refs.overallHealthDot.classList.add(ready ? 'is-ok' : 'is-error');
+    refs.overallHealthLabel.textContent = ready ? 'Tout fonctionne' : 'Action requise';
     if (!result.portable) {
       showToast('Un outil intégré manque. Réinstalle AgenFetch ou relance le diagnostic.', 'error');
     } else if (!quiet) {
@@ -185,6 +225,9 @@ async function checkSystem({ quiet = false } = {}) {
     }
     return result;
   } catch (error) {
+    refs.overallHealthDot.classList.remove('is-checking', 'is-ok');
+    refs.overallHealthDot.classList.add('is-error');
+    refs.overallHealthLabel.textContent = 'Diagnostic indisponible';
     showToast(error.message || 'Impossible de vérifier les outils.', 'error');
     return null;
   }
@@ -236,6 +279,7 @@ function syncModeUi() {
 
 function setRunning(value) {
   state.running = value;
+  refs.pause.disabled = !value;
   refs.cancel.disabled = !value;
   refs.updateYtDlp.disabled = value;
   refs.activityDot.classList.toggle('is-running', value);
@@ -243,19 +287,53 @@ function setRunning(value) {
 
 function updateProgress(progress) {
   const value = Number(progress.percent || 0);
-  refs.progressRing.style.setProperty('--progress', `${value * 3.6}deg`);
+  const bounded = Math.max(0, Math.min(100, value));
+  refs.progressFill.style.width = `${bounded}%`;
   refs.progressPercent.textContent = progress.percentLabel || `${value.toFixed(1)}%`;
+  refs.progressPhase.textContent = progress.phaseLabel || 'Téléchargement du fichier';
   refs.progressSpeed.textContent = progress.speed || '—';
   refs.progressEta.textContent = progress.eta || '—';
   refs.progressSize.textContent = progress.total === '—'
     ? progress.downloaded || '—'
     : `${progress.downloaded} / ${progress.total}`;
+  refs.homeProgressBar.style.width = `${bounded}%`;
+  refs.homeProgressPercent.textContent = progress.percentLabel || `${value.toFixed(1)}%`;
+  refs.homeProgressPhase.textContent = progress.phaseLabel || 'Téléchargement du fichier';
+  refs.homeProgressSpeed.textContent = progress.speed && progress.speed !== '—' ? progress.speed : 'Vitesse —';
+  refs.homeProgressEta.textContent = progress.eta && progress.eta !== '—' ? `${progress.eta} restantes` : 'Temps restant —';
+  if (state.queue.activeId) state.progressById[state.queue.activeId] = { ...progress };
+  const queueRow = refs.queueList.querySelector('.queue-item.is-active');
+  if (queueRow) {
+    const queueFill = queueRow.querySelector('.queue-progress-fill');
+    const queuePercent = queueRow.querySelector('.queue-progress-percent');
+    const queueSpeed = queueRow.querySelector('.queue-progress-speed');
+    const queueEta = queueRow.querySelector('.queue-progress-eta');
+    const queueSize = queueRow.querySelector('.queue-progress-size');
+    if (queueFill) queueFill.style.width = `${bounded}%`;
+    if (queuePercent) queuePercent.textContent = progress.percentLabel || `${value.toFixed(1)}%`;
+    if (queueSpeed) queueSpeed.textContent = progress.speed && progress.speed !== '—' ? progress.speed : 'Débit —';
+    if (queueEta) queueEta.textContent = progress.eta && progress.eta !== '—' ? `${progress.eta} restantes` : 'Temps restant —';
+    if (queueSize) {
+      queueSize.textContent = progress.total === '—'
+        ? progress.downloaded || 'Volume —'
+        : `${progress.downloaded} / ${progress.total}`;
+    }
+  }
+  const effectivePhase = progress.phase === 'audio' || progress.phase === 'merge' ? progress.phase : 'video';
+  const order = ['video', 'audio', 'merge'];
+  const activeIndex = order.indexOf(effectivePhase);
+  refs.homePhaseSteps.forEach((step, index) => {
+    step.classList.toggle('is-active', index === activeIndex);
+    step.classList.toggle('is-done', index < activeIndex);
+  });
+  state.lastProgress = progress;
 }
 
 function resetProgress() {
-  updateProgress({ percent: 0, percentLabel: '0%', speed: '—', eta: '—', downloaded: '—', total: '—' });
+  updateProgress({ percent: 0, percentLabel: '0%', speed: '—', eta: '—', downloaded: '—', total: '—', phase: 'video', phaseLabel: 'Préparation du fichier' });
   refs.log.textContent = '';
   refs.activityDot.classList.remove('is-error');
+  state.lastProgress = null;
 }
 
 function appendLog(line) {
@@ -270,10 +348,24 @@ function statusLabel(status) {
   return {
     waiting: 'En attente',
     running: 'En cours',
+    paused: 'En pause',
     completed: 'Terminé',
     failed: 'Échec',
     cancelled: 'Annulé'
   }[status] || status;
+}
+
+function performanceLabel(profile) {
+  return {
+    eco: 'Éco · 2 flux',
+    normal: 'Normal · 4 flux',
+    turbo: 'Turbo · 8 flux'
+  }[profile] || 'Normal · 4 flux';
+}
+
+function syncDownloadCta() {
+  const count = extractUrls().length;
+  refs.downloadCtaLabel.textContent = count > 1 ? `Télécharger ${count} éléments` : 'Télécharger';
 }
 
 function extractUrls() {
@@ -435,6 +527,7 @@ function buildPayloads() {
   return urls.map((url) => ({
     url,
     title: urls.length === 1 && state.metadataUrl === url ? state.metadata?.title || '' : '',
+    thumbnail: urls.length === 1 && state.metadataUrl === url ? state.metadata?.thumbnail || '' : '',
     mode: currentMode(),
     quality: refs.quality.value,
     container: refs.container.value,
@@ -443,6 +536,7 @@ function buildPayloads() {
     subtitleLanguages,
     subtitleFormat: refs.subtitleFormat.value,
     includeAutoSubtitles: refs.includeAutoSubtitles.checked,
+    performanceProfile: refs.performanceProfile.value,
     outputFolder: state.outputFolder,
     playlist: refs.playlist.checked,
     compatibilityMode: refs.compatibilityMode.checked
@@ -462,58 +556,211 @@ function queueItemMeta(item) {
 function renderQueue(snapshot) {
   state.queue = snapshot || { activeId: null, items: [] };
   const items = state.queue.items || [];
+  const nextActiveId = state.queue.activeId || null;
+  if (nextActiveId && nextActiveId !== state.lastActiveId) {
+    const savedProgress = state.progressById[nextActiveId];
+    if (savedProgress) {
+      updateProgress(savedProgress);
+    } else {
+      resetProgress();
+    }
+    refs.progressTitle.textContent = 'Téléchargement en cours';
+    refs.progressPhase.textContent = savedProgress?.phaseLabel || 'Préparation du fichier';
+  }
+  state.lastActiveId = nextActiveId;
+
+  const activeItem = items.find((item) => item.id === state.queue.activeId);
   refs.queueCount.textContent = String(items.length);
+  refs.queueCountLabel.textContent = items.length > 1 ? 'téléchargements' : 'téléchargement';
   refs.queueList.replaceChildren();
+
+  refs.homeActivity.hidden = !activeItem;
+  refs.homeActivityEmpty.hidden = Boolean(activeItem);
+  if (activeItem) {
+    refs.homeProgressTitle.textContent = activeItem.title || activeItem.url || 'Téléchargement en cours';
+    if (!state.lastProgress) refs.homeProgressPhase.textContent = 'Préparation du fichier';
+    refs.progressNetwork.textContent = performanceLabel(activeItem.performanceProfile);
+    const activeThumbnail = activeItem.thumbnail || youtubeThumbnailFromUrl(activeItem.url);
+    refs.homeMediaPreview.style.backgroundImage = activeThumbnail ? `url("${activeThumbnail}")` : '';
+    refs.homeMediaPreview.textContent = activeThumbnail ? '' : activeItem.mode === 'audio' ? '♪' : 'AF';
+    refs.homeMediaPreview.classList.toggle('has-image', Boolean(activeThumbnail));
+  } else {
+    refs.homeMediaPreview.style.backgroundImage = '';
+    refs.homeMediaPreview.textContent = 'AF';
+    refs.homeMediaPreview.classList.remove('has-image');
+  }
 
   if (!items.length) {
     const empty = document.createElement('div');
     empty.className = 'queue-empty';
-    empty.textContent = 'Ajoute plusieurs liens : AgenFetch les traitera dans l’ordre.';
+    empty.innerHTML = '<strong>Aucun téléchargement pour le moment.</strong><span>Colle un lien au-dessus puis clique sur Télécharger.</span>';
     refs.queueList.append(empty);
   }
 
   items.forEach((item, index) => {
     const row = document.createElement('article');
-    row.className = 'queue-item';
+    row.className = `queue-item ${item.status}${item.id === state.queue.activeId ? ' is-active' : ''}`;
 
-    const order = document.createElement('span');
-    order.className = 'queue-index';
+    const artwork = document.createElement('div');
+    artwork.className = `queue-artwork ${item.mode || 'video'}`;
+    const thumbnail = item.thumbnail || youtubeThumbnailFromUrl(item.url);
+    if (thumbnail) {
+      const image = document.createElement('img');
+      image.src = thumbnail;
+      image.alt = '';
+      image.loading = 'lazy';
+      image.addEventListener('error', () => image.remove());
+      artwork.append(image);
+    }
+    const fallback = document.createElement('span');
+    fallback.textContent = item.mode === 'audio' ? '♪' : '▶';
+    artwork.append(fallback);
+    const order = document.createElement('small');
+    order.className = 'queue-order';
     order.textContent = String(index + 1).padStart(2, '0');
+    artwork.append(order);
 
     const copy = document.createElement('div');
     copy.className = 'queue-copy';
+    const heading = document.createElement('div');
+    heading.className = 'queue-item-heading';
     const title = document.createElement('strong');
     title.textContent = item.title || item.url;
     title.title = item.url;
-    const meta = document.createElement('small');
-    meta.textContent = queueItemMeta(item);
-    copy.append(title, meta);
-
     const status = document.createElement('span');
     status.className = `queue-status ${item.status}`;
     status.textContent = statusLabel(item.status);
     status.title = item.error || '';
+    heading.append(title, status);
+    const meta = document.createElement('small');
+    meta.textContent = queueItemMeta(item);
+    copy.append(heading, meta);
 
-    row.append(order, copy, status);
-    if (item.status === 'waiting') {
-      const remove = document.createElement('button');
-      remove.className = 'icon-button queue-remove';
-      remove.type = 'button';
-      remove.textContent = '×';
-      remove.title = 'Retirer de la file';
-      remove.addEventListener('click', () => api.removeQueueItem(item.id));
-      row.append(remove);
+    if (['running', 'paused', 'completed'].includes(item.status)) {
+      const progress = state.progressById[item.id] || {};
+      const percent = item.status === 'completed' ? 100 : Math.max(0, Math.min(100, Number(progress.percent || 0)));
+      const progressBlock = document.createElement('div');
+      progressBlock.className = 'queue-progress';
+      const track = document.createElement('div');
+      track.className = 'queue-progress-track';
+      const fill = document.createElement('span');
+      fill.className = 'queue-progress-fill';
+      fill.style.width = `${percent}%`;
+      track.append(fill);
+      const progressMeta = document.createElement('div');
+      progressMeta.className = 'queue-progress-meta';
+      const percentLabel = document.createElement('b');
+      percentLabel.className = 'queue-progress-percent';
+      percentLabel.textContent = item.status === 'completed' ? '100%' : progress.percentLabel || `${percent.toFixed(1)}%`;
+      const speed = document.createElement('span');
+      speed.className = 'queue-progress-speed';
+      speed.textContent = progress.speed && progress.speed !== '—' ? progress.speed : 'Débit —';
+      const eta = document.createElement('span');
+      eta.className = 'queue-progress-eta';
+      eta.textContent = progress.eta && progress.eta !== '—'
+        ? `${progress.eta} restantes`
+        : item.status === 'completed' ? 'Terminé' : 'Temps restant —';
+      const size = document.createElement('span');
+      size.className = 'queue-progress-size';
+      size.textContent = progress.total && progress.total !== '—'
+        ? `${progress.downloaded || '—'} / ${progress.total}`
+        : progress.downloaded || 'Volume —';
+      progressMeta.append(percentLabel, speed, eta, size);
+      progressBlock.append(track, progressMeta);
+      copy.append(progressBlock);
+    } else if (item.status === 'waiting') {
+      const waiting = document.createElement('span');
+      waiting.className = 'queue-waiting-copy';
+      waiting.textContent = 'Démarrera automatiquement dès que le téléchargement précédent sera terminé.';
+      copy.append(waiting);
+    } else if (item.error) {
+      const error = document.createElement('span');
+      error.className = 'queue-error-copy';
+      error.textContent = item.error;
+      copy.append(error);
     }
+
+    const actions = document.createElement('div');
+    actions.className = 'queue-actions';
+    if (item.status === 'running' && item.id === state.queue.activeId) {
+      const pause = document.createElement('button');
+      pause.className = 'secondary-button compact';
+      pause.type = 'button';
+      pause.textContent = 'Pause';
+      pause.addEventListener('click', pauseCurrentDownload);
+      const cancel = document.createElement('button');
+      cancel.className = 'danger-button compact';
+      cancel.type = 'button';
+      cancel.textContent = 'Annuler';
+      cancel.addEventListener('click', cancelCurrentDownload);
+      const details = document.createElement('button');
+      details.className = 'text-button';
+      details.type = 'button';
+      details.textContent = 'Détails';
+      details.addEventListener('click', () => {
+        refs.progressDetails.open = true;
+        refs.progressDetails.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+      actions.append(pause, cancel, details);
+    } else if (item.status === 'waiting') {
+      const remove = document.createElement('button');
+      remove.className = 'secondary-button compact queue-remove';
+      remove.type = 'button';
+      remove.textContent = 'Retirer';
+      remove.title = 'Retirer ce téléchargement';
+      remove.addEventListener('click', () => api.removeQueueItem(item.id));
+      actions.append(remove);
+    } else if (item.status === 'paused') {
+      const resume = document.createElement('button');
+      resume.className = 'secondary-button compact queue-resume';
+      resume.type = 'button';
+      resume.textContent = 'Reprendre';
+      resume.addEventListener('click', async () => {
+        if (await api.resumeQueueItem(item.id)) showToast('Reprise du téléchargement…');
+      });
+      actions.append(resume);
+    }
+
+    row.append(artwork, copy);
+    if (actions.childElementCount) row.append(actions);
     refs.queueList.append(row);
   });
 
-  const nextActiveId = state.queue.activeId || null;
-  if (nextActiveId && nextActiveId !== state.lastActiveId) {
-    resetProgress();
-    refs.progressTitle.textContent = 'Téléchargement en cours';
-  }
-  state.lastActiveId = nextActiveId;
   setRunning(Boolean(nextActiveId));
+}
+
+function youtubeThumbnailFromUrl(value) {
+  try {
+    const parsed = new URL(String(value || ''));
+    const host = parsed.hostname.toLowerCase();
+    const id = host === 'youtu.be'
+      ? parsed.pathname.split('/').filter(Boolean)[0]
+      : parsed.searchParams.get('v') || (parsed.pathname.match(/^\/(?:shorts|live)\/([^/]+)/)?.[1]);
+    return id && /^[a-zA-Z0-9_-]{8,20}$/.test(id) ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : '';
+  } catch {
+    return '';
+  }
+}
+
+function historyArtwork(item) {
+  return item.thumbnail || youtubeThumbnailFromUrl(item.url);
+}
+
+async function openHistoryMedia(item) {
+  try {
+    const error = await api.openMedia(item.destination);
+    if (error) throw new Error(error);
+  } catch (error) {
+    showToast(error.message || 'Impossible d’ouvrir ce fichier.', 'error');
+  }
+}
+
+async function revealHistoryMedia(item) {
+  try {
+    await api.showMediaInFolder(item.destination);
+  } catch (error) {
+    showToast(error.message || 'Impossible d’ouvrir l’emplacement du fichier.', 'error');
+  }
 }
 
 async function renderHistory() {
@@ -531,14 +778,30 @@ async function renderHistory() {
     const row = document.createElement('article');
     row.className = 'history-item';
 
-    const icon = document.createElement('div');
-    icon.className = 'history-icon';
-    icon.textContent = item.mode === 'audio' ? '♪' : item.mode === 'subtitle' ? 'CC' : '▶';
+    const artwork = document.createElement('div');
+    artwork.className = `history-artwork ${item.mode || 'video'}`;
+    const thumbnail = historyArtwork(item);
+    if (thumbnail) {
+      const image = document.createElement('img');
+      image.src = thumbnail;
+      image.alt = '';
+      image.loading = 'lazy';
+      image.addEventListener('error', () => image.remove());
+      artwork.append(image);
+    }
+    const artworkFallback = document.createElement('span');
+    artworkFallback.className = 'history-artwork-fallback';
+    artworkFallback.textContent = item.mode === 'audio' ? '♪' : item.mode === 'subtitle' ? 'CC' : '▶';
+    artwork.append(artworkFallback);
+    const mediaKind = document.createElement('small');
+    mediaKind.textContent = item.mode === 'audio' ? 'AUDIO' : item.mode === 'subtitle' ? 'SOUS-TITRE' : 'VIDÉO';
+    artwork.append(mediaKind);
 
     const body = document.createElement('div');
     body.className = 'history-body';
     const title = document.createElement('strong');
-    title.textContent = item.title || item.destination || item.url || 'Téléchargement';
+    const destinationName = String(item.destination || '').split(/[\\/]/).filter(Boolean).pop();
+    title.textContent = item.title || destinationName || item.url || 'Téléchargement';
     const meta = document.createElement('span');
     const date = item.finishedAt ? new Date(item.finishedAt).toLocaleString('fr-FR') : 'Date inconnue';
     const format = item.mode === 'audio'
@@ -552,7 +815,26 @@ async function renderHistory() {
     const status = document.createElement('span');
     status.className = `history-status ${item.status}`;
     status.textContent = statusLabel(item.status);
-    row.append(icon, body, status);
+    body.append(status);
+
+    if (item.destination && item.status === 'completed') {
+      const actions = document.createElement('div');
+      actions.className = 'history-actions';
+      const open = document.createElement('button');
+      open.className = 'primary-button compact';
+      open.type = 'button';
+      open.textContent = item.mode === 'subtitle' ? 'Ouvrir' : 'Lire';
+      open.addEventListener('click', () => openHistoryMedia(item));
+      const reveal = document.createElement('button');
+      reveal.className = 'secondary-button compact';
+      reveal.type = 'button';
+      reveal.textContent = 'Emplacement';
+      reveal.addEventListener('click', () => revealHistoryMedia(item));
+      actions.append(open, reveal);
+      body.append(actions);
+    }
+
+    row.append(artwork, body);
     refs.historyList.append(row);
   });
 }
@@ -695,6 +977,19 @@ function renderSubtitleResults(response) {
 }
 
 refs.navItems.forEach((item) => item.addEventListener('click', () => setView(item.dataset.viewTarget)));
+refs.homeAddLink.addEventListener('click', () => {
+  setView('download-view');
+  refs.url.focus();
+});
+refs.homeChooseFile.addEventListener('click', () => {
+  setView('subtitles-view');
+  refs.chooseSubtitleMedia.click();
+});
+refs.homeViewQueue.addEventListener('click', () => setView('download-view'));
+refs.performanceProfile.addEventListener('change', () => {
+  localStorage.setItem('agenfetch.performanceProfile', refs.performanceProfile.value);
+  if (!state.running) refs.progressNetwork.textContent = performanceLabel(refs.performanceProfile.value);
+});
 document.querySelectorAll('input[name="mode"]').forEach((input) => input.addEventListener('change', syncModeUi));
 refs.includeAutoSubtitles.addEventListener('change', () => {
   refs.youtubeSubtitleTracks.querySelectorAll('[data-automatic-only="true"]').forEach((input) => {
@@ -810,6 +1105,7 @@ refs.subtitleSearchForm.addEventListener('submit', async (event) => {
 refs.url.addEventListener('input', () => {
   refs.urlError.textContent = '';
   if (state.metadataUrl && state.metadataUrl !== extractUrls()[0]) clearMetadata();
+  syncDownloadCta();
   scheduleAutoPreview();
 });
 
@@ -823,6 +1119,7 @@ refs.paste.addEventListener('click', async () => {
     refs.url.focus();
     refs.urlError.textContent = '';
     clearMetadata();
+    syncDownloadCta();
     scheduleAutoPreview();
   } catch {
     showToast('Le presse-papiers est indisponible. Utilise Ctrl + V.', 'error');
@@ -862,14 +1159,18 @@ refs.form.addEventListener('submit', async (event) => {
 
   try {
     const payloads = buildPayloads();
+    const wasBusy = Boolean(state.queue.activeId);
     state.submitting = true;
     refs.start.disabled = true;
     await api.enqueueDownloads(payloads);
     refs.url.value = '';
     clearMetadata();
-    showToast(`${payloads.length} téléchargement${payloads.length > 1 ? 's' : ''} ajouté${payloads.length > 1 ? 's' : ''} à la file.`);
+    syncDownloadCta();
+    showToast(payloads.length > 1
+      ? `${payloads.length} téléchargements lancés et organisés automatiquement.`
+      : wasBusy ? 'Téléchargement ajouté à la suite.' : 'Téléchargement lancé.');
   } catch (error) {
-    refs.urlError.textContent = error.message || 'Impossible d’ajouter le téléchargement.';
+    refs.urlError.textContent = error.message || 'Impossible de lancer le téléchargement.';
     showToast(refs.urlError.textContent, 'error');
   } finally {
     state.submitting = false;
@@ -877,11 +1178,23 @@ refs.form.addEventListener('submit', async (event) => {
   }
 });
 
-refs.cancel.addEventListener('click', async () => {
+async function cancelCurrentDownload() {
   if (await api.cancelDownload()) {
     refs.progressTitle.textContent = 'Annulation en cours…';
   }
-});
+}
+
+async function pauseCurrentDownload() {
+  if (await api.pauseDownload()) {
+    refs.pause.disabled = true;
+    refs.cancel.disabled = true;
+    refs.progressTitle.textContent = 'Mise en pause…';
+    refs.progressPhase.textContent = 'Les données déjà reçues sont conservées';
+  }
+}
+
+refs.cancel.addEventListener('click', cancelCurrentDownload);
+refs.pause.addEventListener('click', pauseCurrentDownload);
 
 refs.toggleLog.addEventListener('click', () => {
   refs.log.hidden = !refs.log.hidden;
@@ -1111,20 +1424,25 @@ api.onDeepLink((payload) => {
   const modeInput = document.querySelector(`input[name="mode"][value="${payload.mode}"]`);
   if (modeInput) modeInput.checked = true;
   clearMetadata();
+  syncDownloadCta();
   syncModeUi();
   setView('download-view');
   refs.url.focus();
   inspectMetadata();
-  showToast('Lien reçu depuis YouTube. Vérifie les options puis ajoute-le à la file.');
+  showToast('Lien reçu depuis YouTube. Vérifie les options puis clique sur Télécharger.');
 });
 
 api.onQueueChanged(renderQueue);
 api.onProgress(updateProgress);
 api.onLog(({ line }) => appendLog(line));
 api.onFinished((result) => {
-  refs.activityDot.classList.toggle('is-error', !result.ok && !result.cancelled);
-  if (result.ok) {
-    updateProgress({ percent: 100, percentLabel: '100%', speed: '—', eta: '0s', downloaded: 'Terminé', total: '—' });
+  refs.activityDot.classList.toggle('is-error', !result.ok && !result.cancelled && !result.paused);
+  if (result.paused) {
+    refs.progressTitle.textContent = 'Téléchargement en pause';
+    refs.progressPhase.textContent = 'Reprends-le depuis la liste des téléchargements quand tu veux';
+    showToast('Téléchargement en pause. Les données partielles sont conservées.');
+  } else if (result.ok) {
+    updateProgress({ percent: 100, percentLabel: '100%', speed: '—', eta: '0s', downloaded: 'Terminé', total: '—', phase: 'merge', phaseLabel: 'Terminé' });
     refs.progressTitle.textContent = 'Téléchargement terminé';
     showToast('Téléchargement terminé. Le suivant démarrera automatiquement.');
   } else if (result.cancelled) {
@@ -1141,6 +1459,12 @@ async function initialize() {
     state.outputFolder = await api.getDefaultFolder();
   }
   refs.outputFolder.value = state.outputFolder;
+  const savedPerformanceProfile = localStorage.getItem('agenfetch.performanceProfile');
+  if (['eco', 'normal', 'turbo'].includes(savedPerformanceProfile)) {
+    refs.performanceProfile.value = savedPerformanceProfile;
+  }
+  refs.progressNetwork.textContent = performanceLabel(refs.performanceProfile.value);
+  syncDownloadCta();
   renderYoutubeSubtitleTracks([]);
   syncModeUi();
   renderQueue(await api.getQueue());
