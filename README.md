@@ -2,6 +2,8 @@
 
 AgenFetch est une application Windows locale qui pilote yt-dlp depuis une interface graphique. Son extension Chrome/Edge transmet la vidéo YouTube ouverte à l’application via le protocole `agenfetch://`.
 
+**Site :** https://agenfetch-desktop.lawrynnjennifer.workers.dev/
+
 > Utilise AgenFetch uniquement pour tes contenus, les contenus libres de droits ou ceux pour lesquels tu disposes d’une autorisation. Le projet ne contourne pas les DRM et ne demande ni compte, ni mot de passe, ni cookies YouTube.
 
 ## Version 0.3 — sous-titres multilingues
@@ -143,7 +145,9 @@ Un lancement manuel du workflow **Build Windows release** produit les mêmes fic
 
 ## Site vitrine
 
-Le dossier `website/` contient la landing page publique (Vite + React).
+Le dossier `website/` contient la landing page publique en Vite + React.
+
+**Production :** https://agenfetch-desktop.lawrynnjennifer.workers.dev/
 
 ```powershell
 cd website
@@ -151,12 +155,15 @@ npm install
 npm run dev
 ```
 
-Puis ouvre l’URL affichée (souvent `http://localhost:5173`). Un `npm run build` produit le site statique dans `website/dist`.
+Un `npm run build` produit le site statique dans `website/dist`.
 
-Le site est publié sur **Cloudflare Pages** (`agenfetch-desktop.pages.dev` une fois le projet créé). Deux options :
+La landing est déployée avec **Cloudflare Workers Static Assets**. Le fichier `website/wrangler.toml` publie le dossier `dist` et configure le fallback SPA.
 
-1. **GitHub Actions** (déjà dans le dépôt) : dans le dépôt GitHub, ajoute les secrets `CLOUDFLARE_API_TOKEN` (jeton *Edit Cloudflare Workers*) et `CLOUDFLARE_ACCOUNT_ID`, puis lance le workflow **Deploy website**.
-2. **Tableau Cloudflare** : Workers & Pages → Create → Pages → Import a Git repository → `EagleFox31/agenfetch-desktop`. Root directory `website`, build `npm run build`, output `dist`, variable `NODE_VERSION=22`.
+Après authentification Cloudflare, le déploiement peut être lancé depuis `website/` avec :
+
+```powershell
+npm run deploy
+```
 
 ## Structure
 
@@ -171,7 +178,7 @@ agenfetch-desktop/
 ├── src/renderer/       Interface Electron
 ├── subtitle-engine/    Sidecar Python optionnel films/séries
 ├── test/               Tests Node.js
-├── website/            Landing page Vite (déployée via Cloudflare Pages)
+├── website/            Landing Vite/React déployée sur Cloudflare Workers
 └── vendor/bin/         Binaires générés localement, non commités
 ```
 
