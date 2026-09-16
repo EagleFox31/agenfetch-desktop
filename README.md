@@ -6,7 +6,7 @@ AgenFetch est une application Windows locale qui pilote yt-dlp depuis une interf
 
 > Utilise AgenFetch uniquement pour tes contenus, les contenus libres de droits ou ceux pour lesquels tu disposes d’une autorisation. Le projet ne contourne pas les DRM et ne demande ni compte, ni mot de passe, ni cookies YouTube.
 
-## Version 0.3 — sous-titres multilingues
+## Version 0.3.1 — sous-titres multilingues
 
 - Installateur Windows x64 autonome.
 - yt-dlp, FFmpeg partagé, ffprobe et QuickJS-NG intégrés au paquet.
@@ -34,7 +34,7 @@ AgenFetch est une application Windows locale qui pilote yt-dlp depuis une interf
 Configuration minimale : Windows 10 ou 11, processeur x64.
 
 1. Ouvre la section **Releases** du dépôt.
-2. Télécharge `AgenFetch-Setup-0.3.0.exe`.
+2. Télécharge `AgenFetch-Setup-0.3.1.exe`.
 3. Lance l’installateur.
 4. Ouvre AgenFetch depuis le bureau ou le menu Démarrer.
 
@@ -57,7 +57,7 @@ L’extension reste optionnelle : AgenFetch fonctionne aussi en collant directem
 
 **Depuis la Release GitHub**
 
-1. Télécharge `AgenFetch-Extension-0.3.0.zip`.
+1. Télécharge `AgenFetch-Extension-0.3.1.zip`.
 2. Extrais l’archive, puis suis les mêmes étapes à partir de `chrome://extensions`.
 
 Le bouton **AgenFetch** apparaîtra sur les pages vidéo compatibles. Le navigateur demandera l’autorisation d’ouvrir l’application locale au premier clic.
@@ -134,14 +134,14 @@ Le script :
 Résultats :
 
 ```text
-release\AgenFetch-Setup-0.3.0.exe
-release\AgenFetch-Extension-0.3.0.zip
-release\AgenFetch-Subtitle-Engine-0.3.0.exe
-release\AgenFetch-Deno-Runtime-0.3.0.exe
+release\AgenFetch-Setup-0.3.1.exe
+release\AgenFetch-Extension-0.3.1.zip
+release\AgenFetch-Subtitle-Engine-0.3.1.exe
+release\AgenFetch-Deno-Runtime-0.3.1.exe
 release\SIZE-REPORT.json
 ```
 
-Un lancement manuel du workflow **Build Windows release** produit les mêmes fichiers comme artifact GitHub. La création du tag `v0.3.0` publie automatiquement une GitHub Release et `SHA256SUMS.txt`.
+Un lancement manuel du workflow **Build Windows release** produit les mêmes fichiers comme artifact GitHub. La création du tag `v0.3.1` publie automatiquement une GitHub Release et `SHA256SUMS.txt`.
 
 ## Site vitrine
 
