@@ -189,3 +189,9 @@ AgenFetch n’envoie aucune donnée vers un serveur AgenStudio. L’historique, 
 ## Licences
 
 Le code AgenFetch est sous licence MIT. Les composants redistribués conservent leurs licences. Consulte [docs/THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md).
+
+---
+
+<p align="center">
+  <sub>An AgenStudio project by <a href="https://github.com/EagleFox31">EagleFox31</a>.</sub>
+</p>
