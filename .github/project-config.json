@@ -1,0 +1,21 @@
+{
+  "project": {
+    "owner": "EagleFox31",
+    "title": "AgenFetch Development",
+    "bootstrap": true,
+    "template": "appfactory-product",
+    "linkRepository": true,
+    "importOpenIssues": true,
+    "createBoardView": true
+  },
+  "bootstrap": {
+    "boardViewName": "AgenFetch Board",
+    "phases": [
+      "Foundation",
+      "Download Engine",
+      "Provider Ecosystem",
+      "Desktop UX",
+      "Release Hardening"
+    ]
+  }
+}
