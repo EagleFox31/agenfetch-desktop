@@ -9,7 +9,19 @@ AgenFetch is the second live consumer for AppFactory Repository Governance V1. T
 - target: the repository's symbolic default branch
 - workflow: manual `plan` / `apply` for initial adoption and diagnostics
 
-The workflow is pinned to the exact pre-release candidate so the validation cannot change underneath a run. It must move to `EagleFox31/appfactory-project-automation@v1` only after Repository Governance V1 is released.
+The initial workflow was pinned to the exact pre-release candidate so the validation could not change underneath a run.
+
+## Continuous operation
+
+After successful manual adoption, AgenFetch opts into AppFactory continuous reconciliation from commit `1a5e2b3e996cff77c631235c6dfd42ca710eecb1`. The governance workflow:
+
+- automatically applies approved governance config or workflow changes when they reach the default branch;
+- runs daily at **03:17 UTC** to repair out-of-band drift;
+- retains manual `plan` / `apply` for diagnostics;
+- serializes governance writes through the shared reusable workflow;
+- cannot enter Project automation, merge pull requests or create releases.
+
+The reusable workflow and Action runtime are both pinned to the same immutable candidate until Repository Governance V1 is released, then they move to `@v1`.
 
 ## Baseline before governance
 
