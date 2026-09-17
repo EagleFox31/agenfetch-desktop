@@ -8,6 +8,12 @@
     "importOpenIssues": true,
     "createBoardView": true
   },
+  "repository": {
+    "governance": {
+      "enabled": true,
+      "preset": "solo"
+    }
+  },
   "bootstrap": {
     "boardViewName": "AgenFetch Board",
     "phases": [
