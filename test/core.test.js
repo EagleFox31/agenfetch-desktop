@@ -533,7 +533,9 @@ test('repère l’installateur et les checksums GitHub', () => {
   assert.equal(parseChecksums('abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabca  AgenFetch-Setup-0.3.0.exe\n').get('AgenFetch-Setup-0.3.0.exe').length, 64);
   assert.equal(isAllowedDownloadUrl(assets[1].browser_download_url), true);
   assert.equal(isAllowedDownloadUrl('https://evil.example/setup.exe'), false);
+  assert.equal(isAllowedWebsiteUrl('https://agenfetch-desktop.lawrynnjennifer.workers.dev/'), true);
   assert.equal(isAllowedWebsiteUrl('https://eaglefox31.github.io/agenfetch-desktop/#download'), true);
+  assert.equal(isAllowedWebsiteUrl('https://evil.example/agenfetch-desktop/'), false);
   assert.equal(formatBytes(1536), '1.5 Ko');
 });
 
