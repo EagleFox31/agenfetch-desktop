@@ -108,6 +108,11 @@ jobs:
         working-directory: release
         run: sha256sum AgenFetch-Setup-*.exe AgenFetch-Extension-*.zip AgenFetch-Subtitle-Engine-*.exe AgenFetch-Deno-Runtime-*.exe > SHA256SUMS.txt
 
+      - name: Record source commit
+        working-directory: release
+        shell: bash
+        run: printf '%s\n' "$GITHUB_SHA" > SOURCE-COMMIT.txt
+
       - name: Upload verified release bundle
         uses: actions/upload-artifact@v4
         with:
@@ -116,7 +121,7 @@ jobs:
           if-no-files-found: error
 
   publish-release:
-    if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.publish_release) || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.publish_release)
     needs: bundle-release
     runs-on: ubuntu-latest
     permissions:
@@ -142,21 +147,58 @@ jobs:
           name: AgenFetch-Windows-${{ github.run_number }}
           path: release
 
-      - name: Publish GitHub Release
+      - name: Validate immutable release identity
+        id: identity
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || steps.release.outputs.tag }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./package.json').version")
+          expected_tag="v$version"
+
+          if [ "$RELEASE_TAG" != "$expected_tag" ]; then
+            echo "Release tag $RELEASE_TAG does not match package version $version (expected $expected_tag)." >&2
+            exit 1
+          fi
+
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists. Published releases are immutable; bump the product version instead of replacing assets." >&2
+            exit 1
+          fi
+
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Publish immutable GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || steps.release.outputs.tag }}
+          RELEASE_TAG: ${{ steps.identity.outputs.tag }}
         run: |
+          set -euo pipefail
           shopt -s nullglob
-          assets=(release/AgenFetch-Setup-*.exe release/AgenFetch-Extension-*.zip release/AgenFetch-Subtitle-Engine-*.exe release/AgenFetch-Deno-Runtime-*.exe release/SHA256SUMS.txt release/SIZE-REPORT.json)
-          if [ ${#assets[@]} -lt 6 ]; then
+          assets=(release/AgenFetch-Setup-*.exe release/AgenFetch-Extension-*.zip release/AgenFetch-Subtitle-Engine-*.exe release/AgenFetch-Deno-Runtime-*.exe release/SHA256SUMS.txt release/SIZE-REPORT.json release/SOURCE-COMMIT.txt)
+          if [ ${#assets[@]} -lt 7 ]; then
             echo "Missing release assets" >&2
             ls -la release || true
             exit 1
           fi
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
+
+          if startsWithTagEvent=false; then :; fi
+          if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
+            git rev-parse "refs/tags/$RELEASE_TAG" >/dev/null 2>&1 || {
+              echo "Expected Git tag $RELEASE_TAG is missing." >&2
+              exit 1
+            }
+            gh release create "$RELEASE_TAG" "${assets[@]}" \
+              --verify-tag \
+              --generate-notes \
+              --title "AgenFetch $RELEASE_TAG"
           else
+            if git rev-parse "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+              echo "Tag $RELEASE_TAG already exists. Manual publication must use a fresh version." >&2
+              exit 1
+            fi
             gh release create "$RELEASE_TAG" "${assets[@]}" \
               --target "$GITHUB_SHA" \
               --generate-notes \
