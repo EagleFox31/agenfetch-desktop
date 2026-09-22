@@ -4,10 +4,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 
-const GITHUB_OWNER = 'EagleFox31';
-const GITHUB_REPO = 'agenfetch-desktop';
+const { PRODUCT } = require('./product-config');
+
+const GITHUB_OWNER = PRODUCT.githubOwner;
+const GITHUB_REPO = PRODUCT.githubRepo;
 const GITHUB_API_LATEST = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
-const WEBSITE_URL = `https://${GITHUB_OWNER.toLowerCase()}.github.io/${GITHUB_REPO}/#download`;
+const WEBSITE_URL = PRODUCT.websiteUrl;
 const RELEASES_URL = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
 const SETUP_NAME = /^AgenFetch-Setup-[\w.-]+\.exe$/i;
 const USER_AGENT = 'AgenFetch-Desktop';
@@ -66,11 +68,21 @@ function isAllowedWebsiteUrl(value) {
   try {
     const parsed = new URL(value);
     if (parsed.protocol !== 'https:') return false;
+
+    const canonical = new URL(WEBSITE_URL);
+    if (parsed.origin === canonical.origin) {
+      const canonicalPath = canonical.pathname.endsWith('/')
+        ? canonical.pathname
+        : `${canonical.pathname}/`;
+      return parsed.pathname === canonical.pathname || parsed.pathname.startsWith(canonicalPath);
+    }
+
     const host = parsed.hostname.toLowerCase();
     const repoPath = `/${GITHUB_OWNER}/${GITHUB_REPO}`.toLowerCase();
     if (host === 'github.com') {
       return parsed.pathname.toLowerCase().startsWith(repoPath);
     }
+
     return host === `${GITHUB_OWNER.toLowerCase()}.github.io`
       && parsed.pathname.toLowerCase().startsWith(`/${GITHUB_REPO}`.toLowerCase());
   } catch {
