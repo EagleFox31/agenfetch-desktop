@@ -11,9 +11,10 @@
   },
   "scripts": {
     "start": "electron .",
-    "test": "node --test",
+    "test": "npm run check:product && node --test",
     "prepare:runtime:win": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/fetch-runtime-tools.ps1",
-    "dist:win": "npm run prepare:runtime:win && electron-builder --win nsis --x64 --publish never"
+    "dist:win": "npm run prepare:runtime:win && electron-builder --win nsis --x64 --publish never",
+    "check:product": "node scripts/check-product-consistency.mjs"
   },
   "devDependencies": {
     "electron": "44.0.0",
@@ -65,6 +66,17 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "AgenFetch"
+    }
+  },
+  "homepage": "https://agenfetch-desktop.lawrynnjennifer.workers.dev/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EagleFox31/agenfetch-desktop.git"
+  },
+  "agenfetch": {
+    "github": {
+      "owner": "EagleFox31",
+      "repo": "agenfetch-desktop"
     }
   }
 }
