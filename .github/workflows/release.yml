@@ -184,7 +184,6 @@ jobs:
             exit 1
           fi
 
-          if startsWithTagEvent=false; then :; fi
           if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
             git rev-parse "refs/tags/$RELEASE_TAG" >/dev/null 2>&1 || {
               echo "Expected Git tag $RELEASE_TAG is missing." >&2
