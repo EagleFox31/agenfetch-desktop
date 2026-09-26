@@ -1,0 +1,21 @@
+{
+  "name": "agenfetch-release-video-poc",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "render": "remotion render index.ts AgenFetchRelease-v031 out/agenfetch-v0.3.1-vertical.mp4 --codec=h264 --crf=20 --concurrency=2"
+  },
+  "dependencies": {
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "remotion": "4.0.528"
+  },
+  "devDependencies": {
+    "@remotion/cli": "4.0.528",
+    "@types/react": "19.1.13",
+    "@types/react-dom": "19.1.9",
+    "typescript": "5.8.3"
+  }
+}

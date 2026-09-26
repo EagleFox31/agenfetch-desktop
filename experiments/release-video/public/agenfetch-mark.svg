@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">AgenFetch</title>
+  <desc id="desc">Flèche de téléchargement abstraite formant la lettre A.</desc>
+  <defs>
+    <linearGradient id="bg" x1="24" y1="18" x2="232" y2="238" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#173E48"/>
+      <stop offset="1" stop-color="#0A2027"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="72" y1="52" x2="190" y2="201" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#35D6C9"/>
+      <stop offset="1" stop-color="#B33E68"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="64" fill="url(#bg)"/>
+  <path d="M128 42 54 184h34l15-31h50l15 31h34L128 42Zm0 61 17 35h-34l17-35Z" fill="#F8F4EC"/>
+  <path d="M128 72v76m0 0-25-25m25 25 25-25" fill="none" stroke="url(#accent)" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M76 203h104" stroke="#35D6C9" stroke-width="12" stroke-linecap="round"/>
+</svg>
