@@ -97,11 +97,11 @@
       },
       {
         "label": "Source",
-        "href": "src/core/"
+        "href": "#local-handoff"
       },
       {
         "label": "Extension",
-        "href": "extension/"
+        "href": "#local-handoff"
       }
     ]
   }
