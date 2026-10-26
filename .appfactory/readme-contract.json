@@ -94,14 +94,6 @@
       {
         "label": "Install",
         "href": "#installation-map"
-      },
-      {
-        "label": "Source",
-        "href": "#local-handoff"
-      },
-      {
-        "label": "Extension",
-        "href": "#local-handoff"
       }
     ]
   }
