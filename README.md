@@ -1,4 +1,39 @@
-# AgenFetch Desktop + Extension
+<!-- appfactory:hero:start -->
+<div align="center">
+
+# AgenFetch Desktop
+
+### Authorized media downloads. Controlled on your PC.
+
+**Windows-first desktop downloader with an optional Chrome/Edge handoff, local yt-dlp execution and multilingual subtitle tools.**
+
+[![Stage: Beta](https://img.shields.io/badge/Stage-Beta-0969da)](#scope-and-limits)
+[![Platform: Windows](https://img.shields.io/badge/Platform-Windows-263238)](#local-handoff)
+
+[**Workflow**](#local-handoff) · [**Scope**](#scope-and-limits) · [**Install**](#installation-map) · [**Source**](src/core/) · [**Extension**](extension/)
+
+</div>
+
+---
+<!-- appfactory:hero:end -->
+
+## Local handoff
+
+```text
+Authorized media URL → Chrome/Edge extension (optional)
+→ agenfetch:// protocol → Electron desktop queue
+→ yt-dlp / FFmpeg → user-selected local folder
+```
+
+The extension transfers an active YouTube URL to the installed local application. Users can also paste their own authorized links without an extension. [Core engine](src/core/) · [Browser companion](extension/).
+
+## Scope and limits
+
+**Beta.** Use AgenFetch only with media for which downloading is permitted. The app does not bypass DRM, does not require YouTube credentials and does not guarantee that every provider will remain supported. Unsigned beta installers can trigger Windows SmartScreen. Third-party notices and checksum checks remain essential.
+
+## Installation map
+
+A Windows installer bundles the required core utilities; optional subtitle or runtime components have separate consent and validation paths. The exact installation and packaging steps follow below.
 
 AgenFetch est une application Windows locale qui pilote yt-dlp depuis une interface graphique. Son extension Chrome/Edge transmet la vidéo YouTube ouverte à l’application via le protocole `agenfetch://`.
 
