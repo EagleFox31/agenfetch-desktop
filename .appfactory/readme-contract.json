@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "name": "AgenFetch Desktop",
+  "stage": "beta",
+  "tagline": "Windows local media downloader with optional browser extension and subtitle integration.",
+  "problem": "Media downloading and conversion should be managed with explicit user consent, local tooling and truthful limits rather than collecting credentials through hosted intermediaries.",
+  "scenario": "An authorized media URL entered directly or handed off from a Chrome/Edge extension opens in the local desktop download queue using the agenfetch:// protocol.",
+  "differentiation": "The browser extension passes only a page URL to the installed app, while yt-dlp and optional subtitle integrations run under local user control with documented third-party boundaries.",
+  "architecture": "Manifest V3 browser extension -> agenfetch:// OS protocol -> Electron desktop queue -> yt-dlp and FFmpeg -> user-selected filesystem output.",
+  "limitations": "The beta does not bypass DRM or guarantee provider compatibility; users must have rights to download media and manually verify release integrity when installers are unsigned.",
+  "capabilities": [
+    {
+      "name": "Local downloader",
+      "description": "Desktop engine and queue processing of approved media downloads.",
+      "status": "shipped",
+      "evidence": "src/core/"
+    },
+    {
+      "name": "Browser handoff",
+      "description": "Optional local extension for Chrome and Edge via OS URL protocol.",
+      "status": "shipped",
+      "evidence": "extension/"
+    },
+    {
+      "name": "Windows release package",
+      "description": "Documented Windows executable packaging and checksum generation.",
+      "status": "shipped",
+      "evidence": "scripts/build-windows.ps1"
+    }
+  ],
+  "roadmap": [
+    {
+      "name": "Installer validation",
+      "exitCriteria": "Verify release hashes and unsigned installer behavior on supported clean Windows machines."
+    },
+    {
+      "name": "Extension boundaries",
+      "exitCriteria": "Test protocol handoff without leaking browser credentials or private tabs."
+    }
+  ],
+  "references": [
+    {
+      "name": "AppFactory README quality",
+      "url": "https://github.com/Trigenys/appfactory/blob/main/docs/product-readme-contract.md",
+      "relevance": "Read-only audit for reusable, evidence-based product documentation."
+    }
+  ],
+  "requiredHeadings": [
+    "Local handoff",
+    "Scope and limits",
+    "Installation map",
+    "Installer AgenFetch"
+  ],
+  "requiredTerms": [
+    "Windows",
+    "yt-dlp",
+    "extension",
+    "subtitles",
+    "local"
+  ],
+  "requiredFiles": [
+    "src/core/",
+    "extension/",
+    "scripts/build-windows.ps1",
+    "docs/THIRD_PARTY_NOTICES.md"
+  ],
+  "presentation": {
+    "variant": "centered",
+    "headline": "Authorized media downloads. Controlled on your PC.",
+    "summary": "Windows-first desktop downloader with an optional Chrome/Edge handoff, local yt-dlp execution and multilingual subtitle tools.",
+    "badges": [
+      {
+        "label": "Stage",
+        "value": "Beta",
+        "color": "0969da",
+        "href": "#scope-and-limits"
+      },
+      {
+        "label": "Platform",
+        "value": "Windows",
+        "color": "263238",
+        "href": "#local-handoff"
+      }
+    ],
+    "navigation": [
+      {
+        "label": "Workflow",
+        "href": "#local-handoff"
+      },
+      {
+        "label": "Scope",
+        "href": "#scope-and-limits"
+      },
+      {
+        "label": "Install",
+        "href": "#installation-map"
+      }
+    ]
+  }
+}
