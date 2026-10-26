@@ -10,7 +10,7 @@
 [![Stage: Beta](https://img.shields.io/badge/Stage-Beta-0969da)](#scope-and-limits)
 [![Platform: Windows](https://img.shields.io/badge/Platform-Windows-263238)](#local-handoff)
 
-[**Workflow**](#local-handoff) · [**Scope**](#scope-and-limits) · [**Install**](#installation-map) · [**Source**](src/core/) · [**Extension**](extension/)
+[**Workflow**](#local-handoff) · [**Scope**](#scope-and-limits) · [**Install**](#installation-map) · [**Source**](#local-handoff) · [**Extension**](#local-handoff)
 
 </div>
 
