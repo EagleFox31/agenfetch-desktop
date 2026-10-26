@@ -10,7 +10,7 @@
 [![Stage: Beta](https://img.shields.io/badge/Stage-Beta-0969da)](#scope-and-limits)
 [![Platform: Windows](https://img.shields.io/badge/Platform-Windows-263238)](#local-handoff)
 
-[**Workflow**](#local-handoff) · [**Scope**](#scope-and-limits) · [**Install**](#installation-map) · [**Source**](#local-handoff) · [**Extension**](#local-handoff)
+[**Workflow**](#local-handoff) · [**Scope**](#scope-and-limits) · [**Install**](#installation-map)
 
 </div>
 
@@ -25,7 +25,7 @@ Authorized media URL → Chrome/Edge extension (optional)
 → yt-dlp / FFmpeg → user-selected local folder
 ```
 
-The extension transfers an active YouTube URL to the installed local application. Users can also paste their own authorized links without an extension. [Core engine](src/core/) · [Browser companion](extension/).
+The extension transfers an active YouTube URL to the installed local application. Users can also paste their own authorized links without an extension. [Core engine](src/core/) · [Windows build script](scripts/build-windows.ps1) · [Browser companion](extension/).
 
 ## Scope and limits
 
